@@ -3,7 +3,7 @@
 .main-layout{
     display: grid;
     grid-template-areas:
-    "header header"
+    "sidebar header"
     "sidebar main";
 
     grid-template-columns: 260px 1fr;

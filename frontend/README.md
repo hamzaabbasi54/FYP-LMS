@@ -99,7 +99,7 @@ Contains reusable, generic components used throughout the application:
 
 **`components/layout/`** - Layout Components
 Contains layout wrapper components that provide structure to pages:
-- **MainLayout**: Default layout with header, sidebar, footer
+- **AdminMainLayout**: Default layout with header, sidebar, footer
 - **AuthLayout**: Layout for authentication pages (login, register) - usually centered, no sidebar
 - **DashboardLayout**: Layout for dashboard pages with sidebar navigation
 - **EmptyLayout**: Minimal layout for specific pages that need no header/footer
@@ -116,10 +116,10 @@ Contains top-level page components that correspond to routes in your application
 - Each file represents a route/page in your app
 - These are the main screens users see when navigating
 - Pages can use layouts and common components
-- Usually named after the route (e.g., `Home.jsx`, `Login.jsx`, `Dashboard.jsx`)
+- Usually named after the route (e.g., `Dashboard.jsx`, `Login.jsx`, `Dashboard.jsx`)
 
 **Example files:**
-- `Home.jsx` - Home page component
+- `Dashboard.jsx` - Dashboard page component
 - `Login.jsx` - Login page component
 - `Register.jsx` - Registration page component
 - `Dashboard.jsx` - Dashboard page component

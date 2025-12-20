@@ -1,9 +1,9 @@
 import React from 'react';
 import { Outlet } from "react-router-dom";
-import Sidebar from '../common/Sidebar';
-import Navbar from '../common/Navbar';
+import Sidebar from '../../common/admin/Sidebar.jsx';
+import Navbar from '../../common/admin/Navbar.jsx';
 import './mainlayout.css';
-const MainLayout = () => {
+const AdminMainLayout = () => {
     return (
        <div className= "main-layout">
            <div className="sidebar">
@@ -23,4 +23,4 @@ const MainLayout = () => {
     );
 };
 
-export default MainLayout;
+export default AdminMainLayout;
