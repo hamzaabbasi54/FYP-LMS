@@ -9,6 +9,7 @@ import Reports from "./pages/admin-pages/Reports.jsx";
 import ManageCourses from "./pages/admin-pages/ManageCourses.jsx";
 import Settings from "./pages/admin-pages/Settings.jsx";
 import AddCourses from "./pages/admin-pages/AddCourses.jsx";
+import AddFaculty from './pages/admin-pages/AddFaculty.jsx';
 function App() {
     return (
         <Routes>
@@ -16,9 +17,13 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/admin-courseassignment" element={<CourseAssignment />} />
                 <Route path="/admin-managebatches" element={<ManageBatches />} />
+
                 <Route path="/admin-managefaculty" element={<ManageFaculty />} />
+                <Route path="/admin-managefaculty/addfaculty" element={<AddFaculty />} />
+
                 <Route path="/admin-reports" element={<Reports/>} />
                 <Route path="/admin-settings" element={<Settings />} />
+
                 <Route path="/admin-managecourses" element={<ManageCourses />} />
                 <Route path="/admin-managecourses/admin-addcourses" element={<AddCourses />} />
 
