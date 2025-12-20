@@ -10,13 +10,22 @@ import ManageCourses from "./pages/admin-pages/ManageCourses.jsx";
 import Settings from "./pages/admin-pages/Settings.jsx";
 import AddCourses from "./pages/admin-pages/AddCourses.jsx";
 import AddFaculty from './pages/admin-pages/AddFaculty.jsx';
+import AddBatch from './pages/admin-pages/AddBatch.jsx';
+import BatchDetails from "./pages/admin-pages/BatchDetails.jsx";
+import StudentsList from './pages/admin-pages/StudentsList.jsx';
+import SemesterCourses from "./pages/admin-pages/SemesterCourses.jsx";
 function App() {
     return (
         <Routes>
             <Route element={<AdminMainLayout />}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/admin-courseassignment" element={<CourseAssignment />} />
+
                 <Route path="/admin-managebatches" element={<ManageBatches />} />
+                <Route path="/admin-managebatches/addbatch" element={<AddBatch />} />
+                <Route path="/admin-managebatches/:id" element={<BatchDetails />} />
+                <Route path="/admin-managebatches/:id/students" element={<StudentsList />} />
+                <Route path="/admin-managebatches/:id/semester/:semesterId" element={<SemesterCourses />} />
 
                 <Route path="/admin-managefaculty" element={<ManageFaculty />} />
                 <Route path="/admin-managefaculty/addfaculty" element={<AddFaculty />} />
