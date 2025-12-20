@@ -1,30 +1,23 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-// Ensure you have a user image or use a placeholder
 // import userImage from '../assets/user.png';
 
 const Navbar = () => {
     const location = useLocation();
 
     const getPageTitle = (pathname) => {
-        switch (pathname) {
-            case '/':
-                return 'Admin Dashboard';
-            case '/admin-managebatches':
-                return 'Manage Batches';
-            case '/admin-courseassignment':
-                return 'Course Assignment';
-            case '/admin-managecourses':
-                return 'Manage Courses';
-            case '/admin-managefaculty':
-                return 'Manage Faculty';
-            case '/admin-reports':
-                return 'Reports';
-            case '/admin-settings':
-                return 'Settings';
-            default:
-                return 'Admin Dashboard';
-        }
+        // We use 'startsWith' or 'includes' so sub-pages (like /add)
+        // still show the correct Parent Title.
+        if (pathname === '/') return 'Admin Dashboard';
+
+        if (pathname.includes('/admin-managebatches')) return 'Manage Batches';
+        if (pathname.includes('/admin-courseassignment')) return 'Course Assignment';
+        if (pathname.includes('/admin-managecourses')) return 'Manage Courses';
+        if (pathname.includes('/admin-managefaculty')) return 'Manage Faculty';
+        if (pathname.includes('/admin-reports')) return 'Reports';
+        if (pathname.includes('/admin-settings')) return 'Settings';
+
+        return 'Admin Dashboard'; // Default
     };
 
     const currentTitle = getPageTitle(location.pathname);
