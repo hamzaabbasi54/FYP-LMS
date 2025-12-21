@@ -131,6 +131,7 @@ const MyCourses = () => {
                         iconColor="text-purple-600"
                         buttonColor="text-purple-600"
                         iconBgColor="bg-purple-50"
+                        to="/faculty-mycourses/grading"
                     />
                 </div>
             </div>
