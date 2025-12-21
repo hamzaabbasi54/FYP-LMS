@@ -16,6 +16,8 @@ import StudentsList from './pages/admin-pages/StudentsList.jsx';
 import SemesterCourses from "./pages/admin-pages/SemesterCourses.jsx";
 import FacultyMainLayout from "./components/layout/faculty/FacultyMainLayout.jsx";
 import FacultyDashboard from "./pages/faculty-pages/Dashboard.jsx";
+import MyCourses from "./pages/faculty-pages/MyCourses.jsx";
+import EditSyllabus from "./pages/faculty-pages/EditSyllabus.jsx";
 function App() {
     return (
         <Routes>
@@ -44,6 +46,8 @@ function App() {
             {/* Faculty Routes */}
             <Route element={<FacultyMainLayout />}>
                 <Route path="/faculty-dashboard" element={<FacultyDashboard />} />
+                <Route path="/faculty-mycourses" element={<MyCourses />} />
+                <Route path="/faculty-mycourses/edit-syllabus" element={<EditSyllabus />} />
             </Route>
         </Routes>
     );

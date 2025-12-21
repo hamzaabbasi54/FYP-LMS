@@ -1,5 +1,6 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
+import { MdSearch, MdNotifications, MdChevronRight } from 'react-icons/md';
 
 const Navbar = () => {
     const location = useLocation();
@@ -19,35 +20,70 @@ const Navbar = () => {
     };
 
     const currentTitle = getPageTitle(location.pathname);
+    const isMyCoursesPage = location.pathname.includes('/faculty-mycourses') && !location.pathname.includes('/edit-syllabus');
+    const isEditSyllabusPage = location.pathname.includes('/edit-syllabus');
 
     return (
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center h-full px-4 sm:px-6 lg:px-8 bg-white border-b py-3 sm:py-0">
-            {/* Dynamic Title */}
-            <div className="mb-3 sm:mb-0">
-                <h1 className="text-lg sm:text-xl font-bold text-gray-800">
-                    {currentTitle}
-                </h1>
-                {currentTitle === 'Overview' && (
-                    <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                        Welcome back, Professor Doe. Manage your active batches.
-                    </p>
-                )}
-            </div>
-
-            {/* Search and Profile Section */}
-            <div className="flex items-center space-x-3 sm:space-x-6">
-                <div className="relative flex-1 sm:flex-initial">
-                    <input
-                        type="text"
-                        placeholder="Search courses or students..."
-                        className="bg-gray-100 text-sm rounded-full px-4 py-2 w-full sm:w-64 lg:w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+        <div className="flex flex-col h-full bg-white border-b">
+            {/* Top Section: Title/Breadcrumbs and Search */}
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center px-4 sm:px-6 lg:px-8 py-3 sm:py-4 gap-3 sm:gap-4">
+                {/* Left Side - Title or Breadcrumbs */}
+                <div className="flex-1">
+                    {isMyCoursesPage ? (
+                        // Breadcrumbs for My Courses page
+                        <div className="flex items-center text-sm text-gray-500">
+                            <Link to="/faculty-dashboard" className="hover:text-blue-600 transition-colors">
+                                Dashboard
+                            </Link>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+                            <span className="text-gray-400">Batch 2023-2027</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+                            <span className="text-gray-700 font-medium">CS-101</span>
+                        </div>
+                    ) : isEditSyllabusPage ? (
+                        // Breadcrumbs for Edit Syllabus page
+                        <div className="flex flex-wrap items-center text-sm text-gray-500 gap-2">
+                            <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
+                                Courses
+                            </Link>
+                            <MdChevronRight className="w-4 h-4 text-gray-400" />
+                            <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">
+                                CS-101: Introduction to Programming
+                            </span>
+                            <MdChevronRight className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-700 font-medium">Edit Syllabus</span>
+                        </div>
+                    ) : (
+                        // Regular title for other pages
+                        <div>
+                            <h1 className="text-lg sm:text-xl font-bold text-gray-800">
+                                {currentTitle}
+                            </h1>
+                            {currentTitle === 'Overview' && (
+                                <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                                    Welcome back, Professor Doe. Manage your active batches.
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </div>
 
-                <button className="relative text-gray-500 hover:text-blue-600 flex-shrink-0">
-                    <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 transform translate-x-1/2 -translate-y-1/2 ring-2 ring-white"></span>
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-                </button>
+                {/* Right Side - Search and Notifications */}
+                <div className="flex items-center space-x-3 sm:space-x-4">
+                    <div className="relative">
+                        <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                            type="text"
+                            placeholder={isMyCoursesPage || isEditSyllabusPage ? "Search..." : "Search courses or students..."}
+                            className="bg-gray-100 text-sm rounded-full pl-10 pr-4 py-2 w-full sm:w-64 lg:w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+
+                    <button className="relative text-gray-500 hover:text-blue-600 flex-shrink-0">
+                        <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 transform translate-x-1/2 -translate-y-1/2 ring-2 ring-white"></span>
+                        <MdNotifications className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </button>
+                </div>
             </div>
         </div>
     );
