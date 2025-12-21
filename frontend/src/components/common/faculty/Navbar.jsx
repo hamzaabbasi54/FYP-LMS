@@ -21,8 +21,9 @@ const Navbar = () => {
 
     const currentTitle = getPageTitle(location.pathname);
     const isBatchCoursesPage = location.pathname.includes('/faculty-batch/');
-    const isMyCoursesPage = location.pathname.includes('/faculty-mycourses') && !location.pathname.includes('/edit-syllabus');
+    const isMyCoursesPage = location.pathname.includes('/faculty-mycourses') && !location.pathname.includes('/edit-syllabus') && !location.pathname.includes('/register-student');
     const isEditSyllabusPage = location.pathname.includes('/edit-syllabus');
+    const isRegisterStudentPage = location.pathname.includes('/register-student');
     const isAttendancePage = location.pathname.includes('/faculty-attendance') && !location.pathname.includes('/monthly-report');
     const isMonthlyReportPage = location.pathname.includes('/monthly-report');
 
@@ -110,7 +111,7 @@ const Navbar = () => {
                         <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
                             type="text"
-                            placeholder={isBatchCoursesPage ? "Search courses in this batch..." : isMyCoursesPage || isEditSyllabusPage || isAttendancePage || isMonthlyReportPage ? "Search..." : "Search courses or students..."}
+                            placeholder={isBatchCoursesPage ? "Search courses in this batch..." : isMyCoursesPage || isEditSyllabusPage || isRegisterStudentPage || isAttendancePage || isMonthlyReportPage ? "Search..." : "Search courses or students..."}
                             className="bg-gray-100 text-sm rounded-full pl-10 pr-4 py-2 w-full sm:w-64 lg:w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>

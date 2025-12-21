@@ -72,13 +72,22 @@ const MyCourses = () => {
                     {/* Right Side - Action Buttons and Student Count */}
                     <div className="flex flex-col items-start lg:items-end gap-4">
                         {/* Action Buttons */}
-                        <Link
-                            to="/faculty-mycourses/edit-syllabus"
-                            className="flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
-                        >
-                            <MdEdit className="w-4 h-4 mr-2" />
-                            Edit Syllabus
-                        </Link>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <Link
+                                to="/faculty-mycourses/register-student"
+                                className="flex items-center justify-center bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
+                            >
+                                <MdPeople className="w-4 h-4 mr-2" />
+                                Add Student
+                            </Link>
+                            <Link
+                                to="/faculty-mycourses/edit-syllabus"
+                                className="flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
+                            >
+                                <MdEdit className="w-4 h-4 mr-2" />
+                                Edit Syllabus
+                            </Link>
+                        </div>
 
                         {/* Student Count */}
                         <div className="flex items-center text-gray-600 text-sm">
