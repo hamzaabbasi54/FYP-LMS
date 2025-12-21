@@ -21,6 +21,7 @@ import EditSyllabus from "./pages/faculty-pages/EditSyllabus.jsx";
 import BatchCourses from "./pages/faculty-pages/BatchCourses.jsx";
 import Attendance from "./pages/faculty-pages/Attendance.jsx";
 import MonthlyReport from "./pages/faculty-pages/MonthlyReport.jsx";
+import RegisterStudent from "./pages/faculty-pages/RegisterStudent.jsx";
 function App() {
     return (
         <Routes>
@@ -54,6 +55,7 @@ function App() {
                 <Route path="/faculty-mycourses/edit-syllabus" element={<EditSyllabus />} />
                 <Route path="/faculty-attendance" element={<Attendance />} />
                 <Route path="/faculty-attendance/monthly-report" element={<MonthlyReport />} />
+                <Route path="/faculty-mycourses/register-student" element={<RegisterStudent />} />
             </Route>
         </Routes>
     );
