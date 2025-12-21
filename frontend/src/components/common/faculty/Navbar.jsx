@@ -20,8 +20,11 @@ const Navbar = () => {
     };
 
     const currentTitle = getPageTitle(location.pathname);
+    const isBatchCoursesPage = location.pathname.includes('/faculty-batch/');
     const isMyCoursesPage = location.pathname.includes('/faculty-mycourses') && !location.pathname.includes('/edit-syllabus');
     const isEditSyllabusPage = location.pathname.includes('/edit-syllabus');
+    const isAttendancePage = location.pathname.includes('/faculty-attendance') && !location.pathname.includes('/monthly-report');
+    const isMonthlyReportPage = location.pathname.includes('/monthly-report');
 
     return (
         <div className="flex flex-col h-full bg-white border-b">
@@ -29,7 +32,18 @@ const Navbar = () => {
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center px-4 sm:px-6 lg:px-8 py-3 sm:py-4 gap-3 sm:gap-4">
                 {/* Left Side - Title or Breadcrumbs */}
                 <div className="flex-1">
-                    {isMyCoursesPage ? (
+                    {isBatchCoursesPage ? (
+                        // Breadcrumbs for Batch Courses page
+                        <div className="flex items-center text-sm text-gray-500">
+                            <Link to="/faculty-dashboard" className="hover:text-blue-600 transition-colors">
+                                Dashboard
+                            </Link>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+                            <span className="text-gray-400">Batches Taught</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+                            <span className="text-gray-700 font-medium">Batch 2023-2027</span>
+                        </div>
+                    ) : isMyCoursesPage ? (
                         // Breadcrumbs for My Courses page
                         <div className="flex items-center text-sm text-gray-500">
                             <Link to="/faculty-dashboard" className="hover:text-blue-600 transition-colors">
@@ -39,6 +53,28 @@ const Navbar = () => {
                             <span className="text-gray-400">Batch 2023-2027</span>
                             <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
                             <span className="text-gray-700 font-medium">CS-101</span>
+                        </div>
+                    ) : isMonthlyReportPage ? (
+                        // Breadcrumbs for Monthly Report page
+                        <div className="flex items-center text-sm text-gray-500">
+                            <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
+                                My Courses
+                            </Link>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+                            <span className="text-gray-400">CS-101</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+                            <span className="text-gray-700 font-medium">Monthly Report</span>
+                        </div>
+                    ) : isAttendancePage ? (
+                        // Breadcrumbs for Attendance page
+                        <div className="flex items-center text-sm text-gray-500">
+                            <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
+                                My Courses
+                            </Link>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+                            <span className="text-gray-400">CS-101</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+                            <span className="text-gray-700 font-medium">Attendance</span>
                         </div>
                     ) : isEditSyllabusPage ? (
                         // Breadcrumbs for Edit Syllabus page
@@ -74,7 +110,7 @@ const Navbar = () => {
                         <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
                             type="text"
-                            placeholder={isMyCoursesPage || isEditSyllabusPage ? "Search..." : "Search courses or students..."}
+                            placeholder={isBatchCoursesPage ? "Search courses in this batch..." : isMyCoursesPage || isEditSyllabusPage || isAttendancePage || isMonthlyReportPage ? "Search..." : "Search courses or students..."}
                             className="bg-gray-100 text-sm rounded-full pl-10 pr-4 py-2 w-full sm:w-64 lg:w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>

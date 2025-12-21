@@ -18,6 +18,9 @@ import FacultyMainLayout from "./components/layout/faculty/FacultyMainLayout.jsx
 import FacultyDashboard from "./pages/faculty-pages/Dashboard.jsx";
 import MyCourses from "./pages/faculty-pages/MyCourses.jsx";
 import EditSyllabus from "./pages/faculty-pages/EditSyllabus.jsx";
+import BatchCourses from "./pages/faculty-pages/BatchCourses.jsx";
+import Attendance from "./pages/faculty-pages/Attendance.jsx";
+import MonthlyReport from "./pages/faculty-pages/MonthlyReport.jsx";
 function App() {
     return (
         <Routes>
@@ -46,8 +49,11 @@ function App() {
             {/* Faculty Routes */}
             <Route element={<FacultyMainLayout />}>
                 <Route path="/faculty-dashboard" element={<FacultyDashboard />} />
+                <Route path="/faculty-batch/:batchId" element={<BatchCourses />} />
                 <Route path="/faculty-mycourses" element={<MyCourses />} />
                 <Route path="/faculty-mycourses/edit-syllabus" element={<EditSyllabus />} />
+                <Route path="/faculty-attendance" element={<Attendance />} />
+                <Route path="/faculty-attendance/monthly-report" element={<MonthlyReport />} />
             </Route>
         </Routes>
     );

@@ -137,7 +137,7 @@ const Dashboard = () => {
                             icon={batch.icon}
                             gradientColor={batch.gradientColor}
                             batchId={batch.id}
-                            to="/faculty-mycourses"
+                            to={`/faculty-batch/${batch.id}`}
                         />
                     ))}
                 </div>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { MdEdit, MdPeople, MdCheckCircle, MdAssignment, MdArrowForward } from 'react-icons/md';
 
 // Component for Course Management Cards
-const ManagementCard = ({ icon: Icon, title, description, buttonText, iconColor, buttonColor, iconBgColor }) => {
+const ManagementCard = ({ icon: Icon, title, description, buttonText, iconColor, buttonColor, iconBgColor, to = "#" }) => {
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col h-full hover:shadow-md transition-shadow duration-200">
             <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${iconBgColor} mb-4 flex-shrink-0`}>
@@ -14,7 +14,7 @@ const ManagementCard = ({ icon: Icon, title, description, buttonText, iconColor,
                 {description}
             </p>
             <Link
-                to="#"
+                to={to}
                 className={`inline-flex items-center ${buttonColor} font-semibold text-sm hover:underline group mt-auto`}
             >
                 {buttonText}
@@ -112,6 +112,7 @@ const MyCourses = () => {
                         iconColor="text-green-600"
                         buttonColor="text-green-600"
                         iconBgColor="bg-green-50"
+                        to="/faculty-attendance"
                     />
                     <ManagementCard
                         icon={MdAssignment}
