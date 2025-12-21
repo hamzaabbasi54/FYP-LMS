@@ -1,36 +1,54 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { MdDashboard, MdBook, MdSchedule, MdPeople, MdGrade, MdMessage, MdAnnouncement, MdLogout, MdSchool } from 'react-icons/md';
 
 const Sidebar = () => {
+    const location = useLocation();
 
     // The 'to' prop tells React Router where to redirect
-    const NavItem = ({ icon: Icon, label, to, badge }) => {
+    const NavItem = ({ icon: Icon, label, to, badge, matchPaths, excludePaths }) => {
+        // Check if current path matches any of the matchPaths (for nested routes)
+        const isActiveRoute = matchPaths 
+            ? matchPaths.some(path => location.pathname.includes(path))
+            : false;
+
+        // Check if current path should be excluded
+        const isExcluded = excludePaths 
+            ? excludePaths.some(path => location.pathname.includes(path))
+            : false;
+
         return (
             <NavLink
                 to={to}
-                className={({ isActive }) => `
-          flex items-center justify-between w-full p-2 sm:p-3 rounded-lg text-left transition-colors duration-200 mb-1
-          ${isActive
-                    ? 'bg-blue-700 text-white'       // Style when active (lighter blue on dark)
-                    : 'text-blue-100 hover:bg-blue-800' // Style when inactive
-                }
-        `}
+                className={({ isActive }) => {
+                    // Don't highlight if path is excluded
+                    const active = !isExcluded && (isActive || isActiveRoute);
+                    return `
+                        flex items-center justify-between w-full p-2 sm:p-3 rounded-lg text-left transition-colors duration-200 mb-1
+                        ${active
+                            ? 'bg-blue-700 text-white'       // Style when active (lighter blue on dark)
+                            : 'text-blue-100 hover:bg-blue-800' // Style when inactive
+                        }
+                    `;
+                }}
             >
                 {/* We use a function here to change the icon color dynamically too */}
-                {({ isActive }) => (
-                    <>
-                        <div className="flex items-center min-w-0">
-                            <Icon className={`w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-4 flex-shrink-0 ${isActive ? 'text-white' : 'text-blue-200'}`} />
-                            <span className="font-medium text-sm sm:text-base truncate">{label}</span>
-                        </div>
-                        {badge && (
-                            <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 ml-2">
-                                {badge}
-                            </span>
-                        )}
-                    </>
-                )}
+                {({ isActive }) => {
+                    const active = !isExcluded && (isActive || isActiveRoute);
+                    return (
+                        <>
+                            <div className="flex items-center min-w-0">
+                                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-4 flex-shrink-0 ${active ? 'text-white' : 'text-blue-200'}`} />
+                                <span className="font-medium text-sm sm:text-base truncate">{label}</span>
+                            </div>
+                            {badge && (
+                                <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 ml-2">
+                                    {badge}
+                                </span>
+                            )}
+                        </>
+                    );
+                }}
             </NavLink>
         );
     };
@@ -52,10 +70,26 @@ const Sidebar = () => {
             <nav className="flex flex-col flex-grow">
                 {/* The 'to' prop is the destination URL */}
                 <NavItem to="/faculty-dashboard" icon={MdDashboard} label="Dashboard" />
-                <NavItem to="/faculty-mycourses" icon={MdBook} label="My Courses" />
+                <NavItem 
+                    to="/faculty-mycourses" 
+                    icon={MdBook} 
+                    label="My Courses"
+                    matchPaths={['/faculty-mycourses/edit-syllabus', '/faculty-mycourses/register-student']}
+                    excludePaths={['/faculty-mycourses/grading']}
+                />
                 <NavItem to="/faculty-schedule" icon={MdSchedule} label="Schedule" />
-                <NavItem to="/faculty-attendance" icon={MdPeople} label="Attendance" />
-                <NavItem to="/faculty-grades" icon={MdGrade} label="Grades" />
+                <NavItem 
+                    to="/faculty-attendance" 
+                    icon={MdPeople} 
+                    label="Attendance"
+                    matchPaths={['/faculty-attendance/monthly-report']}
+                />
+                <NavItem 
+                    to="/faculty-mycourses/grading" 
+                    icon={MdGrade} 
+                    label="Grades"
+                    matchPaths={['/faculty-mycourses/grading']}
+                />
 
                 {/* Communication Section */}
                 <div className="mt-4 sm:mt-6 mb-4">

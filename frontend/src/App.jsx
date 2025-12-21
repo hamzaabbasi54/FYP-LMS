@@ -22,6 +22,9 @@ import BatchCourses from "./pages/faculty-pages/BatchCourses.jsx";
 import Attendance from "./pages/faculty-pages/Attendance.jsx";
 import MonthlyReport from "./pages/faculty-pages/MonthlyReport.jsx";
 import RegisterStudent from "./pages/faculty-pages/RegisterStudent.jsx";
+import Grading from "./pages/faculty-pages/Grading.jsx";
+import GradeAssignment from "./pages/faculty-pages/GradeAssignment.jsx";
+import CreateAssessment from "./pages/faculty-pages/CreateAssessment.jsx";
 function App() {
     return (
         <Routes>
@@ -56,6 +59,9 @@ function App() {
                 <Route path="/faculty-attendance" element={<Attendance />} />
                 <Route path="/faculty-attendance/monthly-report" element={<MonthlyReport />} />
                 <Route path="/faculty-mycourses/register-student" element={<RegisterStudent />} />
+                <Route path="/faculty-mycourses/grading" element={<Grading />} />
+                <Route path="/faculty-mycourses/grading/:assignmentId" element={<GradeAssignment />} />
+                <Route path="/faculty-mycourses/grading/new" element={<CreateAssessment />} />
             </Route>
         </Routes>
     );

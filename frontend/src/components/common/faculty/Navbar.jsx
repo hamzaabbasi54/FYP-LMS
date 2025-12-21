@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { MdSearch, MdNotifications, MdChevronRight } from 'react-icons/md';
+import { MdSearch, MdNotifications, MdChevronRight, MdHelp } from 'react-icons/md';
 
 const Navbar = () => {
     const location = useLocation();
@@ -21,9 +21,12 @@ const Navbar = () => {
 
     const currentTitle = getPageTitle(location.pathname);
     const isBatchCoursesPage = location.pathname.includes('/faculty-batch/');
-    const isMyCoursesPage = location.pathname.includes('/faculty-mycourses') && !location.pathname.includes('/edit-syllabus') && !location.pathname.includes('/register-student');
+    const isMyCoursesPage = location.pathname.includes('/faculty-mycourses') && !location.pathname.includes('/edit-syllabus') && !location.pathname.includes('/register-student') && !location.pathname.includes('/grading');
     const isEditSyllabusPage = location.pathname.includes('/edit-syllabus');
     const isRegisterStudentPage = location.pathname.includes('/register-student');
+    const isGradingPage = location.pathname.includes('/grading') && !location.pathname.match(/\/grading\/\d+/) && !location.pathname.includes('/grading/new');
+    const isGradeAssignmentPage = location.pathname.match(/\/grading\/\d+/);
+    const isCreateAssessmentPage = location.pathname.includes('/grading/new');
     const isAttendancePage = location.pathname.includes('/faculty-attendance') && !location.pathname.includes('/monthly-report');
     const isMonthlyReportPage = location.pathname.includes('/monthly-report');
 
@@ -77,6 +80,47 @@ const Navbar = () => {
                             <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
                             <span className="text-gray-700 font-medium">Attendance</span>
                         </div>
+                    ) : isCreateAssessmentPage ? (
+                        // Breadcrumbs for Create Assessment page
+                        <div className="flex items-center text-sm text-gray-500">
+                            <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
+                                My Courses
+                            </Link>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+                            <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
+                                CS-101
+                            </Link>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+                            <Link to="/faculty-mycourses/grading" className="hover:text-blue-600 transition-colors">
+                                Grading
+                            </Link>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+                            <span className="text-gray-700 font-medium">New Assessment</span>
+                        </div>
+                    ) : isGradeAssignmentPage ? (
+                        // Breadcrumbs for Grade Assignment page
+                        <div className="flex items-center text-sm text-gray-500">
+                            <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
+                                CS-101
+                            </Link>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+                            <Link to="/faculty-mycourses/grading" className="hover:text-blue-600 transition-colors">
+                                Grades
+                            </Link>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+                            <span className="text-gray-700 font-medium">OOP Concepts Essay</span>
+                        </div>
+                    ) : isGradingPage ? (
+                        // Breadcrumbs for Grading page
+                        <div className="flex items-center text-sm text-gray-500">
+                            <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
+                                Courses
+                            </Link>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+                            <span className="text-gray-400">CS-101</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+                            <span className="text-gray-700 font-medium">Grading</span>
+                        </div>
                     ) : isEditSyllabusPage ? (
                         // Breadcrumbs for Edit Syllabus page
                         <div className="flex flex-wrap items-center text-sm text-gray-500 gap-2">
@@ -105,16 +149,31 @@ const Navbar = () => {
                     )}
                 </div>
 
-                {/* Right Side - Search and Notifications */}
+                {/* Right Side - Search, Help, and Notifications */}
                 <div className="flex items-center space-x-3 sm:space-x-4">
                     <div className="relative">
                         <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
                             type="text"
-                            placeholder={isBatchCoursesPage ? "Search courses in this batch..." : isMyCoursesPage || isEditSyllabusPage || isRegisterStudentPage || isAttendancePage || isMonthlyReportPage ? "Search..." : "Search courses or students..."}
+                            placeholder={
+                                isBatchCoursesPage ? "Search courses in this batch..." : 
+                                isGradingPage || isGradeAssignmentPage || isCreateAssessmentPage ? "Search grades..." :
+                                isMyCoursesPage || isEditSyllabusPage || isRegisterStudentPage || isAttendancePage || isMonthlyReportPage ? "Search..." : 
+                                "Search courses or students..."
+                            }
                             className="bg-gray-100 text-sm rounded-full pl-10 pr-4 py-2 w-full sm:w-64 lg:w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
+
+                    {isGradeAssignmentPage && (
+                        <Link
+                            to="#"
+                            className="text-gray-600 hover:text-blue-600 font-medium text-sm whitespace-nowrap flex items-center gap-1"
+                        >
+                            <MdHelp className="w-4 h-4" />
+                            Help
+                        </Link>
+                    )}
 
                     <button className="relative text-gray-500 hover:text-blue-600 flex-shrink-0">
                         <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 transform translate-x-1/2 -translate-y-1/2 ring-2 ring-white"></span>
