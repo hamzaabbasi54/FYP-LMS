@@ -29,10 +29,19 @@
 /* Assign grid areas */
 .navbar {
     grid-area: header;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: white;
 }
 
 .sidebar {
     grid-area: sidebar;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 50;
 }
 
 .main {

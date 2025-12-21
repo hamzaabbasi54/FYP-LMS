@@ -3,9 +3,12 @@ import { Link } from 'react-router-dom';
 import { MdSchool, MdScience, MdSettings, MdArrowForward, MdViewList, MdViewModule } from 'react-icons/md';
 
 // Component for Batch Cards - Matching exact design
-const BatchCard = ({ year, batch, courses, students, icon: Icon, gradientColor }) => {
+const BatchCard = ({ year, batch, courses, students, icon: Icon, gradientColor, batchId, to }) => {
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-200">
+        <Link
+            to={to}
+            className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-200 cursor-pointer"
+        >
             {/* Top Colored Section */}
             <div className={`h-24 ${gradientColor} relative`}>
                 <div className="absolute top-4 left-4">
@@ -39,16 +42,13 @@ const BatchCard = ({ year, batch, courses, students, icon: Icon, gradientColor }
                 {/* Bottom Section with Students and View Details */}
                 <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
                     <p className="text-sm font-bold text-gray-700">{students}</p>
-                    <Link
-                        to="#"
-                        className="inline-flex items-center text-blue-600 font-semibold text-sm hover:text-blue-700 hover:underline group"
-                    >
+                    <span className="inline-flex items-center text-blue-600 font-semibold text-sm group">
                         View Details 
                         <MdArrowForward className="ml-1 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </Link>
+                    </span>
                 </div>
             </div>
-        </div>
+        </Link>
     );
 };
 
@@ -136,6 +136,8 @@ const Dashboard = () => {
                             students={batch.students}
                             icon={batch.icon}
                             gradientColor={batch.gradientColor}
+                            batchId={batch.id}
+                            to="/faculty-mycourses"
                         />
                     ))}
                 </div>
