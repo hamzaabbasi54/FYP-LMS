@@ -14,9 +14,12 @@ import AddBatch from './pages/admin-pages/AddBatch.jsx';
 import BatchDetails from "./pages/admin-pages/BatchDetails.jsx";
 import StudentsList from './pages/admin-pages/StudentsList.jsx';
 import SemesterCourses from "./pages/admin-pages/SemesterCourses.jsx";
+import FacultyMainLayout from "./components/layout/faculty/FacultyMainLayout.jsx";
+import FacultyDashboard from "./pages/faculty-pages/Dashboard.jsx";
 function App() {
     return (
         <Routes>
+            {/* Admin Routes */}
             <Route element={<AdminMainLayout />}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/admin-courseassignment" element={<CourseAssignment />} />
@@ -36,6 +39,11 @@ function App() {
                 <Route path="/admin-managecourses" element={<ManageCourses />} />
                 <Route path="/admin-managecourses/admin-addcourses" element={<AddCourses />} />
 
+            </Route>
+
+            {/* Faculty Routes */}
+            <Route element={<FacultyMainLayout />}>
+                <Route path="/faculty-dashboard" element={<FacultyDashboard />} />
             </Route>
         </Routes>
     );
