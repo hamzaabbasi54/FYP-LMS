@@ -5,6 +5,10 @@ import Dashboard from "./pages/admin-pages/Dashboard.jsx";
 import CourseAssignment from "./pages/admin-pages/CourseAssignment.jsx";
 import ManageBatches from "./pages/admin-pages/ManageBatches.jsx";
 import ManageFaculty from "./pages/admin-pages/ManageFaculty.jsx";
+import Login from "./pages/login/Login.jsx";
+import Signup from "./pages/login/Signup.jsx";
+import ForgotPassword from "./pages/login/ForgotPassword.jsx";
+import ResetPassword from "./pages/login/ResetPassword.jsx";
 import Reports from "./pages/admin-pages/Reports.jsx";
 import ManageCourses from "./pages/admin-pages/ManageCourses.jsx";
 import Settings from "./pages/admin-pages/Settings.jsx";
@@ -25,43 +29,54 @@ import RegisterStudent from "./pages/faculty-pages/RegisterStudent.jsx";
 import Grading from "./pages/faculty-pages/Grading.jsx";
 import GradeAssignment from "./pages/faculty-pages/GradeAssignment.jsx";
 import CreateAssessment from "./pages/faculty-pages/CreateAssessment.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
+
 function App() {
     return (
         <Routes>
-            {/* Admin Routes */}
-            <Route element={<AdminMainLayout />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/admin-courseassignment" element={<CourseAssignment />} />
+            {/* Authentication Routes */}
+            <Route path="/" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
-                <Route path="/admin-managebatches" element={<ManageBatches />} />
-                <Route path="/admin-managebatches/addbatch" element={<AddBatch />} />
-                <Route path="/admin-managebatches/:id" element={<BatchDetails />} />
-                <Route path="/admin-managebatches/:id/students" element={<StudentsList />} />
-                <Route path="/admin-managebatches/:id/semester/:semesterId" element={<SemesterCourses />} />
+            {/* Admin Protected Routes */}
+            <Route element={<ProtectedRoute allowedRole="admin" />}>
+                <Route element={<AdminMainLayout />}>
+                    <Route path="/admin-dashboard" element={<Dashboard />} />
+                    <Route path="/admin-courseassignment" element={<CourseAssignment />} />
 
-                <Route path="/admin-managefaculty" element={<ManageFaculty />} />
-                <Route path="/admin-managefaculty/addfaculty" element={<AddFaculty />} />
+                    <Route path="/admin-managebatches" element={<ManageBatches />} />
+                    <Route path="/admin-managebatches/addbatch" element={<AddBatch />} />
+                    <Route path="/admin-managebatches/:id" element={<BatchDetails />} />
+                    <Route path="/admin-managebatches/:id/students" element={<StudentsList />} />
+                    <Route path="/admin-managebatches/:id/semester/:semesterId" element={<SemesterCourses />} />
 
-                <Route path="/admin-reports" element={<Reports/>} />
-                <Route path="/admin-settings" element={<Settings />} />
+                    <Route path="/admin-managefaculty" element={<ManageFaculty />} />
+                    <Route path="/admin-managefaculty/addfaculty" element={<AddFaculty />} />
 
-                <Route path="/admin-managecourses" element={<ManageCourses />} />
-                <Route path="/admin-managecourses/admin-addcourses" element={<AddCourses />} />
+                    <Route path="/admin-reports" element={<Reports />} />
+                    <Route path="/admin-settings" element={<Settings />} />
 
+                    <Route path="/admin-managecourses" element={<ManageCourses />} />
+                    <Route path="/admin-managecourses/admin-addcourses" element={<AddCourses />} />
+                </Route>
             </Route>
 
-            {/* Faculty Routes */}
-            <Route element={<FacultyMainLayout />}>
-                <Route path="/faculty-dashboard" element={<FacultyDashboard />} />
-                <Route path="/faculty-batch/:batchId" element={<BatchCourses />} />
-                <Route path="/faculty-mycourses" element={<MyCourses />} />
-                <Route path="/faculty-mycourses/edit-syllabus" element={<EditSyllabus />} />
-                <Route path="/faculty-attendance" element={<Attendance />} />
-                <Route path="/faculty-attendance/monthly-report" element={<MonthlyReport />} />
-                <Route path="/faculty-mycourses/register-student" element={<RegisterStudent />} />
-                <Route path="/faculty-mycourses/grading" element={<Grading />} />
-                <Route path="/faculty-mycourses/grading/:assignmentId" element={<GradeAssignment />} />
-                <Route path="/faculty-mycourses/grading/new" element={<CreateAssessment />} />
+            {/* Faculty Protected Routes */}
+            <Route element={<ProtectedRoute allowedRole="faculty" />}>
+                <Route element={<FacultyMainLayout />}>
+                    <Route path="/faculty-dashboard" element={<FacultyDashboard />} />
+                    <Route path="/faculty-batch/:batchId" element={<BatchCourses />} />
+                    <Route path="/faculty-mycourses" element={<MyCourses />} />
+                    <Route path="/faculty-mycourses/edit-syllabus" element={<EditSyllabus />} />
+                    <Route path="/faculty-attendance" element={<Attendance />} />
+                    <Route path="/faculty-attendance/monthly-report" element={<MonthlyReport />} />
+                    <Route path="/faculty-mycourses/register-student" element={<RegisterStudent />} />
+                    <Route path="/faculty-mycourses/grading" element={<Grading />} />
+                    <Route path="/faculty-mycourses/grading/:assignmentId" element={<GradeAssignment />} />
+                    <Route path="/faculty-mycourses/grading/new" element={<CreateAssessment />} />
+                </Route>
             </Route>
         </Routes>
     );
