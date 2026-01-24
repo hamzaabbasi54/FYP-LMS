@@ -1,18 +1,26 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MdEmail, MdLock, MdSchool, MdVisibility, MdVisibilityOff } from 'react-icons/md';
-import { adminAuth, facultyAuth } from '../../services/api';
+import { authApi } from '../../services/api';
 
 const Login = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         email: '',
         password: '',
-        role: 'admin',
+        role: 'faculty',
         rememberMe: false
     });
     const [showPassword, setShowPassword] = useState(false);
     const [errors, setErrors] = useState({});
+    const [loading, setLoading] = useState(false);
+
+    const roleLabels = {
+        superadmin: 'Super Admin',
+        dean: 'Dean',
+        deptadmin: 'Department Admin',
+        faculty: 'Faculty'
+    };
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -20,7 +28,6 @@ const Login = () => {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
-        // Clear error when user starts typing
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
@@ -49,35 +56,31 @@ const Login = () => {
         e.preventDefault();
 
         if (validateForm()) {
+            setLoading(true);
             try {
-                let data;
-
-                // Call appropriate API based on role using axios
-                if (formData.role === 'admin') {
-                    data = await adminAuth.login(formData.email, formData.password);
-                } else {
-                    data = await facultyAuth.login(formData.email, formData.password);
-                }
+                const data = await authApi.login(formData.email, formData.password, formData.role);
 
                 if (data.success) {
-                    // Store token and user data in localStorage
                     localStorage.setItem('token', data.token);
                     localStorage.setItem('user', JSON.stringify(data.data));
 
                     // Redirect based on role
-                    if (formData.role === 'admin') {
-                        navigate('/admin-dashboard');
-                    } else {
-                        navigate('/faculty-dashboard');
-                    }
+                    const redirectMap = {
+                        superadmin: '/superadmin-dashboard',
+                        dean: '/dean-dashboard',
+                        deptadmin: '/admin-dashboard',
+                        faculty: '/faculty-dashboard'
+                    };
+                    navigate(redirectMap[formData.role] || '/');
                 } else {
-                    // Show error message
                     setErrors({ password: data.message });
                 }
             } catch (error) {
                 console.error('Login error:', error);
                 const errorMessage = error.response?.data?.message || 'Failed to login. Please try again.';
                 setErrors({ password: errorMessage });
+            } finally {
+                setLoading(false);
             }
         }
     };
@@ -108,8 +111,10 @@ const Login = () => {
                                 onChange={handleChange}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white text-gray-800"
                             >
-                                <option value="admin">Admin</option>
-                                <option value="faculty">Faculty</option>
+                                <option value="superadmin">{roleLabels.superadmin}</option>
+                                <option value="dean">{roleLabels.dean}</option>
+                                <option value="deptadmin">{roleLabels.deptadmin}</option>
+                                <option value="faculty">{roleLabels.faculty}</option>
                             </select>
                         </div>
 
@@ -193,9 +198,10 @@ const Login = () => {
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl"
+                            disabled={loading}
+                            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
                         >
-                            Sign In
+                            {loading ? 'Signing In...' : 'Sign In'}
                         </button>
                     </form>
 

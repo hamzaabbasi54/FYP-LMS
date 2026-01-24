@@ -1,9 +1,18 @@
 import React from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { MdSearch, MdNotifications, MdChevronRight, MdHelp } from 'react-icons/md';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { MdSearch, MdNotifications, MdChevronRight, MdHelp, MdLogout, MdPerson } from 'react-icons/md';
 
 const Navbar = () => {
     const location = useLocation();
+    const navigate = useNavigate();
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/');
+    };
+
 
     const getPageTitle = (pathname) => {
         // We use 'startsWith' or 'includes' so sub-pages still show the correct Parent Title.
@@ -156,10 +165,10 @@ const Navbar = () => {
                         <input
                             type="text"
                             placeholder={
-                                isBatchCoursesPage ? "Search courses in this batch..." : 
-                                isGradingPage || isGradeAssignmentPage || isCreateAssessmentPage ? "Search grades..." :
-                                isMyCoursesPage || isEditSyllabusPage || isRegisterStudentPage || isAttendancePage || isMonthlyReportPage ? "Search..." : 
-                                "Search courses or students..."
+                                isBatchCoursesPage ? "Search courses in this batch..." :
+                                    isGradingPage || isGradeAssignmentPage || isCreateAssessmentPage ? "Search grades..." :
+                                        isMyCoursesPage || isEditSyllabusPage || isRegisterStudentPage || isAttendancePage || isMonthlyReportPage ? "Search..." :
+                                            "Search courses or students..."
                             }
                             className="bg-gray-100 text-sm rounded-full pl-10 pr-4 py-2 w-full sm:w-64 lg:w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />

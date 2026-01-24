@@ -84,7 +84,7 @@ const Sidebar = () => {
                 )}
 
                 {/* Other Items */}
-                <NavItem to="/admin-reports" icon={MdBarChart} label="Reports" />
+                <NavItem to="/admin-parents" icon={MdPeople} label="Parents" />
                 <NavItem to="/admin-settings" icon={MdSettings} label="Settings" />
             </nav>
         </div>

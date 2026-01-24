@@ -1,19 +1,27 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { MdDashboard, MdBook, MdSchedule, MdPeople, MdGrade, MdMessage, MdAnnouncement, MdLogout, MdSchool } from 'react-icons/md';
 
 const Sidebar = () => {
     const location = useLocation();
+    const navigate = useNavigate();
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/');
+    };
 
     // The 'to' prop tells React Router where to redirect
     const NavItem = ({ icon: Icon, label, to, badge, matchPaths, excludePaths }) => {
         // Check if current path matches any of the matchPaths (for nested routes)
-        const isActiveRoute = matchPaths 
+        const isActiveRoute = matchPaths
             ? matchPaths.some(path => location.pathname.includes(path))
             : false;
 
         // Check if current path should be excluded
-        const isExcluded = excludePaths 
+        const isExcluded = excludePaths
             ? excludePaths.some(path => location.pathname.includes(path))
             : false;
 
@@ -70,23 +78,23 @@ const Sidebar = () => {
             <nav className="flex flex-col flex-grow">
                 {/* The 'to' prop is the destination URL */}
                 <NavItem to="/faculty-dashboard" icon={MdDashboard} label="Dashboard" />
-                <NavItem 
-                    to="/faculty-mycourses" 
-                    icon={MdBook} 
+                <NavItem
+                    to="/faculty-mycourses"
+                    icon={MdBook}
                     label="My Courses"
                     matchPaths={['/faculty-mycourses/edit-syllabus', '/faculty-mycourses/register-student']}
                     excludePaths={['/faculty-mycourses/grading']}
                 />
                 <NavItem to="/faculty-schedule" icon={MdSchedule} label="Schedule" />
-                <NavItem 
-                    to="/faculty-attendance" 
-                    icon={MdPeople} 
+                <NavItem
+                    to="/faculty-attendance"
+                    icon={MdPeople}
                     label="Attendance"
                     matchPaths={['/faculty-attendance/monthly-report']}
                 />
-                <NavItem 
-                    to="/faculty-mycourses/grading" 
-                    icon={MdGrade} 
+                <NavItem
+                    to="/faculty-mycourses/grading"
+                    icon={MdGrade}
                     label="Grades"
                     matchPaths={['/faculty-mycourses/grading']}
                 />
@@ -97,9 +105,9 @@ const Sidebar = () => {
                     <h3 className="text-xs font-semibold text-blue-300 uppercase tracking-wider px-2 sm:px-3 mb-2">
                         COMMUNICATION
                     </h3>
-                    <NavItem 
-                        to="/faculty-messages" 
-                        icon={MdMessage} 
+                    <NavItem
+                        to="/faculty-messages"
+                        icon={MdMessage}
                         label="Messages"
                         badge={3}
                     />
@@ -111,13 +119,19 @@ const Sidebar = () => {
             <div className="mt-auto pt-4 border-t border-blue-700">
                 <div className="flex items-center px-2 mb-3">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
-                        <span className="text-blue-900 font-bold text-xs sm:text-sm">JD</span>
+                        <span className="text-blue-900 font-bold text-xs sm:text-sm">
+                            {user.fullName ? user.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
+                        </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-white font-semibold text-xs sm:text-sm truncate">John Doe</p>
-                        <p className="text-blue-200 text-xs truncate">Senior Lecturer</p>
+                        <p className="text-white font-semibold text-xs sm:text-sm truncate">{user.fullName || 'Faculty'}</p>
+                        <p className="text-blue-200 text-xs truncate">{user.department || 'Department'}</p>
                     </div>
-                    <button className="text-blue-200 hover:text-white transition-colors flex-shrink-0 ml-2">
+                    <button
+                        onClick={handleLogout}
+                        className="text-blue-200 hover:text-white transition-colors flex-shrink-0 ml-2"
+                        title="Sign Out"
+                    >
                         <MdLogout className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                 </div>
