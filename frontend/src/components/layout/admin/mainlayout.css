@@ -1,0 +1,36 @@
+/* layouts/MainLayout.css */
+
+.main-layout{
+    display: grid;
+    grid-template-areas:
+    "sidebar header"
+    "sidebar main";
+
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: 64px 1fr;
+
+    min-height: 100vh;
+}
+
+/* Assign grid areas */
+.navbar {
+    grid-area: header;
+}
+
+.sidebar {
+    grid-area: sidebar;
+}
+
+.main {
+    grid-area: main;
+    padding: 1rem;
+    overflow-y: auto;
+    height: 100%;
+    width: 100%;
+}
+.page-container {
+    min-height: 100%;
+    min-width: 100%;
+
+}
+
