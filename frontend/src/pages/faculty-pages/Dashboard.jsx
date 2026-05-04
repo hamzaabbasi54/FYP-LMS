@@ -1,12 +1,21 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { MdSchool, MdScience, MdSettings, MdArrowForward, MdViewList, MdViewModule } from 'react-icons/md';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { MdSchool, MdScience, MdSettings, MdArrowForward, MdViewList, MdViewModule, MdBook } from 'react-icons/md';
+import { useCourse } from '../../context/CourseContext';
 
-// Component for Batch Cards - Matching exact design
-const BatchCard = ({ year, batch, courses, students, icon: Icon, gradientColor, batchId, to }) => {
+// Component for Course Cards
+const CourseCard = ({ course, icon: Icon, gradientColor }) => {
+    const { setCourse } = useCourse();
+    const navigate = useNavigate();
+
+    const handleClick = () => {
+        setCourse(course);
+        navigate('/faculty-mycourses');
+    };
+
     return (
-        <Link
-            to={to}
+        <div
+            onClick={handleClick}
             className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-200 cursor-pointer"
         >
             {/* Top Colored Section */}
@@ -17,101 +26,113 @@ const BatchCard = ({ year, batch, courses, students, icon: Icon, gradientColor, 
                     </div>
                 </div>
                 <div className="absolute top-4 right-4 text-right">
-                    <p className="text-sm font-bold text-white">{year}</p>
-                    <p className="text-xs text-white text-opacity-90">{batch}</p>
+                    <p className="text-sm font-bold text-white">{course.code}</p>
+                    <p className="text-xs text-white text-opacity-90">{course.credits}</p>
                 </div>
             </div>
 
             {/* Content Section */}
             <div className="p-5 flex-grow flex flex-col">
-                {/* Assigned Courses */}
-                <div className="mb-4">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">ASSIGNED COURSES</p>
-                    <div className="space-y-2">
-                        {courses.map((course, index) => (
-                            <p key={index} className="text-sm font-semibold text-gray-800 leading-tight">
-                                {course}
-                            </p>
-                        ))}
-                        {courses.length === 0 && (
-                            <p className="text-sm text-gray-400 italic">No other courses assigned</p>
-                        )}
-                    </div>
-                </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-2 leading-tight">{course.title}</h3>
+                <p className="text-sm text-gray-500 mb-4">{course.batch}</p>
 
-                {/* Bottom Section with Students and View Details */}
                 <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
-                    <p className="text-sm font-bold text-gray-700">{students}</p>
+                    <p className="text-sm font-bold text-gray-700">{course.totalStudents} Students</p>
                     <span className="inline-flex items-center text-blue-600 font-semibold text-sm group">
-                        View Details 
+                        Manage Course
                         <MdArrowForward className="ml-1 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </span>
                 </div>
             </div>
-        </Link>
+        </div>
     );
 };
 
 const Dashboard = () => {
-    // Mock Data for Batches - Matching exact design colors
-    const batches = [
+    const { setCourse } = useCourse();
+
+    useEffect(() => {
+        setCourse(null);
+    }, [setCourse]);
+
+    // Mock Data for Assigned Courses
+    const courses = [
         {
             id: 1,
-            year: "Year 1",
+            title: "Introduction to Programming",
+            code: "CS-101",
             batch: "Batch 2023-2027",
-            courses: [
-                "Introduction to Pr... (CS-101)",
-                "Discrete Mathe... (MA-102)"
-            ],
-            students: "120 Students",
+            schedule: "Mon, Wed 10:00 AM",
+            room: "Room 304",
+            credits: "4 Credits",
+            description: "Fundamental concepts of programming using Python. Control structures, data types, and basic algorithms.",
+            totalStudents: 118,
             icon: MdSchool,
             gradientColor: "bg-gradient-to-br from-purple-600 to-purple-400"
         },
         {
             id: 2,
-            year: "Year 2",
+            title: "Data Structures & Algorithms",
+            code: "CS-201",
             batch: "Batch 2022-2026",
-            courses: [
-                "Data Structures ... (CS-201)",
-                "Computer Archit... (CS-204)"
-            ],
-            students: "115 Students",
+            schedule: "Tue, Thu 11:30 AM",
+            room: "Lab 2",
+            credits: "3 Credits",
+            description: "Advanced data structures including trees, graphs, and hash tables.",
+            totalStudents: 115,
             icon: MdScience,
             gradientColor: "bg-gradient-to-br from-green-600 to-green-400"
         },
         {
             id: 3,
-            year: "Year 3",
+            title: "Operating Systems",
+            code: "CS-302",
             batch: "Batch 2021-2025",
-            courses: [
-                "Operating Syst... (CS-302)"
-            ],
-            students: "108 Students",
+            schedule: "Fri 09:00 AM",
+            room: "Room 101",
+            credits: "3 Credits",
+            description: "Process management, memory management, file systems, and I/O systems.",
+            totalStudents: 108,
             icon: MdSettings,
-            gradientColor: "bg-gradient-to-br from-purple-600 to-purple-400"
+            gradientColor: "bg-gradient-to-br from-blue-600 to-blue-400"
         },
         {
             id: 4,
-            year: "Masters",
+            title: "Advanced Machine Learning",
+            code: "CS-501",
             batch: "Batch 2023-2025",
-            courses: [
-                "Advanced Machi... (CS-501)"
-            ],
-            students: "24 Students",
-            icon: MdSettings,
+            schedule: "Mon 02:00 PM",
+            room: "AI Lab",
+            credits: "3 Credits",
+            description: "Deep learning neural networks, CNNs, RNNs, and reinforcement learning.",
+            totalStudents: 24,
+            icon: MdBook,
+            gradientColor: "bg-gradient-to-br from-orange-500 to-orange-400"
+        },
+        {
+            id: 4,
+            title: "Advanced Machine Learning",
+            code: "CS-501",
+            batch: "Batch 2023-2025",
+            schedule: "Mon 02:00 PM",
+            room: "AI Lab",
+            credits: "3 Credits",
+            description: "Deep learning neural networks, CNNs, RNNs, and reinforcement learning.",
+            totalStudents: 24,
+            icon: MdBook,
             gradientColor: "bg-gradient-to-br from-orange-500 to-orange-400"
         }
     ];
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-            {/* --- Batches Taught Section --- */}
+            {/* --- Assigned Courses Section --- */}
             <div>
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6 gap-4">
                     <div className="flex-1">
-                        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Batches Taught</h2>
+                        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Assigned Courses</h2>
                         <p className="text-gray-500 text-sm sm:text-base">
-                            Manage courses and students across your active academic batches.
+                            Select a course to manage attendance, grades, and syllabus for the current semester.
                         </p>
                     </div>
                     {/* View Toggle Icons */}
@@ -125,19 +146,14 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* Batch Cards Grid - Responsive */}
+                {/* Course Cards Grid - Responsive */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                    {batches.map((batch) => (
-                        <BatchCard
-                            key={batch.id}
-                            year={batch.year}
-                            batch={batch.batch}
-                            courses={batch.courses}
-                            students={batch.students}
-                            icon={batch.icon}
-                            gradientColor={batch.gradientColor}
-                            batchId={batch.id}
-                            to={`/faculty-batch/${batch.id}`}
+                    {courses.map((course) => (
+                        <CourseCard
+                            key={course.id}
+                            course={course}
+                            icon={course.icon}
+                            gradientColor={course.gradientColor}
                         />
                     ))}
                 </div>
@@ -147,4 +163,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

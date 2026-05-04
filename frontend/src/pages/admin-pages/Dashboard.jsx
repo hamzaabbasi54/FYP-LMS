@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { MdPeople, MdLibraryBooks, MdSchool, MdAssignmentLate, MdArrowForward, MdCheckCircle } from 'react-icons/md';
-import { approvalApi } from '../../services/api';
+import { MdPeople, MdLibraryBooks, MdSchool, MdAssignmentLate, MdArrowForward } from 'react-icons/md';
 
 // 1. Component for the Top Statistics Cards
 const StatCard = ({ icon: Icon, label, value, iconColor, bgColor }) => {
@@ -43,61 +42,17 @@ const ActionCard = ({ title, description, to, colorClass }) => {
 };
 
 const Dashboard = () => {
-    const [pendingFaculty, setPendingFaculty] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-    useEffect(() => {
-        fetchPendingFaculty();
-    }, []);
-
-    const fetchPendingFaculty = async () => {
-        try {
-            const response = await approvalApi.getPendingUsers();
-            if (response.success) {
-                setPendingFaculty(response.data);
-            }
-        } catch (error) {
-            console.error('Error fetching pending faculty:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleApprove = async (userId) => {
-        try {
-            await approvalApi.approveUser(userId);
-            fetchPendingFaculty();
-        } catch (error) {
-            console.error('Error approving user:', error);
-        }
-    };
-
-    const handleReject = async (userId) => {
-        try {
-            await approvalApi.rejectUser(userId, 'Application rejected by Department Admin');
-            fetchPendingFaculty();
-        } catch (error) {
-            console.error('Error rejecting user:', error);
-        }
-    };
-
     return (
         <div className="p-2 space-y-8">
-            {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-gray-800">Department Admin Dashboard</h1>
-                <p className="text-gray-600">Department: {user.department || 'N/A'}</p>
-            </div>
 
             {/* --- Top Stats Section --- */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
                     icon={MdPeople}
-                    label="Pending Approvals"
-                    value={loading ? '...' : pendingFaculty.length}
-                    iconColor="text-orange-600"
-                    bgColor="bg-orange-50"
+                    label="Total Active Students"
+                    value="1,204"
+                    iconColor="text-blue-600"
+                    bgColor="bg-blue-50"
                 />
                 <StatCard
                     icon={MdLibraryBooks}
@@ -115,58 +70,12 @@ const Dashboard = () => {
                 />
                 <StatCard
                     icon={MdAssignmentLate}
-                    label="Total Active Students"
-                    value="1,204"
-                    iconColor="text-blue-600"
-                    bgColor="bg-blue-50"
+                    label="Pending Requests"
+                    value="12"
+                    iconColor="text-orange-600"
+                    bgColor="bg-orange-50"
                 />
             </div>
-
-            {/* --- Pending Faculty Approvals --- */}
-            {!loading && pendingFaculty.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Pending Faculty Approvals</h2>
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b">
-                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Name</th>
-                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Email</th>
-                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Phone</th>
-                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Date</th>
-                                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {pendingFaculty.map((faculty) => (
-                                    <tr key={faculty._id} className="border-b hover:bg-gray-50">
-                                        <td className="py-3 px-4 text-sm text-gray-800">{faculty.fullName}</td>
-                                        <td className="py-3 px-4 text-sm text-gray-600">{faculty.email}</td>
-                                        <td className="py-3 px-4 text-sm text-gray-600">{faculty.phoneNumber || '-'}</td>
-                                        <td className="py-3 px-4 text-sm text-gray-500">
-                                            {new Date(faculty.createdAt).toLocaleDateString()}
-                                        </td>
-                                        <td className="py-3 px-4 text-right">
-                                            <button
-                                                onClick={() => handleApprove(faculty._id)}
-                                                className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors mr-2"
-                                            >
-                                                Approve
-                                            </button>
-                                            <button
-                                                onClick={() => handleReject(faculty._id)}
-                                                className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
-                                            >
-                                                Reject
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
 
             {/* --- Quick Actions Section --- */}
             <div>
@@ -179,25 +88,25 @@ const Dashboard = () => {
                         title="Manage Batches"
                         description="Manage student groups, academic years, and batch assignments efficiently."
                         to="/admin-managebatches"
-                        colorClass="bg-gradient-to-br from-orange-100 to-amber-200"
+                        colorClass="bg-gradient-to-br from-orange-100 to-amber-200" // Beige look
                     />
                     <ActionCard
                         title="Course Assignment"
                         description="Configure academic terms and assign instructors to specific courses."
                         to="/admin-courseassignment"
-                        colorClass="bg-gradient-to-br from-teal-500 to-emerald-700"
+                        colorClass="bg-gradient-to-br from-teal-500 to-emerald-700" // Teal/Green look
                     />
                     <ActionCard
                         title="Manage Courses"
                         description="Add, edit, categorize and update course syllabuses and materials."
                         to="/admin-managecourses"
-                        colorClass="bg-gradient-to-br from-green-600 to-lime-600"
+                        colorClass="bg-gradient-to-br from-green-600 to-lime-600" // Green look
                     />
                     <ActionCard
                         title="Manage Faculty"
                         description="Oversee instructor profiles, permissions, and department allocations."
                         to="/admin-managefaculty"
-                        colorClass="bg-gradient-to-br from-pink-200 to-rose-300"
+                        colorClass="bg-gradient-to-br from-pink-200 to-rose-300" // Pink look
                     />
                 </div>
             </div>

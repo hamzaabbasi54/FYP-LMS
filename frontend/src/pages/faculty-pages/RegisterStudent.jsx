@@ -5,7 +5,7 @@ import { MdPerson, MdSchool, MdEmail, MdBadge, MdPhone, MdDescription, MdAdd, Md
 const RegisterStudent = () => {
     const navigate = useNavigate();
     const { courseId, batchId } = useParams();
-    
+
     // Form state
     const [formData, setFormData] = useState({
         firstName: '',
@@ -92,7 +92,7 @@ const RegisterStudent = () => {
                                 name="firstName"
                                 value={formData.firstName}
                                 onChange={handleChange}
-                                placeholder="e.g. Jane"
+                                placeholder="e.g. Sara"
                                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                 required
                             />
@@ -109,7 +109,7 @@ const RegisterStudent = () => {
                                 name="lastName"
                                 value={formData.lastName}
                                 onChange={handleChange}
-                                placeholder="e.g. Doe"
+                                placeholder="e.g. Malik"
                                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                 required
                             />
@@ -167,7 +167,7 @@ const RegisterStudent = () => {
                                     name="email"
                                     value={formData.email}
                                     onChange={handleChange}
-                                    placeholder="jane.doe@university.edu"
+                                    placeholder="sara.malik@university.edu"
                                     className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                     required
                                 />

@@ -44,6 +44,15 @@ const ManageBatches = () => {
                     <h2 className="text-3xl font-bold text-gray-900 mb-2">Manage Student Batches</h2>
                     <p className="text-gray-500">View, search, and create new student batches.</p>
                 </div>
+
+                {/* Link to Add Batch Page */}
+                <Link
+                    to="/admin-managebatches/addbatch"
+                    className="flex items-center bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium"
+                >
+                    <MdAdd className="w-5 h-5 mr-2" />
+                    Create New Batch
+                </Link>
             </div>
 
             {/* --- Search Bar --- */}

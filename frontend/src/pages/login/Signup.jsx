@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MdEmail, MdLock, MdPerson, MdSchool, MdVisibility, MdVisibilityOff, MdBusiness, MdPhone } from 'react-icons/md';
-import { authApi } from '../../services/api';
+import { MdEmail, MdLock, MdPerson, MdSchool, MdVisibility, MdVisibilityOff } from 'react-icons/md';
+import { facultyAuth } from '../../services/api';
 
 const Signup = () => {
     const navigate = useNavigate();
@@ -9,68 +9,11 @@ const Signup = () => {
         fullName: '',
         email: '',
         password: '',
-        confirmPassword: '',
-        role: 'faculty',
-        faculty: '',
-        department: '',
-        phoneNumber: ''
+        confirmPassword: ''
     });
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [errors, setErrors] = useState({});
-    const [loading, setLoading] = useState(false);
-    const [success, setSuccess] = useState(false);
-    const [faculties, setFaculties] = useState([]);
-    const [departments, setDepartments] = useState([]);
-
-    const roleLabels = {
-        dean: 'Dean',
-        deptadmin: 'Department Admin',
-        faculty: 'Faculty'
-    };
-
-    // Fetch faculties on mount
-    useEffect(() => {
-        const fetchFaculties = async () => {
-            try {
-                const response = await authApi.getFaculties();
-                if (response.success) {
-                    setFaculties(response.data);
-                }
-            } catch (error) {
-                console.error('Error fetching faculties:', error);
-            }
-        };
-        fetchFaculties();
-    }, []);
-
-    // Fetch departments when faculty changes
-    useEffect(() => {
-        const fetchDepartments = async () => {
-            if (formData.faculty) {
-                try {
-                    const response = await authApi.getDepartments(formData.faculty);
-                    if (response.success) {
-                        setDepartments(response.data);
-                    }
-                } catch (error) {
-                    console.error('Error fetching departments:', error);
-                }
-            } else {
-                setDepartments([]);
-            }
-        };
-        fetchDepartments();
-    }, [formData.faculty]);
-
-    // Reset faculty/department when role changes
-    useEffect(() => {
-        setFormData(prev => ({
-            ...prev,
-            faculty: '',
-            department: ''
-        }));
-    }, [formData.role]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -78,6 +21,7 @@ const Signup = () => {
             ...prev,
             [name]: value
         }));
+        // Clear error when user starts typing
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
@@ -86,7 +30,9 @@ const Signup = () => {
     const validateForm = () => {
         const newErrors = {};
 
-        if (!formData.fullName || formData.fullName.length < 3) {
+        if (!formData.fullName) {
+            newErrors.fullName = 'Full name is required';
+        } else if (formData.fullName.length < 3) {
             newErrors.fullName = 'Name must be at least 3 characters';
         }
 
@@ -102,17 +48,10 @@ const Signup = () => {
             newErrors.password = 'Password must be at least 6 characters';
         }
 
-        if (formData.password !== formData.confirmPassword) {
+        if (!formData.confirmPassword) {
+            newErrors.confirmPassword = 'Please confirm your password';
+        } else if (formData.password !== formData.confirmPassword) {
             newErrors.confirmPassword = 'Passwords do not match';
-        }
-
-        // Role-specific validation
-        if (formData.role === 'dean' && !formData.faculty) {
-            newErrors.faculty = 'Please select a faculty';
-        }
-
-        if ((formData.role === 'deptadmin' || formData.role === 'faculty') && !formData.department) {
-            newErrors.department = 'Please select a department';
         }
 
         setErrors(newErrors);
@@ -123,167 +62,50 @@ const Signup = () => {
         e.preventDefault();
 
         if (validateForm()) {
-            setLoading(true);
             try {
-                const data = await authApi.signup({
-                    fullName: formData.fullName,
-                    email: formData.email,
-                    password: formData.password,
-                    role: formData.role,
-                    faculty: formData.faculty,
-                    department: formData.department,
-                    phoneNumber: formData.phoneNumber
-                });
+                // Call backend API for faculty signup using axios
+                const data = await facultyAuth.signup(
+                    formData.fullName,
+                    formData.email,
+                    formData.password
+                );
 
                 if (data.success) {
-                    setSuccess(true);
+                    // Store token in localStorage
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.data));
+
+                    // Show success message and redirect to login
+                    alert('Faculty account created successfully! Please login.');
+                    navigate('/');
                 } else {
-                    setErrors({ submit: data.message });
+                    // Show error message
+                    setErrors({ email: data.message });
                 }
             } catch (error) {
                 console.error('Signup error:', error);
-                const errorMessage = error.response?.data?.message || 'Failed to signup. Please try again.';
-                setErrors({ submit: errorMessage });
-            } finally {
-                setLoading(false);
+                const errorMessage = error.response?.data?.message || 'Failed to create account. Please try again.';
+                setErrors({ email: errorMessage });
             }
         }
     };
 
-    if (success) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center p-4">
-                <div className="w-full max-w-md text-center">
-                    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-                        <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-                            <MdSchool className="w-10 h-10 text-green-600" />
-                        </div>
-                        <h2 className="text-2xl font-bold text-gray-800 mb-4">Registration Successful!</h2>
-                        <p className="text-gray-600 mb-6">
-                            Your account has been created and is pending approval.
-                            You will be able to login once your account is approved.
-                        </p>
-                        <Link
-                            to="/"
-                            className="inline-block w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200"
-                        >
-                            Back to Login
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center p-4">
             <div className="w-full max-w-md">
-                {/* Header */}
+                {/* Logo and Header */}
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-green-800 rounded-2xl mb-4">
                         <MdSchool className="w-10 h-10 text-white" />
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Create Account</h1>
-                    <p className="text-gray-600">Sign up to join University LMS</p>
+                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Create Faculty Account</h1>
+                    <p className="text-gray-600">Join University LMS as Faculty Member</p>
                 </div>
 
                 {/* Signup Card */}
                 <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
                     <form onSubmit={handleSubmit} className="space-y-5">
-                        {/* Role Selection */}
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                I am signing up as
-                            </label>
-                            <select
-                                name="role"
-                                value={formData.role}
-                                onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white text-gray-800"
-                            >
-                                <option value="faculty">{roleLabels.faculty}</option>
-                                <option value="deptadmin">{roleLabels.deptadmin}</option>
-                                <option value="dean">{roleLabels.dean}</option>
-                            </select>
-                        </div>
-
-                        {/* Faculty Selection (for Dean) */}
-                        {formData.role === 'dean' && (
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Select Faculty
-                                </label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <MdBusiness className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                    <select
-                                        name="faculty"
-                                        value={formData.faculty}
-                                        onChange={handleChange}
-                                        className={`w-full pl-10 pr-4 py-3 border ${errors.faculty ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white text-gray-800`}
-                                    >
-                                        <option value="">Select a faculty...</option>
-                                        {faculties.map((fac) => (
-                                            <option key={fac} value={fac}>{fac}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                {errors.faculty && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.faculty}</p>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Faculty + Department Selection (for Dept Admin & Faculty) */}
-                        {(formData.role === 'deptadmin' || formData.role === 'faculty') && (
-                            <>
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Select Faculty
-                                    </label>
-                                    <select
-                                        name="faculty"
-                                        value={formData.faculty}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white text-gray-800"
-                                    >
-                                        <option value="">Select a faculty...</option>
-                                        {faculties.map((fac) => (
-                                            <option key={fac} value={fac}>{fac}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Select Department
-                                    </label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <MdBusiness className="h-5 w-5 text-gray-400" />
-                                        </div>
-                                        <select
-                                            name="department"
-                                            value={formData.department}
-                                            onChange={handleChange}
-                                            disabled={!formData.faculty}
-                                            className={`w-full pl-10 pr-4 py-3 border ${errors.department ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white text-gray-800 disabled:bg-gray-100`}
-                                        >
-                                            <option value="">Select a department...</option>
-                                            {departments.map((dept) => (
-                                                <option key={dept} value={dept}>{dept}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    {errors.department && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.department}</p>
-                                    )}
-                                </div>
-                            </>
-                        )}
-
-                        {/* Full Name */}
+                        {/* Full Name Input */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Full Name
@@ -298,7 +120,7 @@ const Signup = () => {
                                     value={formData.fullName}
                                     onChange={handleChange}
                                     placeholder="Enter your full name"
-                                    className={`w-full pl-10 pr-4 py-3 border ${errors.fullName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
+                                    className={`w-full pl-10 pr-4 py-3 border ${errors.fullName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200`}
                                 />
                             </div>
                             {errors.fullName && (
@@ -306,7 +128,7 @@ const Signup = () => {
                             )}
                         </div>
 
-                        {/* Email */}
+                        {/* Email Input */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Email Address
@@ -321,7 +143,7 @@ const Signup = () => {
                                     value={formData.email}
                                     onChange={handleChange}
                                     placeholder="Enter your email"
-                                    className={`w-full pl-10 pr-4 py-3 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
+                                    className={`w-full pl-10 pr-4 py-3 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200`}
                                 />
                             </div>
                             {errors.email && (
@@ -329,27 +151,14 @@ const Signup = () => {
                             )}
                         </div>
 
-                        {/* Phone Number (optional) */}
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Phone Number <span className="text-gray-400">(optional)</span>
-                            </label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <MdPhone className="h-5 w-5 text-gray-400" />
-                                </div>
-                                <input
-                                    type="tel"
-                                    name="phoneNumber"
-                                    value={formData.phoneNumber}
-                                    onChange={handleChange}
-                                    placeholder="Enter your phone number"
-                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                                />
-                            </div>
+                        {/* Faculty Note */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <p className="text-sm text-blue-800">
+                                <span className="font-semibold">Note:</span> This registration is for Faculty members only. Admin accounts are managed by the system administrator.
+                            </p>
                         </div>
 
-                        {/* Password */}
+                        {/* Password Input */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Password
@@ -364,7 +173,7 @@ const Signup = () => {
                                     value={formData.password}
                                     onChange={handleChange}
                                     placeholder="Create a password"
-                                    className={`w-full pl-10 pr-12 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
+                                    className={`w-full pl-10 pr-12 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200`}
                                 />
                                 <button
                                     type="button"
@@ -383,7 +192,7 @@ const Signup = () => {
                             )}
                         </div>
 
-                        {/* Confirm Password */}
+                        {/* Confirm Password Input */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Confirm Password
@@ -398,7 +207,7 @@ const Signup = () => {
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
                                     placeholder="Confirm your password"
-                                    className={`w-full pl-10 pr-12 py-3 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
+                                    className={`w-full pl-10 pr-12 py-3 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200`}
                                 />
                                 <button
                                     type="button"
@@ -417,20 +226,12 @@ const Signup = () => {
                             )}
                         </div>
 
-                        {/* Submit Error */}
-                        {errors.submit && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                                <p className="text-sm text-red-600">{errors.submit}</p>
-                            </div>
-                        )}
-
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            disabled={loading}
-                            className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
+                            className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl mt-6"
                         >
-                            {loading ? 'Creating Account...' : 'Create Account'}
+                            Create Account
                         </button>
                     </form>
 
@@ -440,7 +241,7 @@ const Signup = () => {
                             Already have an account?{' '}
                             <Link
                                 to="/"
-                                className="font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+                                className="font-semibold text-green-600 hover:text-green-700 hover:underline"
                             >
                                 Sign in
                             </Link>
