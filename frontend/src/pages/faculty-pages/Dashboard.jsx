@@ -108,6 +108,19 @@ const Dashboard = () => {
             totalStudents: 24,
             icon: MdBook,
             gradientColor: "bg-gradient-to-br from-orange-500 to-orange-400"
+        },
+        {
+            id: 4,
+            title: "Advanced Machine Learning",
+            code: "CS-501",
+            batch: "Batch 2023-2025",
+            schedule: "Mon 02:00 PM",
+            room: "AI Lab",
+            credits: "3 Credits",
+            description: "Deep learning neural networks, CNNs, RNNs, and reinforcement learning.",
+            totalStudents: 24,
+            icon: MdBook,
+            gradientColor: "bg-gradient-to-br from-orange-500 to-orange-400"
         }
     ];
 
