@@ -278,3 +278,98 @@ export const getProfile = async (req, res) => {
         });
     }
 };
+
+export const updateProfile = async (req, res) => {
+    try {
+        const { fullName } = req.body;
+        if (!fullName || fullName.trim().length < 3) {
+            return res.status(400).json({
+                success: false,
+                message: 'Name must be at least 3 characters'
+            });
+        }
+
+        await pool.query('UPDATE users SET full_name = ? WHERE id = ?', [fullName.trim(), req.user.id]);
+
+        // Get updated profile
+        const [users] = await pool.query(
+            `SELECT u.id, u.full_name, u.email, u.role, u.phone_number, u.status, u.is_active,
+                    u.created_at, u.updated_at,
+                    f.name as faculty_name, d.name as department_name
+             FROM users u
+             LEFT JOIN faculties f ON u.faculty_id = f.id
+             LEFT JOIN departments d ON u.department_id = d.id
+             WHERE u.id = ?`,
+            [req.user.id]
+        );
+
+        const user = users[0];
+
+        res.status(200).json({
+            success: true,
+            data: {
+                id: user.id,
+                fullName: user.full_name,
+                email: user.email,
+                role: user.role,
+                faculty: user.faculty_name || '',
+                department: user.department_name || '',
+                phoneNumber: user.phone_number,
+                status: user.status,
+                isActive: user.is_active
+            }
+        });
+    } catch (error) {
+        console.error('Update profile error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error updating profile'
+        });
+    }
+};
+
+export const changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: 'Current and new passwords are required'
+            });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'New password must be at least 6 characters'
+            });
+        }
+
+        const [users] = await pool.query('SELECT password FROM users WHERE id = ?', [req.user.id]);
+        if (users.length === 0) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, users[0].password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: 'Invalid current password' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        await pool.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, req.user.id]);
+
+        res.status(200).json({
+            success: true,
+            message: 'Password changed successfully'
+        });
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error changing password'
+        });
+    }
+};

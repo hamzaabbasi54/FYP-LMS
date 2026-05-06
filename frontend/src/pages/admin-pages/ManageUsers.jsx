@@ -33,18 +33,12 @@ const ManageUsers = () => {
     };
 
     const roleLabels = {
-        course_coordinator: 'Course Coordinator',
-        ta: 'Teaching Assistant',
-        deptadmin: 'Director',
-        dean: 'Dean',
+        deptadmin: 'Department Admin',
         faculty: 'Faculty'
     };
 
     const roleColors = {
-        course_coordinator: 'from-teal-500 to-cyan-600',
-        ta: 'from-green-500 to-emerald-600',
         deptadmin: 'from-purple-500 to-violet-600',
-        dean: 'from-orange-500 to-amber-600',
         faculty: 'from-pink-500 to-rose-600'
     };
 
@@ -83,19 +77,14 @@ const ManageUsers = () => {
             color: 'from-blue-500 to-indigo-600'
         },
         {
-            label: 'Course Coordinators',
-            value: users.filter(u => u.role === 'course_coordinator').length,
-            color: 'from-teal-500 to-cyan-600'
+            label: 'Department Admins',
+            value: users.filter(u => u.role === 'deptadmin').length,
+            color: 'from-purple-500 to-violet-600'
         },
         {
             label: 'Faculty',
             value: users.filter(u => u.role === 'faculty').length,
             color: 'from-pink-500 to-rose-600'
-        },
-        {
-            label: 'Teaching Assistants',
-            value: users.filter(u => u.role === 'ta').length,
-            color: 'from-green-500 to-emerald-600'
         }
     ];
 
@@ -127,7 +116,7 @@ const ManageUsers = () => {
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
                     {stats.map((stat, index) => (
                         <div
                             key={index}
@@ -163,9 +152,8 @@ const ManageUsers = () => {
                                 className="pl-10 pr-8 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none min-w-[200px]"
                             >
                                 <option value="all">All Roles</option>
-                                <option value="course_coordinator">Course Coordinator</option>
+                                <option value="deptadmin">Department Admin</option>
                                 <option value="faculty">Faculty</option>
-                                <option value="ta">Teaching Assistant</option>
                             </select>
                         </div>
                     </div>
@@ -201,16 +189,16 @@ const ManageUsers = () => {
                                     </tr>
                                 ) : (
                                     users.map((user) => (
-                                        <tr key={user._id} className="hover:bg-slate-50 transition-colors">
+                                        <tr key={user.id} className="hover:bg-slate-50 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${roleColors[user.role] || 'from-gray-500 to-gray-600'} flex items-center justify-center`}>
                                                         <span className="text-white font-bold text-sm">
-                                                            {user.fullName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                                            {(user.full_name || user.fullName || '').split(' ').map(n => n[0]).join('').toUpperCase()}
                                                         </span>
                                                     </div>
                                                     <div>
-                                                        <p className="font-semibold text-slate-800">{user.fullName}</p>
+                                                        <p className="font-semibold text-slate-800">{user.full_name || user.fullName}</p>
                                                         <p className="text-sm text-slate-500">{user.email}</p>
                                                     </div>
                                                 </div>
@@ -221,11 +209,11 @@ const ManageUsers = () => {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <p className="text-sm text-slate-800">{user.department || 'N/A'}</p>
-                                                <p className="text-xs text-slate-500">{user.faculty || 'N/A'}</p>
+                                                <p className="text-sm text-slate-800">{user.department_name || 'N/A'}</p>
+                                                <p className="text-xs text-slate-500">{user.faculty_name || 'N/A'}</p>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <p className="text-sm text-slate-600">{user.phoneNumber || 'N/A'}</p>
+                                                <p className="text-sm text-slate-600">{user.phone_number || 'N/A'}</p>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className="text-sm text-slate-600">
@@ -234,13 +222,13 @@ const ManageUsers = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <button
-                                                    onClick={() => handleToggleActive(user._id)}
-                                                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-colors ${user.isActive
+                                                    onClick={() => handleToggleActive(user.id)}
+                                                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-colors ${user.is_active
                                                         ? 'bg-green-100 text-green-700 hover:bg-green-200'
                                                         : 'bg-red-100 text-red-700 hover:bg-red-200'
                                                         }`}
                                                 >
-                                                    {user.isActive ? (
+                                                    {user.is_active ? (
                                                         <>
                                                             <MdCheckCircle className="w-3 h-3" />
                                                             Active
@@ -262,7 +250,7 @@ const ManageUsers = () => {
                                                         <MdEdit className="w-5 h-5" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDelete(user._id)}
+                                                        onClick={() => handleDelete(user.id)}
                                                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                         title="Delete user"
                                                     >

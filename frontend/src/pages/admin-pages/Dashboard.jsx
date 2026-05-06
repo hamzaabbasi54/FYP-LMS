@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MdPeople, MdLibraryBooks, MdSchool, MdAssignmentLate, MdArrowForward, MdTrendingUp } from 'react-icons/md';
-import { approvalApi } from '../../services/api';
+import { approvalApi, dashboardApi } from '../../services/api';
 
 const Dashboard = () => {
     const [pendingFaculty, setPendingFaculty] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [dashStats, setDashStats] = useState({});
     const user = JSON.parse(localStorage.getItem('user') || '{}');
 
     useEffect(() => {
         fetchPendingFaculty();
+        fetchDashboardStats();
     }, []);
 
     const fetchPendingFaculty = async () => {
@@ -22,6 +24,17 @@ const Dashboard = () => {
             console.error('Error fetching pending faculty:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchDashboardStats = async () => {
+        try {
+            const response = await dashboardApi.getStats();
+            if (response.success) {
+                setDashStats(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching dashboard stats:', error);
         }
     };
 
@@ -53,23 +66,23 @@ const Dashboard = () => {
         },
         {
             label: 'Published Courses',
-            value: '86',
+            value: dashStats.total_courses ?? '...',
             icon: MdLibraryBooks,
-            trend: '+12 this semester',
+            trend: 'Total catalog',
             color: 'from-emerald-500 to-teal-600'
         },
         {
             label: 'Active Faculty',
-            value: '45',
+            value: dashStats.total_users ?? '...',
             icon: MdSchool,
-            trend: '+3 new members',
+            trend: 'Approved users',
             color: 'from-violet-500 to-purple-600'
         },
         {
             label: 'Active Students',
-            value: '1,204',
+            value: dashStats.total_students ?? '...',
             icon: MdAssignmentLate,
-            trend: '+156 enrolled',
+            trend: `${dashStats.active_batches ?? 0} active batches`,
             color: 'from-blue-500 to-indigo-600'
         },
     ];
@@ -181,31 +194,31 @@ const Dashboard = () => {
 
                         <div className="divide-y divide-slate-100">
                             {pendingFaculty.map((faculty) => (
-                                <div key={faculty._id} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                <div key={faculty.id} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                                     <div className="flex items-center gap-4">
                                         <div className="w-11 h-11 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
                                             <span className="font-bold text-slate-600 text-sm">
-                                                {faculty.fullName?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                                {(faculty.full_name || faculty.fullName || '')?.split(' ').map(n => n[0]).join('').toUpperCase()}
                                             </span>
                                         </div>
                                         <div>
-                                            <p className="font-semibold text-slate-800">{faculty.fullName}</p>
+                                            <p className="font-semibold text-slate-800">{faculty.full_name || faculty.fullName}</p>
                                             <p className="text-sm text-slate-500">{faculty.email}</p>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center gap-3">
                                         <span className="text-xs text-slate-400 hidden sm:block">
-                                            {new Date(faculty.createdAt).toLocaleDateString()}
+                                            {new Date(faculty.created_at || faculty.createdAt).toLocaleDateString()}
                                         </span>
                                         <button
-                                            onClick={() => handleApprove(faculty._id)}
+                                            onClick={() => handleApprove(faculty.id)}
                                             className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-medium rounded-lg hover:shadow-lg hover:shadow-emerald-500/25 transition-all duration-200"
                                         >
                                             Approve
                                         </button>
                                         <button
-                                            onClick={() => handleReject(faculty._id)}
+                                            onClick={() => handleReject(faculty.id)}
                                             className="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
                                         >
                                             Reject

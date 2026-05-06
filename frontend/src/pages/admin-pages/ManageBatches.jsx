@@ -1,125 +1,201 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MdSearch, MdAdd, MdPeople, MdBook } from 'react-icons/md';
+import { MdSearch, MdAdd, MdPeople, MdBook, MdCalendarToday, MdDelete } from 'react-icons/md';
+import { batchApi } from '../../services/api';
+import { toast } from 'react-toastify';
 
 const ManageBatches = () => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [batches, setBatches] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const batches = [
-        {
-            id: 1,
-            name: "Batch 2022-26",
-            students: 115,
-            courses: 8,
-            year: "Year 2",
-            color: "from-emerald-500 to-teal-600"
-        },
-        {
-            id: 2,
-            name: "Batch 2024-28",
-            students: 125,
-            courses: 8,
-            year: "Year 1",
-            color: "from-blue-500 to-indigo-600"
-        },
-        {
-            id: 3,
-            name: "Batch 2025-29",
-            students: 130,
-            courses: 2,
-            year: "Upcoming",
-            color: "from-amber-500 to-orange-600"
-        }
+    const colorPalette = [
+        "from-emerald-500 to-teal-600",
+        "from-blue-500 to-indigo-600",
+        "from-violet-500 to-purple-600",
+        "from-amber-500 to-orange-600",
+        "from-pink-500 to-rose-600",
+        "from-cyan-500 to-sky-600"
     ];
 
+    useEffect(() => {
+        fetchBatches();
+    }, []);
+
+    const fetchBatches = async () => {
+        try {
+            setLoading(true);
+            const response = await batchApi.getAll();
+            if (response.success) {
+                setBatches(response.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching batches:', error);
+            toast.error('Failed to load batches');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async (id, e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (window.confirm('Are you sure you want to delete this batch?')) {
+            try {
+                await batchApi.delete(id);
+                toast.success('Batch deleted successfully');
+                fetchBatches();
+            } catch (error) {
+                console.error('Error deleting batch:', error);
+                toast.error('Failed to delete batch');
+            }
+        }
+    };
+
     const filteredBatches = batches.filter(batch =>
-        batch.name.toLowerCase().includes(searchQuery.toLowerCase())
+        batch.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        batch.department_name?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-            <div className="p-8 max-w-7xl mx-auto">
+    const getStatusLabel = (status) => {
+        switch (status) {
+            case 'active': return 'Active';
+            case 'completed': return 'Completed';
+            case 'upcoming': return 'Upcoming';
+            default: return status || 'Active';
+        }
+    };
 
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-8">
+            <div className="max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="mb-8">
-                    <div className="flex items-center gap-2 text-sm text-slate-400 mb-3">
-                        <Link to="/admin-dashboard" className="hover:text-slate-600 transition-colors">Dashboard</Link>
-                        <span>/</span>
-                        <span className="text-slate-600">Manage Batches</span>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                    <div>
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="w-2 h-8 bg-gradient-to-b from-emerald-500 to-teal-600 rounded-full"></div>
+                            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                                Manage Batches
+                            </h1>
+                        </div>
+                        <p className="text-slate-500 ml-5">
+                            {loading ? 'Loading...' : `${batches.length} batches found`}
+                        </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <div className="w-2 h-8 bg-gradient-to-b from-emerald-500 to-teal-600 rounded-full"></div>
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                            Student Batches
-                        </h1>
-                    </div>
-                    <p className="text-slate-500 ml-5 mt-1">Manage and organize student cohorts</p>
+                    <Link
+                        to="/admin-managebatches/addbatch"
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-emerald-500/25 transition-all duration-200"
+                    >
+                        <MdAdd className="w-5 h-5" />
+                        Add Batch
+                    </Link>
                 </div>
 
                 {/* Search Bar */}
-                <div className="mb-8">
-                    <div className="relative max-w-md">
-                        <MdSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-8">
+                    <div className="relative">
+                        <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Search batches..."
+                            placeholder="Search batches by name or department..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm"
+                            className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all"
                         />
                     </div>
                 </div>
 
-                {/* Batches Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-
-                    {filteredBatches.map((batch) => (
-                        <Link
-                            to={`/admin-managebatches/${batch.id}`}
-                            key={batch.id}
-                            className="group bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300"
-                        >
-                            {/* Gradient Header */}
-                            <div className={`h-28 bg-gradient-to-br ${batch.color} relative overflow-hidden`}>
-                                <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors"></div>
-                                <div className="absolute bottom-3 left-4">
-                                    <span className="px-2 py-1 bg-white/20 backdrop-blur-sm rounded-lg text-white text-xs font-medium">
-                                        {batch.year}
-                                    </span>
-                                </div>
+                {/* Loading State */}
+                {loading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="bg-white rounded-2xl p-6 animate-pulse">
+                                <div className="h-6 bg-slate-200 rounded w-3/4 mb-4"></div>
+                                <div className="h-4 bg-slate-200 rounded w-1/2 mb-2"></div>
+                                <div className="h-4 bg-slate-200 rounded w-2/3"></div>
                             </div>
-
-                            {/* Content */}
-                            <div className="p-5">
-                                <h3 className="text-lg font-bold text-slate-800 mb-3 group-hover:text-slate-900">
-                                    {batch.name}
-                                </h3>
-                                <div className="flex items-center gap-4 text-sm text-slate-500">
-                                    <div className="flex items-center gap-1.5">
-                                        <MdPeople className="w-4 h-4 text-slate-400" />
-                                        <span>{batch.students}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <MdBook className="w-4 h-4 text-slate-400" />
-                                        <span>{batch.courses} Courses</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </Link>
-                    ))}
-
-                    {/* Add New Batch Card */}
-                    <Link
-                        to="/admin-managebatches/addbatch"
-                        className="group rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-6 min-h-[220px] hover:border-emerald-400 hover:bg-emerald-50/30 transition-all duration-300"
-                    >
-                        <div className="w-14 h-14 bg-slate-100 group-hover:bg-gradient-to-br group-hover:from-emerald-500 group-hover:to-teal-600 rounded-2xl flex items-center justify-center mb-4 transition-all duration-300">
-                            <MdAdd className="w-8 h-8 text-slate-400 group-hover:text-white transition-colors" />
+                        ))}
+                    </div>
+                ) : filteredBatches.length === 0 ? (
+                    <div className="text-center py-16">
+                        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <MdBook className="w-10 h-10 text-slate-400" />
                         </div>
-                        <h3 className="text-lg font-bold text-slate-700 group-hover:text-slate-800">Add New Batch</h3>
-                        <p className="text-sm text-slate-400 mt-1">Create a new cohort</p>
-                    </Link>
-                </div>
+                        <h3 className="text-lg font-semibold text-slate-600 mb-2">
+                            {searchQuery ? 'No batches match your search' : 'No batches yet'}
+                        </h3>
+                        <p className="text-slate-400 mb-6">
+                            {searchQuery ? 'Try a different search term' : 'Create your first batch to get started'}
+                        </p>
+                        {!searchQuery && (
+                            <Link
+                                to="/admin-managebatches/addbatch"
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-medium rounded-xl"
+                            >
+                                <MdAdd className="w-5 h-5" />
+                                Add Batch
+                            </Link>
+                        )}
+                    </div>
+                ) : (
+                    /* Batch Cards Grid */
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredBatches.map((batch, index) => (
+                            <Link
+                                key={batch.id}
+                                to={`/admin-managebatches/${batch.id}`}
+                                className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:shadow-slate-300/50 transition-all duration-300 hover:-translate-y-1"
+                            >
+                                {/* Card Header */}
+                                <div className={`bg-gradient-to-r ${colorPalette[index % colorPalette.length]} p-6`}>
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-xl font-bold text-white">{batch.name}</h3>
+                                        <button
+                                            onClick={(e) => handleDelete(batch.id, e)}
+                                            className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
+                                            title="Delete batch"
+                                        >
+                                            <MdDelete className="w-4 h-4 text-white" />
+                                        </button>
+                                    </div>
+                                    <p className="text-white/80 text-sm mt-1">
+                                        {batch.department_name || 'No Department'}
+                                    </p>
+                                </div>
+
+                                {/* Card Body */}
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2 text-slate-600">
+                                            <MdPeople className="w-5 h-5 text-slate-400" />
+                                            <span className="text-sm font-medium">{batch.student_count || 0} Students</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-slate-600">
+                                            <MdBook className="w-5 h-5 text-slate-400" />
+                                            <span className="text-sm font-medium">{batch.semester_count || 0} Semesters</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between">
+                                        <span className={`inline-flex px-3 py-1 rounded-lg text-xs font-semibold
+                                            ${batch.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
+                                            batch.status === 'completed' ? 'bg-slate-100 text-slate-600' :
+                                            'bg-amber-100 text-amber-700'}`}
+                                        >
+                                            {getStatusLabel(batch.status)}
+                                        </span>
+                                        {batch.start_date && (
+                                            <div className="flex items-center gap-1 text-xs text-slate-400">
+                                                <MdCalendarToday className="w-3 h-3" />
+                                                {new Date(batch.start_date).getFullYear()}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -16,11 +16,7 @@ const Login = () => {
     const [loading, setLoading] = useState(false);
 
     const roleLabels = {
-        superadmin: 'Super Admin',
-        dean: 'Dean',
-        deptadmin: 'Director',
-        course_coordinator: 'Course Coordinator',
-        ta: 'Teaching Assistant',
+        deptadmin: 'Department Admin',
         faculty: 'Faculty'
     };
 
@@ -68,11 +64,7 @@ const Login = () => {
 
                     // Redirect based on role
                     const redirectMap = {
-                        superadmin: '/superadmin-dashboard',
-                        dean: '/dean-dashboard',
                         deptadmin: '/admin-dashboard',
-                        course_coordinator: '/staff-dashboard',
-                        ta: '/ta-dashboard',
                         faculty: '/faculty-dashboard'
                     };
                     navigate(redirectMap[formData.role] || '/');
@@ -115,11 +107,7 @@ const Login = () => {
                                 onChange={handleChange}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white text-gray-800"
                             >
-                                <option value="superadmin">{roleLabels.superadmin}</option>
-                                <option value="dean">{roleLabels.dean}</option>
                                 <option value="deptadmin">{roleLabels.deptadmin}</option>
-                                <option value="course_coordinator">{roleLabels.course_coordinator}</option>
-                                <option value="ta">{roleLabels.ta}</option>
                                 <option value="faculty">{roleLabels.faculty}</option>
                             </select>
                         </div>

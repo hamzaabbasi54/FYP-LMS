@@ -59,9 +59,8 @@ const CreateAccount = () => {
     };
 
     const roles = [
-        { value: 'course_coordinator', label: 'Course Coordinator' },
         { value: 'faculty', label: 'Faculty (Teacher)' },
-        { value: 'ta', label: 'Teaching Assistant (TA)' }
+        { value: 'deptadmin', label: 'Department Admin' }
     ];
 
     const availablePermissions = [
@@ -395,7 +394,7 @@ const CreateAccount = () => {
                                     >
                                         <option value="">Select Faculty</option>
                                         {faculties.map((fac) => (
-                                            <option key={fac} value={fac}>{fac}</option>
+                                            <option key={fac.id} value={fac.name}>{fac.name}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -420,7 +419,7 @@ const CreateAccount = () => {
                                             {formData.faculty ? 'Select Department' : 'Select Faculty First'}
                                         </option>
                                         {departments.map((dept) => (
-                                            <option key={dept} value={dept}>{dept}</option>
+                                            <option key={dept.id} value={dept.name}>{dept.name}</option>
                                         ))}
                                     </select>
                                 </div>

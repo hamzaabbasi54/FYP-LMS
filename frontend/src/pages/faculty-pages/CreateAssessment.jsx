@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { MdChevronRight, MdCalendarToday, MdAccessTime, MdInfo, MdHelpOutline, MdFormatBold, MdFormatItalic, MdFormatUnderlined, MdLink } from 'react-icons/md';
 
 const CreateAssessment = () => {
     const navigate = useNavigate();
+    const { assignmentId } = useParams();
+    const [courseInfo, setCourseInfo] = useState({ code: 'Loading...' });
     
     // Form state
     const [formData, setFormData] = useState({
@@ -21,6 +23,21 @@ const CreateAssessment = () => {
     const [isItalic, setIsItalic] = useState(false);
     const [isUnderline, setIsUnderline] = useState(false);
 
+    useEffect(() => {
+        const fetchCourse = async () => {
+            try {
+                const { courseApi } = await import('../../services/api');
+                const res = await courseApi.getAssignmentDetails(assignmentId);
+                if (res.success) {
+                    setCourseInfo({ code: res.data.code });
+                }
+            } catch (err) {
+                console.error("Error fetching course data:", err);
+            }
+        };
+        if (assignmentId) fetchCourse();
+    }, [assignmentId]);
+
     // Handle input changes
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -31,17 +48,37 @@ const CreateAssessment = () => {
     };
 
     // Handle form submission
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Form submitted:', formData);
-        // In a real app, you would send this data to an API
-        alert('Assessment created successfully!');
-        navigate('/faculty-mycourses/grading');
+        try {
+            const { assessmentApi } = await import('../../services/api');
+            const payload = {
+                course_assignment_id: parseInt(assignmentId),
+                type: formData.assessmentType,
+                title: formData.title,
+                description: formData.description,
+                due_date: formData.dueDate ? new Date(formData.dueDate).toISOString() : null,
+                release_grades_on: formData.releaseGradesOn ? new Date(formData.releaseGradesOn).toISOString() : null,
+                max_score: parseFloat(formData.maxScore),
+                weight: formData.weight ? parseFloat(formData.weight) : null,
+                duration_minutes: formData.duration ? parseInt(formData.duration) : null,
+                status: 'scheduled'
+            };
+
+            const response = await assessmentApi.create(payload);
+            if (response.success) {
+                alert('Assessment created successfully!');
+                navigate(`/faculty-mycourses/${assignmentId}/grading`);
+            }
+        } catch (error) {
+            console.error('Error creating assessment:', error);
+            alert('Failed to create assessment');
+        }
     };
 
     // Handle cancel
     const handleCancel = () => {
-        navigate('/faculty-mycourses/grading');
+        navigate(`/faculty-mycourses/${assignmentId}/grading`);
     };
 
     return (
@@ -49,14 +86,14 @@ const CreateAssessment = () => {
             {/* Breadcrumbs */}
             <div className="flex items-center text-sm text-gray-500 mb-4">
                 <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
-                    My Courses
+                    Courses
                 </Link>
                 <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
-                    CS-101
+                <Link to={`/faculty-mycourses/${assignmentId}/grading`} className="hover:text-blue-600 transition-colors">
+                    {courseInfo.code}
                 </Link>
                 <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                <Link to="/faculty-mycourses/grading" className="hover:text-blue-600 transition-colors">
+                <Link to={`/faculty-mycourses/${assignmentId}/grading`} className="hover:text-blue-600 transition-colors">
                     Grading
                 </Link>
                 <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />

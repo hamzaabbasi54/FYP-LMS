@@ -1,10 +1,10 @@
 import React from 'react';
 import { Routes, Route } from "react-router-dom";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Layouts
 import AdminMainLayout from "./components/layout/admin/AdminMainLayout.jsx";
-import SuperAdminMainLayout from "./components/layout/superadmin/SuperAdminMainLayout.jsx";
-import DeanMainLayout from "./components/layout/dean/DeanMainLayout.jsx";
 import FacultyMainLayout from "./components/layout/faculty/FacultyMainLayout.jsx";
 
 // Auth Pages
@@ -12,12 +12,6 @@ import Login from "./pages/login/Login.jsx";
 import Signup from "./pages/login/Signup.jsx";
 import ForgotPassword from "./pages/login/ForgotPassword.jsx";
 import ResetPassword from "./pages/login/ResetPassword.jsx";
-
-// Super Admin Pages
-import SuperAdminDashboard from "./pages/superadmin-pages/Dashboard.jsx";
-
-// Dean Pages
-import DeanDashboard from "./pages/dean-pages/Dashboard.jsx";
 
 // Admin (Department Admin) Pages
 import Dashboard from "./pages/admin-pages/Dashboard.jsx";
@@ -51,59 +45,18 @@ import Grading from "./pages/faculty-pages/Grading.jsx";
 import GradeAssignment from "./pages/faculty-pages/GradeAssignment.jsx";
 import CreateAssessment from "./pages/faculty-pages/CreateAssessment.jsx";
 
-// Staff Layout and Pages (Course Coordinator)
-import StaffMainLayout from "./components/layout/staff/StaffMainLayout.jsx";
-import StaffDashboard from "./pages/staff-pages/Dashboard.jsx";
-import { default as StaffBatches } from "./pages/staff-pages/Batches.jsx";
-import { default as StaffCourses } from "./pages/staff-pages/Courses.jsx";
-import { default as StaffMaterials } from "./pages/staff-pages/CourseMaterials.jsx";
-import { default as StaffAssignments } from "./pages/staff-pages/Assignments.jsx";
-import { default as StaffGrading } from "./pages/staff-pages/Grading.jsx";
-import { default as StaffAttendance } from "./pages/staff-pages/Attendance.jsx";
-import { default as StaffStudents } from "./pages/staff-pages/Students.jsx";
-import { default as StaffLabs } from "./pages/staff-pages/Labs.jsx";
-import { default as StaffReports } from "./pages/staff-pages/Reports.jsx";
-
-// Teaching Assistant (TA) Layout and Pages
-import TAMainLayout from "./components/layout/ta/TAMainLayout.jsx";
-import TADashboard from "./pages/ta-pages/Dashboard.jsx";
-import GradingSupport from "./pages/ta-pages/GradingSupport.jsx";
-import LabAssistance from "./pages/ta-pages/LabAssistance.jsx";
-import TAAttendance from "./pages/ta-pages/AttendanceSupport.jsx";
-import TAAssignments from "./pages/ta-pages/Assignments.jsx";
-
-
 // Protected Route
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 function App() {
     return (
+    <>
         <Routes>
             {/* Authentication Routes */}
             <Route path="/" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-
-            {/* Super Admin Protected Routes */}
-            <Route element={<ProtectedRoute allowedRole="superadmin" />}>
-                <Route element={<SuperAdminMainLayout />}>
-                    <Route path="/superadmin-dashboard" element={<SuperAdminDashboard />} />
-                    <Route path="/superadmin-pending-deans" element={<SuperAdminDashboard />} />
-                    <Route path="/superadmin-manage-deans" element={<SuperAdminDashboard />} />
-                    <Route path="/superadmin-settings" element={<Settings />} />
-                </Route>
-            </Route>
-
-            {/* Dean Protected Routes */}
-            <Route element={<ProtectedRoute allowedRole="dean" />}>
-                <Route element={<DeanMainLayout />}>
-                    <Route path="/dean-dashboard" element={<DeanDashboard />} />
-                    <Route path="/dean-pending-admins" element={<DeanDashboard />} />
-                    <Route path="/dean-manage-admins" element={<DeanDashboard />} />
-                    <Route path="/dean-settings" element={<Settings />} />
-                </Route>
-            </Route>
 
             {/* Department Admin Protected Routes */}
             <Route element={<ProtectedRoute allowedRole="deptadmin" />}>
@@ -142,47 +95,20 @@ function App() {
                 <Route element={<FacultyMainLayout />}>
                     <Route path="/faculty-dashboard" element={<FacultyDashboard />} />
                     <Route path="/faculty-batch/:batchId" element={<BatchCourses />} />
-                    <Route path="/faculty-mycourses" element={<MyCourses />} />
-                    <Route path="/faculty-mycourses/edit-syllabus" element={<EditSyllabus />} />
+                    <Route path="/faculty-mycourses/:assignmentId" element={<MyCourses />} />
+                    <Route path="/faculty-mycourses/:assignmentId/edit-syllabus" element={<EditSyllabus />} />
                     <Route path="/faculty-attendance" element={<Attendance />} />
                     <Route path="/faculty-attendance/monthly-report" element={<MonthlyReport />} />
-                    <Route path="/faculty-mycourses/register-student" element={<RegisterStudent />} />
-                    <Route path="/faculty-mycourses/grading" element={<Grading />} />
-                    <Route path="/faculty-mycourses/grading/:assignmentId" element={<GradeAssignment />} />
-                    <Route path="/faculty-mycourses/grading/new" element={<CreateAssessment />} />
+                    <Route path="/faculty-mycourses/:assignmentId/register-student" element={<RegisterStudent />} />
+                    <Route path="/faculty-mycourses/:assignmentId/grading" element={<Grading />} />
+                    <Route path="/faculty-mycourses/:assignmentId/grading/:gradeAssignmentId" element={<GradeAssignment />} />
+                    <Route path="/faculty-mycourses/:assignmentId/grading/new" element={<CreateAssessment />} />
                     <Route path="/faculty-settings" element={<Settings />} />
                 </Route>
             </Route>
-
-            {/* Staff Protected Routes (Course Coordinator Only) */}
-            <Route element={<ProtectedRoute allowedRoles={['course_coordinator']} />}>
-                <Route element={<StaffMainLayout />}>
-                    <Route path="/staff-dashboard" element={<StaffDashboard />} />
-                    <Route path="/staff-batches" element={<StaffBatches />} />
-                    <Route path="/staff-courses" element={<StaffCourses />} />
-                    <Route path="/staff-materials" element={<StaffMaterials />} />
-                    <Route path="/staff-assignments" element={<StaffAssignments />} />
-                    <Route path="/staff-grading" element={<StaffGrading />} />
-                    <Route path="/staff-attendance" element={<StaffAttendance />} />
-                    <Route path="/staff-students" element={<StaffStudents />} />
-                    <Route path="/staff-labs" element={<StaffLabs />} />
-                    <Route path="/staff-reports" element={<StaffReports />} />
-                    <Route path="/staff-settings" element={<Settings />} />
-                </Route>
-            </Route>
-
-            {/* TA Protected Routes */}
-            <Route element={<ProtectedRoute allowedRoles={['ta']} />}>
-                <Route element={<TAMainLayout />}>
-                    <Route path="/ta-dashboard" element={<TADashboard />} />
-                    <Route path="/ta-grading" element={<GradingSupport />} />
-                    <Route path="/ta-labs" element={<LabAssistance />} />
-                    <Route path="/ta-attendance" element={<TAAttendance />} />
-                    <Route path="/ta-assignments" element={<TAAssignments />} />
-                    <Route path="/ta-settings" element={<Settings />} />
-                </Route>
-            </Route>
         </Routes>
+        <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
+    </>
     );
 }
 
