@@ -208,14 +208,19 @@ router.post('/import', isAdmin, upload.single('file'), async (req, res) => {
         }
 
         // Validate required columns
-        const requiredCols = ['first_name', 'last_name', 'email', 'batch_id'];
+        const requiredCols = ['first_name', 'last_name', 'email'];
         const missingCols = requiredCols.filter(col => !(col in rows[0]));
         if (missingCols.length > 0) {
             return res.status(400).json({
                 success: false,
                 message: `Missing required columns: ${missingCols.join(', ')}`,
-                expected_columns: ['first_name', 'last_name', 'email', 'phone', 'batch_id', 'parent_name', 'parent_email', 'parent_phone']
+                expected_columns: ['first_name', 'last_name', 'email', 'phone', 'parent_name', 'parent_email', 'parent_phone']
             });
+        }
+
+        const targetBatchId = req.body.batch_id;
+        if (!targetBatchId && !rows[0].batch_id) {
+            return res.status(400).json({ success: false, message: 'Batch ID is required either in the URL/body or the CSV' });
         }
 
         let imported = 0;
@@ -233,10 +238,12 @@ router.post('/import', isAdmin, upload.single('file'), async (req, res) => {
                 const nextNum = (countResult[0].count + 1).toString().padStart(3, '0');
                 const studentIdNumber = `U${year}${nextNum}`;
 
+                const studentBatchId = row.batch_id || targetBatchId;
+
                 const [result] = await conn.query(
                     `INSERT INTO students (student_id_number, first_name, last_name, email, phone, batch_id)
                      VALUES (?, ?, ?, ?, ?, ?)`,
-                    [studentIdNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', row.batch_id]
+                    [studentIdNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', studentBatchId]
                 );
 
                 // Insert parent if provided

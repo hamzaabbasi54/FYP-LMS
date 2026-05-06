@@ -74,7 +74,15 @@ const StudentList = () => {
             try {
                 const response = await studentApi.import(id, file);
                 if (response.success) {
-                    toast.success(`Imported ${response.count || 0} students successfully`);
+                    const imported = response.data?.imported || 0;
+                    const skipped = response.data?.skipped || 0;
+                    
+                    if (skipped > 0) {
+                        const firstError = response.data?.errors?.[0]?.error || 'Unknown error';
+                        toast.warn(`Imported ${imported} students. Skipped ${skipped}. First error: ${firstError}`);
+                    } else {
+                        toast.success(`Imported ${imported} students successfully!`);
+                    }
                     fetchStudents();
                 }
             } catch (error) {

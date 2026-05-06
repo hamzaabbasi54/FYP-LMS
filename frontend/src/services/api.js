@@ -250,6 +250,16 @@ export const courseApi = {
 };
 
 // ============================================
+// Parent API
+// ============================================
+export const parentApi = {
+    getAll: async (params = {}) => {
+        const response = await api.get('/parents', { params });
+        return response.data;
+    }
+};
+
+// ============================================
 // Student API
 // ============================================
 export const studentApi = {
@@ -283,7 +293,8 @@ export const studentApi = {
         return response.data;
     },
     export: async (batchId) => {
-        const response = await api.get(`/students/export/${batchId}`, {
+        const response = await api.get(`/students/export/excel`, {
+            params: { batch_id: batchId },
             responseType: 'blob'
         });
         return response.data;

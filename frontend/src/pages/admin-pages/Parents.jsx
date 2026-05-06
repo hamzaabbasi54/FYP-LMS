@@ -1,42 +1,52 @@
-import React, { useRef, useState } from 'react';
-import { MdSearch, MdPeople, MdEmail, MdPhone, MdSchool, MdFileUpload, MdFileDownload, MdPersonAdd, MdClose } from 'react-icons/md';
+import React, { useRef, useState, useEffect } from 'react';
+import { MdSearch, MdPeople, MdEmail, MdPhone, MdSchool, MdFileUpload, MdFileDownload, MdPersonAdd, MdClose, MdChevronLeft, MdChevronRight } from 'react-icons/md';
+import { parentApi } from '../../services/api';
+import { toast } from 'react-toastify';
 
 const Parents = () => {
     const fileInputRef = useRef(null);
     const [showAddModal, setShowAddModal] = useState(false);
+    
+    // Data & Pagination State
+    const [parents, setParents] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [total, setTotal] = useState(0);
+
     const [newParent, setNewParent] = useState({
-        parentName: '',
-        email: '',
-        phone: '',
-        studentName: '',
-        studentId: ''
+        parentName: '', email: '', phone: '', studentName: '', studentId: ''
     });
 
-    const parents = [
-        { id: 1, name: 'Robert Johnson', email: 'robert.j@email.com', phone: '+1 234-567-8901', studentName: 'Alice Johnson', studentId: 'U2024001' },
-        { id: 2, name: 'Mary Williams', email: 'mary.w@email.com', phone: '+1 345-678-9012', studentName: 'Bob Williams', studentId: 'U2024002' },
-        { id: 3, name: 'David Brown', email: 'david.b@email.com', phone: '+1 456-789-0123', studentName: 'Charlie Brown', studentId: 'U2024003' },
-        { id: 4, name: 'Sarah Miller', email: 'sarah.m@email.com', phone: '+1 567-890-1234', studentName: 'Diana Miller', studentId: 'U2024004' },
-        { id: 5, name: 'Michael Davis', email: 'michael.d@email.com', phone: '+1 678-901-2345', studentName: 'Ethan Davis', studentId: 'U2024005' },
-        { id: 6, name: 'Jennifer Garcia', email: 'jennifer.g@email.com', phone: '+1 789-012-3456', studentName: 'Fiona Garcia', studentId: 'U2024006' },
-        { id: 7, name: 'James Wilson', email: 'james.w@email.com', phone: '+1 890-123-4567', studentName: 'George Wilson', studentId: 'U2024007' },
-        { id: 8, name: 'Patricia Martinez', email: 'patricia.m@email.com', phone: '+1 901-234-5678', studentName: 'Hannah Martinez', studentId: 'U2024008' },
-    ];
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            fetchParents();
+        }, 500);
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery, page]);
 
-    const filteredParents = parents.filter((parent) => {
-        const query = searchQuery.toLowerCase();
-        return (
-            parent.name.toLowerCase().includes(query) ||
-            parent.studentName.toLowerCase().includes(query) ||
-            parent.studentId.toLowerCase().includes(query) ||
-            parent.email.toLowerCase().includes(query)
-        );
-    });
-
-    const handleImportClick = () => {
-        fileInputRef.current?.click();
+    const fetchParents = async () => {
+        try {
+            setLoading(true);
+            const params = { page, limit: 12 };
+            if (searchQuery) params.search = searchQuery;
+            
+            const response = await parentApi.getAll(params);
+            if (response.success) {
+                setParents(response.data || []);
+                setTotalPages(response.pagination?.totalPages || 1);
+                setTotal(response.pagination?.total || 0);
+            }
+        } catch (error) {
+            console.error('Error fetching parents:', error);
+            toast.error('Failed to load parents');
+        } finally {
+            setLoading(false);
+        }
     };
+
+    const handleImportClick = () => fileInputRef.current?.click();
 
     const handleFileChange = (e) => {
         const file = e.target.files?.[0];
@@ -56,7 +66,6 @@ const Parents = () => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
             <div className="p-8 max-w-7xl mx-auto">
-
                 {/* Header */}
                 <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
                     <div>
@@ -72,16 +81,10 @@ const Parents = () => {
                     <div className="flex items-center gap-3">
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx,.xls,.csv" className="hidden" />
 
-                        <button
-                            onClick={() => setShowAddModal(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
-                        >
+                        <button onClick={() => setShowAddModal(true)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300">
                             <MdPersonAdd className="w-5 h-5" /> Add
                         </button>
-                        <button
-                            onClick={handleImportClick}
-                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all"
-                        >
+                        <button onClick={handleImportClick} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
                             <MdFileUpload className="w-5 h-5 text-emerald-500" /> Import
                         </button>
                         <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
@@ -98,70 +101,100 @@ const Parents = () => {
                             type="text"
                             placeholder="Search by name, student ID, or email..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setPage(1); // Reset page on search
+                            }}
                             className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all shadow-sm"
                         />
                     </div>
                     <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-xl">
                         <MdPeople className="w-5 h-5 text-purple-500" />
                         <span className="text-sm font-medium text-purple-700">
-                            {searchQuery ? `Found: ${filteredParents.length}` : `Total: ${parents.length}`}
+                            Total: {loading ? '...' : total}
                         </span>
                     </div>
                 </div>
 
                 {/* Parents Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                    {filteredParents.map((parent) => (
-                        <div key={parent.id} className="bg-white rounded-2xl border border-slate-100 p-5 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300">
-                            {/* Student Info */}
-                            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100">
-                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                                    <MdSchool className="w-6 h-6 text-white" />
-                                </div>
-                                <div>
-                                    <p className="font-semibold text-slate-800">{parent.studentName}</p>
-                                    <p className="text-xs text-slate-400 font-mono">{parent.studentId}</p>
-                                </div>
-                            </div>
-
-                            {/* Parent Info */}
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-violet-500 flex items-center justify-center">
-                                    <span className="text-white font-bold text-sm">
-                                        {parent.name.split(' ').map(n => n[0]).join('')}
-                                    </span>
-                                </div>
-                                <div>
-                                    <p className="font-medium text-slate-700 text-sm">{parent.name}</p>
-                                    <p className="text-xs text-slate-400">Parent/Guardian</p>
-                                </div>
-                            </div>
-
-                            {/* Contact */}
-                            <div className="space-y-2">
-                                <a
-                                    href={`https://mail.google.com/mail/?view=cm&fs=1&to=${parent.email}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 text-sm text-slate-500 hover:text-purple-600 transition-colors"
-                                >
-                                    <MdEmail className="w-4 h-4" />
-                                    <span className="truncate">{parent.email}</span>
-                                </a>
-                                <div className="flex items-center gap-2 text-sm text-slate-500">
-                                    <MdPhone className="w-4 h-4" />
-                                    <span>{parent.phone}</span>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {filteredParents.length === 0 && (
+                {loading ? (
+                    <div className="text-center py-12">
+                        <p className="text-slate-400">Loading parents...</p>
+                    </div>
+                ) : parents.length === 0 ? (
                     <div className="text-center py-12">
                         <p className="text-slate-400">No parents found matching your search</p>
                     </div>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
+                            {parents.map((parent) => (
+                                <div key={parent.id} className="bg-white rounded-2xl border border-slate-100 p-5 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300">
+                                    {/* Student Info */}
+                                    <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100">
+                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                                            <MdSchool className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-slate-800">{parent.studentName}</p>
+                                            <p className="text-xs text-slate-400 font-mono">{parent.studentId}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Parent Info */}
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-violet-500 flex items-center justify-center">
+                                            <span className="text-white font-bold text-sm">
+                                                {(parent.name || 'P').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-slate-700 text-sm">{parent.name || 'Unknown'}</p>
+                                            <p className="text-xs text-slate-400">Parent/Guardian</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Contact */}
+                                    <div className="space-y-2">
+                                        <a
+                                            href={`mailto:${parent.email || ''}`}
+                                            className="flex items-center gap-2 text-sm text-slate-500 hover:text-purple-600 transition-colors"
+                                        >
+                                            <MdEmail className="w-4 h-4" />
+                                            <span className="truncate">{parent.email || 'No email provided'}</span>
+                                        </a>
+                                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                                            <MdPhone className="w-4 h-4" />
+                                            <span>{parent.phone || 'No phone provided'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-2">
+                                <button
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                    className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <MdChevronLeft className="w-5 h-5" />
+                                </button>
+                                <span className="text-sm text-slate-600 px-4">
+                                    Page {page} of {totalPages}
+                                </span>
+                                <button
+                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={page === totalPages}
+                                    className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <MdChevronRight className="w-5 h-5" />
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
 
                 {/* Add Modal */}

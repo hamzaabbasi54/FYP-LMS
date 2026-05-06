@@ -191,9 +191,9 @@ const OBEReports = () => {
                     return (
                         <div key={batch.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                             {/* Batch Header */}
-                            <button
+                            <div
                                 onClick={() => toggleBatch(batch.id)}
-                                className="w-full p-5 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                                className="w-full p-5 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
                             >
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
@@ -225,7 +225,7 @@ const OBEReports = () => {
                                         <MdExpandMore className="w-6 h-6 text-gray-400" />
                                     )}
                                 </div>
-                            </button>
+                            </div>
 
                             {/* PLOs Section */}
                             {expandedBatch === batch.id && (
@@ -260,9 +260,9 @@ const OBEReports = () => {
                                         <div className="space-y-3">
                                             {batch.semesters.map((semester) => (
                                                 <div key={semester.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                                                    <button
+                                                    <div
                                                         onClick={() => toggleSemester(semester.id)}
-                                                        className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                                                        className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
                                                     >
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
@@ -288,7 +288,7 @@ const OBEReports = () => {
                                                                 <MdExpandMore className="w-5 h-5 text-gray-400" />
                                                             )}
                                                         </div>
-                                                    </button>
+                                                    </div>
 
                                                     {/* CLOs */}
                                                     {expandedSemester === semester.id && (
