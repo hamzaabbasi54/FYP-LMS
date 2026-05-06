@@ -91,8 +91,8 @@ const Attendance = () => {
         const firstDay = getFirstDayOfMonth(calendarMonth);
         const days = [];
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
-                           'July', 'August', 'September', 'October', 'November', 'December'];
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'];
 
         // Add empty cells for days before the first day of the month
         for (let i = 0; i < firstDay; i++) {
@@ -110,46 +110,46 @@ const Attendance = () => {
     const calendarData = generateCalendarDays();
     const isToday = (day) => {
         const today = new Date();
-        return day === today.getDate() && 
-               calendarMonth.getMonth() === today.getMonth() && 
-               calendarMonth.getFullYear() === today.getFullYear();
+        return day === today.getDate() &&
+            calendarMonth.getMonth() === today.getMonth() &&
+            calendarMonth.getFullYear() === today.getFullYear();
     };
 
     const isSelected = (day) => {
-        return day === selectedDate.getDate() && 
-               calendarMonth.getMonth() === selectedDate.getMonth() && 
-               calendarMonth.getFullYear() === selectedDate.getFullYear();
+        return day === selectedDate.getDate() &&
+            calendarMonth.getMonth() === selectedDate.getMonth() &&
+            calendarMonth.getFullYear() === selectedDate.getFullYear();
     };
 
     // Mock student data
     const [students, setStudents] = useState([
         {
             id: 1,
-            name: "Alice Smith",
+            name: "Ayesha Khan",
             studentId: "2023001",
-            initials: "AS",
+            initials: "AK",
             status: "present",
             remarks: ""
         },
         {
             id: 2,
-            name: "Bob Jones",
+            name: "Bilal Ahmed",
             studentId: "2023002",
-            initials: "BJ",
+            initials: "BA",
             status: "absent",
             remarks: "Sick Leave"
         },
         {
             id: 3,
-            name: "Charlie Miller",
+            name: "Chaudhry Nazeer",
             studentId: "2023003",
-            initials: "CM",
+            initials: "CN",
             status: "present",
             remarks: "15 min late"
         },
         {
             id: 4,
-            name: "David Kim",
+            name: "Dawood Karim",
             studentId: "2023004",
             initials: "DK",
             status: "present",
@@ -157,7 +157,7 @@ const Attendance = () => {
         },
         {
             id: 5,
-            name: "Eva Sanchez",
+            name: "Esha Siddiqui",
             studentId: "2023005",
             initials: "ES",
             status: "present",
@@ -165,7 +165,7 @@ const Attendance = () => {
         },
         {
             id: 6,
-            name: "Frank Jenkins",
+            name: "Fahad Jamal",
             studentId: "2023006",
             initials: "FJ",
             status: "absent",
@@ -174,8 +174,8 @@ const Attendance = () => {
     ]);
 
     const toggleStatus = (id) => {
-        setStudents(students.map(student => 
-            student.id === id 
+        setStudents(students.map(student =>
+            student.id === id
                 ? { ...student, status: student.status === 'present' ? 'absent' : 'present' }
                 : student
         ));
@@ -186,7 +186,7 @@ const Attendance = () => {
     };
 
     const updateRemarks = (id, remarks) => {
-        setStudents(students.map(student => 
+        setStudents(students.map(student =>
             student.id === id ? { ...student, remarks } : student
         ));
     };
@@ -225,18 +225,18 @@ const Attendance = () => {
             {/* Session Date and Summary Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-lg font-bold text-gray-800 mb-4">Select Session Date</h2>
-                
+
                 {/* Date Picker */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
                     <div className="relative flex items-center gap-2" ref={calendarRef}>
-                        <button 
+                        <button
                             onClick={handlePreviousDay}
                             className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-600 hover:text-gray-800 transition-colors"
                         >
                             <MdChevronLeft className="w-5 h-5" />
                         </button>
                         <div className="relative">
-                            <div 
+                            <div
                                 className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white cursor-pointer hover:bg-gray-50 transition-colors"
                                 onClick={() => setShowCalendar(!showCalendar)}
                             >
@@ -248,7 +248,7 @@ const Attendance = () => {
                                     className="text-sm font-medium text-gray-700 focus:outline-none w-32 cursor-pointer"
                                 />
                             </div>
-                            
+
                             {/* Calendar Dropdown */}
                             {showCalendar && (
                                 <div className="absolute top-full left-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-50 w-80 p-4">
@@ -288,18 +288,17 @@ const Attendance = () => {
                                             }
                                             const isTodayDate = isToday(day);
                                             const isSelectedDate = isSelected(day);
-                                            
+
                                             return (
                                                 <button
                                                     key={day}
                                                     onClick={() => handleDateSelect(day)}
-                                                    className={`aspect-square flex items-center justify-center text-sm rounded transition-colors ${
-                                                        isSelectedDate
-                                                            ? 'bg-blue-600 text-white font-semibold'
-                                                            : isTodayDate
+                                                    className={`aspect-square flex items-center justify-center text-sm rounded transition-colors ${isSelectedDate
+                                                        ? 'bg-blue-600 text-white font-semibold'
+                                                        : isTodayDate
                                                             ? 'bg-blue-100 text-blue-700 font-semibold'
                                                             : 'hover:bg-gray-100 text-gray-700'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {day}
                                                 </button>
@@ -319,7 +318,7 @@ const Attendance = () => {
                                 </div>
                             )}
                         </div>
-                        <button 
+                        <button
                             onClick={handleNextDay}
                             className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-600 hover:text-gray-800 transition-colors"
                         >
@@ -328,7 +327,7 @@ const Attendance = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <button 
+                        <button
                             onClick={handleToday}
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm"
                         >
@@ -503,4 +502,3 @@ const Attendance = () => {
 };
 
 export default Attendance;
-

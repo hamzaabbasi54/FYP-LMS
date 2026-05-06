@@ -26,35 +26,35 @@ const GradeAssignment = () => {
     const [students, setStudents] = useState([
         {
             id: 1,
-            name: "Alice Smith",
+            name: "Ayesha Khan",
             studentId: "2023001",
-            initials: "AS",
+            initials: "AK",
             avatarColor: "bg-purple-100 text-purple-700",
             status: "Submitted",
             statusColor: "text-green-600",
             statusIcon: MdCheckCircle,
             submittedDate: "Oct 24, 10:45 AM",
-            submissionFile: "essay_final.pdf",
+            submissionFile: "essay_ayesha.pdf",
             score: 92
         },
         {
             id: 2,
-            name: "Bob Johnson",
+            name: "Bilal Ahmed",
             studentId: "2023015",
-            initials: "BJ",
+            initials: "BA",
             avatarColor: "bg-pink-100 text-pink-700",
             status: "Late Submission",
             statusColor: "text-yellow-600",
             statusIcon: MdWarning,
             submittedDate: "Oct 25, 09:12 AM",
-            submissionFile: "oop_essay_bob.docx",
+            submissionFile: "oop_essay_bilal.docx",
             score: null
         },
         {
             id: 3,
-            name: "Charlie Davis",
+            name: "Chaudhry Nazeer",
             studentId: "2023042",
-            initials: "CD",
+            initials: "CN",
             avatarColor: "bg-green-100 text-green-700",
             status: "Missing",
             statusColor: "text-red-600",
@@ -65,7 +65,7 @@ const GradeAssignment = () => {
         },
         {
             id: 4,
-            name: "Diana King",
+            name: "Dua Khalid",
             studentId: "2023089",
             initials: "DK",
             avatarColor: "bg-yellow-100 text-yellow-700",
@@ -73,12 +73,12 @@ const GradeAssignment = () => {
             statusColor: "text-green-600",
             statusIcon: MdCheckCircle,
             submittedDate: "Oct 23, 04:20 PM",
-            submissionFile: "essay_diana.pdf",
+            submissionFile: "essay_dua.pdf",
             score: null
         },
         {
             id: 5,
-            name: "Ethan Lee",
+            name: "Ehab Latif",
             studentId: "2023102",
             initials: "EL",
             avatarColor: "bg-indigo-100 text-indigo-700",
@@ -86,7 +86,7 @@ const GradeAssignment = () => {
             statusColor: "text-green-600",
             statusIcon: MdCheckCircle,
             submittedDate: "Oct 24, 11:15 AM",
-            submissionFile: "oop_assign3_lee.pdf",
+            submissionFile: "oop_assign3_ehab.pdf",
             score: 88
         }
     ]);
@@ -111,7 +111,7 @@ const GradeAssignment = () => {
         // Track unsaved changes
         const originalScore = students.find(s => s.id === studentId)?.score;
         const hasChanged = originalScore !== (numValue === '' ? null : numValue);
-        
+
         setUnsavedChanges(prev => {
             const newChanges = { ...prev };
             if (hasChanged) {
@@ -309,9 +309,8 @@ const GradeAssignment = () => {
                                                     max={assignment.maxScore}
                                                     value={scores[student.id] !== undefined ? scores[student.id] : ''}
                                                     onChange={(e) => handleScoreChange(student.id, e.target.value)}
-                                                    className={`w-20 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                                        unsavedChanges[student.id] ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'
-                                                    }`}
+                                                    className={`w-20 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'
+                                                        }`}
                                                     placeholder="0"
                                                 />
                                                 <span className="text-sm text-gray-600">/ {assignment.maxScore}</span>
@@ -362,4 +361,3 @@ const GradeAssignment = () => {
 };
 
 export default GradeAssignment;
-

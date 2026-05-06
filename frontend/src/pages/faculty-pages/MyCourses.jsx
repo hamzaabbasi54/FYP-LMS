@@ -75,7 +75,7 @@ const MyCourses = () => {
                         <div className="flex flex-col sm:flex-row gap-3">
                             <Link
                                 to="/faculty-mycourses/register-student"
-                                className="flex items-center justify-center bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
+                                className="flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
                             >
                                 <MdPeople className="w-4 h-4 mr-2" />
                                 Add Student
@@ -101,7 +101,7 @@ const MyCourses = () => {
             {/* Course Management Section */}
             <div>
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">Course Management</h2>
-                
+
                 {/* Management Cards Grid - Equal height cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     <ManagementCard
@@ -112,6 +112,7 @@ const MyCourses = () => {
                         iconColor="text-blue-600"
                         buttonColor="text-blue-600"
                         iconBgColor="bg-blue-50"
+                        to="/faculty-mycourses/students"
                     />
                     <ManagementCard
                         icon={MdCheckCircle}
