@@ -1,54 +1,44 @@
 import React, { useState } from 'react';
-import { MdSearch, MdArrowForward, MdArrowBack, MdCheck } from 'react-icons/md';
+import { MdSearch, MdCheck, MdSwapHoriz } from 'react-icons/md';
 
 const CourseAssignment = () => {
-    // --- State for Selection ---
     const [selectedCourseId, setSelectedCourseId] = useState(null);
     const [selectedFacultyId, setSelectedFacultyId] = useState(null);
-
-    // --- State for Search ---
     const [courseSearch, setCourseSearch] = useState('');
     const [facultySearch, setFacultySearch] = useState('');
 
-    // --- Mock Data: Courses ---
     const courses = [
-        { id: 1, title: "Introduction to Quantum Physics", code: "PHY-301" },
-        { id: 2, title: "Data Structures", code: "CS-201" },
-        { id: 3, title: "World History", code: "HIS-101" },
-        { id: 4, title: "Flighttime Assignment", code: "AV-400" }, // Matches screenshot
-        { id: 5, title: "Linear Algebra", code: "MAT-202" },
-        { id: 6, title: "Organic Chemistry II", code: "CHE-202" },
-        { id: 7, title: "Macroeconomics", code: "ECO-102" },
+        { id: 1, title: "Introduction to Quantum Physics", code: "PHY-301", color: "from-violet-500 to-purple-600" },
+        { id: 2, title: "Data Structures", code: "CS-201", color: "from-blue-500 to-indigo-600" },
+        { id: 3, title: "World History", code: "HIS-101", color: "from-amber-500 to-orange-600" },
+        { id: 4, title: "Flighttime Assignment", code: "AV-400", color: "from-teal-500 to-emerald-600" },
+        { id: 5, title: "Linear Algebra", code: "MAT-202", color: "from-pink-500 to-rose-600" },
+        { id: 6, title: "Organic Chemistry II", code: "CHE-202", color: "from-cyan-500 to-blue-600" },
+        { id: 7, title: "Macroeconomics", code: "ECO-102", color: "from-emerald-500 to-teal-600" },
     ];
 
-    // --- Mock Data: Faculty ---
     const faculty = [
-        { id: 101, name: "Dr. Emily Carter", dept: "Physics Department" },
-        { id: 102, name: "Prof. David Lee", dept: "Computer Science" },
-        { id: 103, name: "Prof. Sarah Khan", dept: "History Department" },
-        { id: 104, name: "Dr. James Wilson", dept: "Mathematics" },
-        { id: 105, name: "Prof. Linda Chang", dept: "Chemistry" },
-        { id: 106, name: "Dr. Robert Langdon", dept: "Symbolism Dept" },
+        { id: 101, name: "Dr. Emily Carter", dept: "Physics Department", avatar: "EC" },
+        { id: 102, name: "Prof. David Lee", dept: "Computer Science", avatar: "DL" },
+        { id: 103, name: "Prof. Sarah Khan", dept: "History Department", avatar: "SK" },
+        { id: 104, name: "Dr. James Wilson", dept: "Mathematics", avatar: "JW" },
+        { id: 105, name: "Prof. Linda Chang", dept: "Chemistry", avatar: "LC" },
+        { id: 106, name: "Dr. Robert Langdon", dept: "Symbolism Dept", avatar: "RL" },
     ];
 
-    // --- Handlers ---
     const handleAssign = () => {
         if (selectedCourseId && selectedFacultyId) {
             const course = courses.find(c => c.id === selectedCourseId);
             const prof = faculty.find(f => f.id === selectedFacultyId);
-            alert(`Success! Assigned "${course.title}" to ${prof.name}.`);
-
-            // Reset selection after assignment
+            alert(`✓ Assigned "${course.title}" to ${prof.name}`);
             setSelectedCourseId(null);
             setSelectedFacultyId(null);
-        } else {
-            alert("Please select both a Course and a Faculty member.");
         }
     };
 
-    // Filter lists based on search
     const filteredCourses = courses.filter(c =>
-        c.title.toLowerCase().includes(courseSearch.toLowerCase())
+        c.title.toLowerCase().includes(courseSearch.toLowerCase()) ||
+        c.code.toLowerCase().includes(courseSearch.toLowerCase())
     );
 
     const filteredFaculty = faculty.filter(f =>
@@ -56,148 +46,154 @@ const CourseAssignment = () => {
         f.dept.toLowerCase().includes(facultySearch.toLowerCase())
     );
 
+    const selectedCourse = courses.find(c => c.id === selectedCourseId);
+    const selectedFac = faculty.find(f => f.id === selectedFacultyId);
+
     return (
-        <div className="p-6 max-w-7xl mx-auto h-[calc(100vh-80px)]">
-            {/* Title */}
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Course Assignment for Faculty</h2>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+            <div className="p-8 max-w-7xl mx-auto">
 
-            {/* Main Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full md:h-[600px] flex flex-col md:flex-row gap-6">
-
-                {/* --- LEFT COLUMN: Available Courses --- */}
-                <div className="flex-1 flex flex-col min-w-0">
-                    <h3 className="font-bold text-gray-700 mb-3">Available Courses</h3>
-
-                    {/* Search Bar */}
-                    <div className="relative mb-4">
-                        <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <input
-                            type="text"
-                            placeholder="Search..."
-                            value={courseSearch}
-                            onChange={(e) => setCourseSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
+                {/* Header */}
+                <div className="mb-8">
+                    <div className="flex items-center gap-3">
+                        <div className="w-2 h-8 bg-gradient-to-b from-indigo-500 to-violet-600 rounded-full"></div>
+                        <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                            Course Assignment
+                        </h1>
                     </div>
-
-                    {/* List Container */}
-                    <div className="flex-1 overflow-y-auto border border-gray-100 rounded-lg pr-2">
-                        <ul className="space-y-2 p-2">
-                            {filteredCourses.map((course) => (
-                                <li
-                                    key={course.id}
-                                    onClick={() => setSelectedCourseId(course.id)}
-                                    className={`flex items-center justify-between p-4 rounded-lg cursor-pointer border transition-all duration-200
-                    ${selectedCourseId === course.id
-                                        ? 'bg-blue-50 border-blue-500 shadow-sm'
-                                        : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200'
-                                    }`}
-                                >
-                  <span className={`text-sm font-medium ${selectedCourseId === course.id ? 'text-blue-800' : 'text-gray-700'}`}>
-                    {course.title}
-                  </span>
-
-                                    {/* Selection Circle */}
-                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center
-                    ${selectedCourseId === course.id
-                                        ? 'border-blue-600 bg-blue-600 text-white'
-                                        : 'border-gray-300 bg-white'
-                                    }`}
-                                    >
-                                        {selectedCourseId === course.id && <MdCheck className="w-3 h-3" />}
-                                    </div>
-                                </li>
-                            ))}
-                            {filteredCourses.length === 0 && (
-                                <p className="text-gray-400 text-center text-sm py-8">No courses found</p>
-                            )}
-                        </ul>
-                    </div>
+                    <p className="text-slate-500 ml-5 mt-1">Assign faculty members to courses</p>
                 </div>
 
-                {/* --- MIDDLE COLUMN: Actions --- */}
-                <div className="flex flex-col items-center justify-center space-y-4 px-2">
+                {/* Selection Preview */}
+                {(selectedCourseId || selectedFacultyId) && (
+                    <div className="mb-6 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                        <div className="flex items-center justify-center gap-4">
+                            <div className={`px-4 py-2 rounded-xl ${selectedCourse ? `bg-gradient-to-r ${selectedCourse.color} text-white` : 'bg-slate-100 text-slate-400'}`}>
+                                {selectedCourse ? selectedCourse.title : 'Select a course'}
+                            </div>
+                            <MdSwapHoriz className="w-6 h-6 text-slate-400" />
+                            <div className={`px-4 py-2 rounded-xl ${selectedFac ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                                {selectedFac ? selectedFac.name : 'Select faculty'}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
-                    {/* Arrow Buttons (Visual only based on screenshot design) */}
-                    <button className="p-3 rounded-lg border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition">
-                        <MdArrowBack className="w-5 h-5" />
-                    </button>
-                    <button className="p-3 rounded-lg border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition">
-                        <MdArrowForward className="w-5 h-5" />
-                    </button>
+                {/* Main Card */}
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+
+                        {/* Left: Courses */}
+                        <div className="p-6">
+                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-indigo-500 rounded-full"></span>
+                                Available Courses
+                            </h3>
+
+                            <div className="relative mb-4">
+                                <MdSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                                <input
+                                    type="text"
+                                    placeholder="Search courses..."
+                                    value={courseSearch}
+                                    onChange={(e) => setCourseSearch(e.target.value)}
+                                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                                />
+                            </div>
+
+                            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                                {filteredCourses.map((course) => (
+                                    <div
+                                        key={course.id}
+                                        onClick={() => setSelectedCourseId(course.id)}
+                                        className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all duration-200 ${selectedCourseId === course.id
+                                                ? 'bg-indigo-50 border-2 border-indigo-500'
+                                                : 'bg-slate-50 border-2 border-transparent hover:bg-slate-100'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${course.color} flex items-center justify-center`}>
+                                                <span className="text-white text-xs font-bold">{course.code.slice(0, 2)}</span>
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-slate-800 text-sm">{course.title}</p>
+                                                <p className="text-xs text-slate-400">{course.code}</p>
+                                            </div>
+                                        </div>
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${selectedCourseId === course.id
+                                                ? 'border-indigo-500 bg-indigo-500'
+                                                : 'border-slate-300'
+                                            }`}>
+                                            {selectedCourseId === course.id && <MdCheck className="w-4 h-4 text-white" />}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Right: Faculty */}
+                        <div className="p-6">
+                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                                Select Faculty
+                            </h3>
+
+                            <div className="relative mb-4">
+                                <MdSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                                <input
+                                    type="text"
+                                    placeholder="Search faculty..."
+                                    value={facultySearch}
+                                    onChange={(e) => setFacultySearch(e.target.value)}
+                                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                                />
+                            </div>
+
+                            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                                {filteredFaculty.map((fac) => (
+                                    <div
+                                        key={fac.id}
+                                        onClick={() => setSelectedFacultyId(fac.id)}
+                                        className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all duration-200 ${selectedFacultyId === fac.id
+                                                ? 'bg-emerald-50 border-2 border-emerald-500'
+                                                : 'bg-slate-50 border-2 border-transparent hover:bg-slate-100'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center">
+                                                <span className="text-white text-xs font-bold">{fac.avatar}</span>
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-slate-800 text-sm">{fac.name}</p>
+                                                <p className="text-xs text-slate-400">{fac.dept}</p>
+                                            </div>
+                                        </div>
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${selectedFacultyId === fac.id
+                                                ? 'border-emerald-500 bg-emerald-500'
+                                                : 'border-slate-300'
+                                            }`}>
+                                            {selectedFacultyId === fac.id && <MdCheck className="w-4 h-4 text-white" />}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
 
                     {/* Assign Button */}
-                    <button
-                        onClick={handleAssign}
-                        className={`px-8 py-3 rounded-lg font-semibold shadow-sm transition-all mt-4
-              ${(selectedCourseId && selectedFacultyId)
-                            ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
-                            : 'bg-blue-300 text-white cursor-not-allowed'
-                        }`}
-                        disabled={!selectedCourseId || !selectedFacultyId}
-                    >
-                        Assign
-                    </button>
-
-                    <p className="text-xs text-gray-400 text-center w-32 leading-relaxed">
-                        Select courses and faculty, then click Assign.
-                    </p>
-                </div>
-
-                {/* --- RIGHT COLUMN: Select Faculty --- */}
-                <div className="flex-1 flex flex-col min-w-0">
-                    <h3 className="font-bold text-gray-700 mb-3">Select Faculty</h3>
-
-                    {/* Search Bar */}
-                    <div className="relative mb-4">
-                        <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <input
-                            type="text"
-                            placeholder="Search..."
-                            value={facultySearch}
-                            onChange={(e) => setFacultySearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    {/* List Container */}
-                    <div className="flex-1 overflow-y-auto border border-gray-100 rounded-lg pr-2">
-                        <ul className="space-y-2 p-2">
-                            {filteredFaculty.map((fac) => (
-                                <li
-                                    key={fac.id}
-                                    onClick={() => setSelectedFacultyId(fac.id)}
-                                    className={`flex items-center justify-between p-3 rounded-lg cursor-pointer border transition-all duration-200
-                    ${selectedFacultyId === fac.id
-                                        ? 'bg-blue-50 border-blue-500 shadow-sm'
-                                        : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200'
-                                    }`}
-                                >
-                                    <div className="flex flex-col">
-                    <span className={`text-sm font-semibold ${selectedFacultyId === fac.id ? 'text-blue-800' : 'text-gray-700'}`}>
-                      {fac.name}
-                    </span>
-                                        <span className="text-xs text-gray-400 mt-0.5">{fac.dept}</span>
-                                    </div>
-
-                                    {/* Selection Circle */}
-                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center
-                    ${selectedFacultyId === fac.id
-                                        ? 'border-blue-600 bg-blue-600 text-white'
-                                        : 'border-gray-300 bg-white'
-                                    }`}
-                                    >
-                                        {selectedFacultyId === fac.id && <MdCheck className="w-3 h-3" />}
-                                    </div>
-                                </li>
-                            ))}
-                            {filteredFaculty.length === 0 && (
-                                <p className="text-gray-400 text-center text-sm py-8">No faculty found</p>
-                            )}
-                        </ul>
+                    <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-center">
+                        <button
+                            onClick={handleAssign}
+                            disabled={!selectedCourseId || !selectedFacultyId}
+                            className={`px-8 py-3 rounded-xl font-semibold transition-all duration-300 ${selectedCourseId && selectedFacultyId
+                                    ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white hover:shadow-lg hover:shadow-indigo-500/25'
+                                    : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                }`}
+                        >
+                            Assign Course to Faculty
+                        </button>
                     </div>
                 </div>
-
             </div>
         </div>
     );

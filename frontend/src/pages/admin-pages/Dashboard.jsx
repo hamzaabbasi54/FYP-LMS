@@ -1,83 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MdPeople, MdLibraryBooks, MdSchool, MdAssignmentLate, MdArrowForward, MdCheckCircle } from 'react-icons/md';
-import { approvalApi, dashboardApi } from '../../services/api';
-import { toast } from 'react-toastify';
-
-// 1. Component for the Top Statistics Cards
-const StatCard = ({ icon: Icon, label, value, iconColor, bgColor }) => {
-    return (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between h-32">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${bgColor} ${iconColor} mb-2`}>
-                <Icon className="w-6 h-6" />
-            </div>
-            <div>
-                <p className="text-gray-500 text-sm font-medium">{label}</p>
-                <h3 className="text-3xl font-bold text-gray-800 mt-1">{value}</h3>
-            </div>
-        </div>
-    );
-};
-
-// 2. Component for the Quick Action Cards (Bottom row)
-const ActionCard = ({ title, description, to, colorClass }) => {
-    return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-200">
-            {/* Decorative Top Banner (Simulating the images in your screenshot) */}
-            <div className={`h-32 w-full ${colorClass}`}></div>
-
-            <div className="p-6 flex flex-col flex-grow">
-                <h3 className="text-lg font-bold text-gray-800 mb-2">{title}</h3>
-                <p className="text-gray-500 text-sm mb-6 flex-grow leading-relaxed">
-                    {description}
-                </p>
-
-                <Link
-                    to={to}
-                    className="inline-flex items-center text-blue-600 font-semibold text-sm hover:text-blue-700 hover:underline"
-                >
-                    Access Module <MdArrowForward className="ml-1 w-4 h-4" />
-                </Link>
-            </div>
-        </div>
-    );
-};
+import { MdPeople, MdLibraryBooks, MdSchool, MdAssignmentLate, MdArrowForward, MdTrendingUp } from 'react-icons/md';
+import { approvalApi } from '../../services/api';
 
 const Dashboard = () => {
     const [pendingFaculty, setPendingFaculty] = useState([]);
-    const [stats, setStats] = useState({
-        totalCourses: 0,
-        totalFaculty: 0,
-        totalStudents: 0
-    });
     const [loading, setLoading] = useState(true);
     const user = JSON.parse(localStorage.getItem('user') || '{}');
 
     useEffect(() => {
-        fetchDashboardData();
+        fetchPendingFaculty();
     }, []);
 
-    const fetchDashboardData = async () => {
+    const fetchPendingFaculty = async () => {
         try {
-            setLoading(true);
-            const [approvalRes, statsRes] = await Promise.all([
-                approvalApi.getPendingUsers().catch(() => ({ success: false, data: [] })),
-                dashboardApi.getStats().catch(() => ({ success: false, data: {} }))
-            ]);
-
-            if (approvalRes.success) {
-                setPendingFaculty(approvalRes.data);
-            }
-            if (statsRes.success) {
-                setStats({
-                    totalCourses: statsRes.data.courses_count || 0,
-                    totalFaculty: statsRes.data.faculty_count || 0,
-                    totalStudents: statsRes.data.students_count || 0
-                });
+            const response = await approvalApi.getPendingUsers();
+            if (response.success) {
+                setPendingFaculty(response.data);
             }
         } catch (error) {
-            console.error('Error fetching dashboard data:', error);
-            toast.error('Failed to load dashboard data');
+            console.error('Error fetching pending faculty:', error);
         } finally {
             setLoading(false);
         }
@@ -86,145 +28,227 @@ const Dashboard = () => {
     const handleApprove = async (userId) => {
         try {
             await approvalApi.approveUser(userId);
-            toast.success('Faculty approved successfully');
-            fetchDashboardData();
+            fetchPendingFaculty();
         } catch (error) {
             console.error('Error approving user:', error);
-            toast.error(error.message || 'Failed to approve faculty');
         }
     };
 
     const handleReject = async (userId) => {
         try {
             await approvalApi.rejectUser(userId, 'Application rejected by Department Admin');
-            toast.success('Faculty rejected successfully');
-            fetchDashboardData();
+            fetchPendingFaculty();
         } catch (error) {
             console.error('Error rejecting user:', error);
-            toast.error(error.message || 'Failed to reject faculty');
         }
     };
 
+    const stats = [
+        {
+            label: 'Pending Approvals',
+            value: loading ? '...' : pendingFaculty.length,
+            icon: MdPeople,
+            trend: pendingFaculty.length > 0 ? 'Action Required' : 'All Clear',
+            color: 'from-amber-500 to-orange-600'
+        },
+        {
+            label: 'Published Courses',
+            value: '86',
+            icon: MdLibraryBooks,
+            trend: '+12 this semester',
+            color: 'from-emerald-500 to-teal-600'
+        },
+        {
+            label: 'Active Faculty',
+            value: '45',
+            icon: MdSchool,
+            trend: '+3 new members',
+            color: 'from-violet-500 to-purple-600'
+        },
+        {
+            label: 'Active Students',
+            value: '1,204',
+            icon: MdAssignmentLate,
+            trend: '+156 enrolled',
+            color: 'from-blue-500 to-indigo-600'
+        },
+    ];
+
+    const quickActions = [
+        {
+            title: 'Create Account',
+            description: 'Add new users with role assignments',
+            to: '/admin-createaccount',
+            icon: '👤',
+            accent: 'hover:border-rose-400'
+        },
+        {
+            title: 'Manage Users',
+            description: 'View and manage all system users',
+            to: '/admin-manageusers',
+            icon: '👥',
+            accent: 'hover:border-blue-400'
+        },
+        {
+            title: 'Manage Batches',
+            description: 'Organize student cohorts and academic years',
+            to: '/admin-managebatches',
+            icon: '📚',
+            accent: 'hover:border-amber-400'
+        },
+        {
+            title: 'Course Assignment',
+            description: 'Assign instructors to courses',
+            to: '/admin-courseassignment',
+            icon: '📝',
+            accent: 'hover:border-emerald-400'
+        },
+        {
+            title: 'Manage Courses',
+            description: 'Update syllabuses and materials',
+            to: '/admin-managecourses',
+            icon: '📖',
+            accent: 'hover:border-violet-400'
+        },
+        {
+            title: 'Manage Faculty',
+            description: 'Oversee instructor profiles',
+            to: '/admin-managefaculty',
+            icon: '🎓',
+            accent: 'hover:border-indigo-400'
+        },
+    ];
+
     return (
-        <div className="p-2 space-y-8">
-            {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-gray-800">Department Admin Dashboard</h1>
-                <p className="text-gray-600">Department: {user.department || 'N/A'}</p>
-            </div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+            <div className="p-8 max-w-7xl mx-auto">
 
-            {/* --- Top Stats Section --- */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard
-                    icon={MdPeople}
-                    label="Pending Approvals"
-                    value={loading ? '...' : pendingFaculty.length}
-                    iconColor="text-orange-600"
-                    bgColor="bg-orange-50"
-                />
-                <StatCard
-                    icon={MdLibraryBooks}
-                    label="Total Courses"
-                    value={loading ? '...' : stats.totalCourses}
-                    iconColor="text-green-600"
-                    bgColor="bg-green-50"
-                />
-                <StatCard
-                    icon={MdSchool}
-                    label="Total Active Faculty"
-                    value={loading ? '...' : stats.totalFaculty}
-                    iconColor="text-purple-600"
-                    bgColor="bg-purple-50"
-                />
-                <StatCard
-                    icon={MdAssignmentLate}
-                    label="Total Active Students"
-                    value={loading ? '...' : stats.totalStudents}
-                    iconColor="text-blue-600"
-                    bgColor="bg-blue-50"
-                />
-            </div>
+                {/* Hero Section */}
+                <div className="mb-10">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full"></div>
+                        <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                            Director Dashboard
+                        </h1>
+                    </div>
+                    <p className="text-slate-500 ml-5 flex items-center gap-2">
+                        <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        {user.department || 'Department'} • {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </p>
+                </div>
 
-            {/* --- Pending Faculty Approvals --- */}
-            {!loading && pendingFaculty.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Pending Faculty Approvals</h2>
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b">
-                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Name</th>
-                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Email</th>
-                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Phone</th>
-                                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Date</th>
-                                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {pendingFaculty.map((faculty) => (
-                                    <tr key={faculty.id} className="border-b hover:bg-gray-50">
-                                        <td className="py-3 px-4 text-sm text-gray-800">{faculty.full_name || faculty.fullName}</td>
-                                        <td className="py-3 px-4 text-sm text-gray-600">{faculty.email}</td>
-                                        <td className="py-3 px-4 text-sm text-gray-600">{faculty.phoneNumber || '-'}</td>
-                                        <td className="py-3 px-4 text-sm text-gray-500">
-                                            {new Date(faculty.created_at || faculty.createdAt).toLocaleDateString()}
-                                        </td>
-                                        <td className="py-3 px-4 text-right">
-                                            <button
-                                                onClick={() => handleApprove(faculty.id)}
-                                                className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors mr-2"
-                                            >
-                                                Approve
-                                            </button>
-                                            <button
-                                                onClick={() => handleReject(faculty.id)}
-                                                className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
-                                            >
-                                                Reject
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-10">
+                    {stats.map((stat, index) => (
+                        <div
+                            key={index}
+                            className="group relative bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-xl hover:shadow-slate-300/50 hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer"
+                        >
+                            {/* Gradient accent */}
+                            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.color} opacity-5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:opacity-15 transition-opacity`}></div>
+
+                            <div className="relative">
+                                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                                    <stat.icon className="w-6 h-6 text-white" />
+                                </div>
+
+                                <p className="text-slate-500 text-sm font-medium mb-1">{stat.label}</p>
+                                <h3 className="text-3xl font-bold text-slate-800 mb-2">{stat.value}</h3>
+
+                                <div className="flex items-center gap-1 text-xs font-medium text-slate-400">
+                                    <MdTrendingUp className="w-3 h-3" />
+                                    <span>{stat.trend}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Pending Approvals */}
+                {!loading && pendingFaculty.length > 0 && (
+                    <div className="mb-10 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-amber-50 to-orange-50">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
+                                    <MdPeople className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="font-bold text-slate-800">Pending Faculty Approvals</h2>
+                                    <p className="text-sm text-slate-500">{pendingFaculty.length} request{pendingFaculty.length > 1 ? 's' : ''} awaiting review</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="divide-y divide-slate-100">
+                            {pendingFaculty.map((faculty) => (
+                                <div key={faculty._id} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
+                                            <span className="font-bold text-slate-600 text-sm">
+                                                {faculty.fullName?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-slate-800">{faculty.fullName}</p>
+                                            <p className="text-sm text-slate-500">{faculty.email}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-xs text-slate-400 hidden sm:block">
+                                            {new Date(faculty.createdAt).toLocaleDateString()}
+                                        </span>
+                                        <button
+                                            onClick={() => handleApprove(faculty._id)}
+                                            className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-medium rounded-lg hover:shadow-lg hover:shadow-emerald-500/25 transition-all duration-200"
+                                        >
+                                            Approve
+                                        </button>
+                                        <button
+                                            onClick={() => handleReject(faculty._id)}
+                                            className="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
+                                        >
+                                            Reject
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Quick Actions */}
+                <div>
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-2 h-6 bg-gradient-to-b from-violet-500 to-purple-600 rounded-full"></div>
+                        <h2 className="text-xl font-bold text-slate-800">Quick Actions</h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                        {quickActions.map((action, index) => (
+                            <Link
+                                key={index}
+                                to={action.to}
+                                className={`group bg-white rounded-2xl p-6 border-2 border-slate-100 ${action.accent} hover:shadow-xl hover:shadow-slate-300/50 hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300`}
+                            >
+                                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                                    {action.icon}
+                                </div>
+                                <h3 className="font-bold text-slate-800 mb-2 group-hover:text-slate-900">
+                                    {action.title}
+                                </h3>
+                                <p className="text-sm text-slate-500 mb-4 leading-relaxed">
+                                    {action.description}
+                                </p>
+                                <div className="flex items-center text-sm font-semibold text-blue-600 group-hover:gap-2 transition-all">
+                                    Open <MdArrowForward className="ml-1 group-hover:translate-x-1 transition-transform" />
+                                </div>
+                            </Link>
+                        ))}
                     </div>
                 </div>
-            )}
 
-            {/* --- Quick Actions Section --- */}
-            <div>
-                <div className="flex justify-between items-end mb-6">
-                    <h2 className="text-xl font-bold text-gray-800">Quick Actions</h2>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <ActionCard
-                        title="Manage Batches"
-                        description="Manage student groups, academic years, and batch assignments efficiently."
-                        to="/admin-managebatches"
-                        colorClass="bg-gradient-to-br from-orange-100 to-amber-200"
-                    />
-                    <ActionCard
-                        title="Course Assignment"
-                        description="Configure academic terms and assign instructors to specific courses."
-                        to="/admin-courseassignment"
-                        colorClass="bg-gradient-to-br from-teal-500 to-emerald-700"
-                    />
-                    <ActionCard
-                        title="Manage Courses"
-                        description="Add, edit, categorize and update course syllabuses and materials."
-                        to="/admin-managecourses"
-                        colorClass="bg-gradient-to-br from-green-600 to-lime-600"
-                    />
-                    <ActionCard
-                        title="Manage Faculty"
-                        description="Oversee instructor profiles, permissions, and department allocations."
-                        to="/admin-managefaculty"
-                        colorClass="bg-gradient-to-br from-pink-200 to-rose-300"
-                    />
-                </div>
             </div>
-
         </div>
     );
 };

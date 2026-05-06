@@ -73,7 +73,7 @@ const SemesterCourses = () => {
                     <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
                         type="text"
-                        placeholder="Search by course title, code, or teacher..."
+                        placeholder="Search by course title, code, or instructor..."
                         className="w-full pl-10 pr-4 py-3 rounded-lg text-sm focus:outline-none focus:bg-gray-50 transition-colors"
                     />
                 </div>
