@@ -1,5 +1,7 @@
 import React from 'react';
 import { Routes, Route } from "react-router-dom";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Layouts
 import AdminMainLayout from "./components/layout/admin/AdminMainLayout.jsx";
@@ -52,6 +54,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 function App() {
     return (
+    <>
         <Routes>
             {/* Authentication Routes */}
             <Route path="/" element={<Login />} />
@@ -119,6 +122,8 @@ function App() {
                 </Route>
             </Route>
         </Routes>
+        <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
+    </>
     );
 }
 

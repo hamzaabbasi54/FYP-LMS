@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MdPeople, MdLibraryBooks, MdSchool, MdAssignmentLate, MdArrowForward, MdCheckCircle } from 'react-icons/md';
-import { approvalApi } from '../../services/api';
+import { approvalApi, dashboardApi } from '../../services/api';
+import { toast } from 'react-toastify';
 
 // 1. Component for the Top Statistics Cards
 const StatCard = ({ icon: Icon, label, value, iconColor, bgColor }) => {
@@ -44,21 +45,39 @@ const ActionCard = ({ title, description, to, colorClass }) => {
 
 const Dashboard = () => {
     const [pendingFaculty, setPendingFaculty] = useState([]);
+    const [stats, setStats] = useState({
+        totalCourses: 0,
+        totalFaculty: 0,
+        totalStudents: 0
+    });
     const [loading, setLoading] = useState(true);
     const user = JSON.parse(localStorage.getItem('user') || '{}');
 
     useEffect(() => {
-        fetchPendingFaculty();
+        fetchDashboardData();
     }, []);
 
-    const fetchPendingFaculty = async () => {
+    const fetchDashboardData = async () => {
         try {
-            const response = await approvalApi.getPendingUsers();
-            if (response.success) {
-                setPendingFaculty(response.data);
+            setLoading(true);
+            const [approvalRes, statsRes] = await Promise.all([
+                approvalApi.getPendingUsers().catch(() => ({ success: false, data: [] })),
+                dashboardApi.getStats().catch(() => ({ success: false, data: {} }))
+            ]);
+
+            if (approvalRes.success) {
+                setPendingFaculty(approvalRes.data);
+            }
+            if (statsRes.success) {
+                setStats({
+                    totalCourses: statsRes.data.courses_count || 0,
+                    totalFaculty: statsRes.data.faculty_count || 0,
+                    totalStudents: statsRes.data.students_count || 0
+                });
             }
         } catch (error) {
-            console.error('Error fetching pending faculty:', error);
+            console.error('Error fetching dashboard data:', error);
+            toast.error('Failed to load dashboard data');
         } finally {
             setLoading(false);
         }
@@ -67,18 +86,22 @@ const Dashboard = () => {
     const handleApprove = async (userId) => {
         try {
             await approvalApi.approveUser(userId);
-            fetchPendingFaculty();
+            toast.success('Faculty approved successfully');
+            fetchDashboardData();
         } catch (error) {
             console.error('Error approving user:', error);
+            toast.error(error.message || 'Failed to approve faculty');
         }
     };
 
     const handleReject = async (userId) => {
         try {
             await approvalApi.rejectUser(userId, 'Application rejected by Department Admin');
-            fetchPendingFaculty();
+            toast.success('Faculty rejected successfully');
+            fetchDashboardData();
         } catch (error) {
             console.error('Error rejecting user:', error);
+            toast.error(error.message || 'Failed to reject faculty');
         }
     };
 
@@ -101,22 +124,22 @@ const Dashboard = () => {
                 />
                 <StatCard
                     icon={MdLibraryBooks}
-                    label="Total Published Courses"
-                    value="86"
+                    label="Total Courses"
+                    value={loading ? '...' : stats.totalCourses}
                     iconColor="text-green-600"
                     bgColor="bg-green-50"
                 />
                 <StatCard
                     icon={MdSchool}
                     label="Total Active Faculty"
-                    value="45"
+                    value={loading ? '...' : stats.totalFaculty}
                     iconColor="text-purple-600"
                     bgColor="bg-purple-50"
                 />
                 <StatCard
                     icon={MdAssignmentLate}
                     label="Total Active Students"
-                    value="1,204"
+                    value={loading ? '...' : stats.totalStudents}
                     iconColor="text-blue-600"
                     bgColor="bg-blue-50"
                 />
@@ -139,22 +162,22 @@ const Dashboard = () => {
                             </thead>
                             <tbody>
                                 {pendingFaculty.map((faculty) => (
-                                    <tr key={faculty._id} className="border-b hover:bg-gray-50">
-                                        <td className="py-3 px-4 text-sm text-gray-800">{faculty.fullName}</td>
+                                    <tr key={faculty.id} className="border-b hover:bg-gray-50">
+                                        <td className="py-3 px-4 text-sm text-gray-800">{faculty.full_name || faculty.fullName}</td>
                                         <td className="py-3 px-4 text-sm text-gray-600">{faculty.email}</td>
                                         <td className="py-3 px-4 text-sm text-gray-600">{faculty.phoneNumber || '-'}</td>
                                         <td className="py-3 px-4 text-sm text-gray-500">
-                                            {new Date(faculty.createdAt).toLocaleDateString()}
+                                            {new Date(faculty.created_at || faculty.createdAt).toLocaleDateString()}
                                         </td>
                                         <td className="py-3 px-4 text-right">
                                             <button
-                                                onClick={() => handleApprove(faculty._id)}
+                                                onClick={() => handleApprove(faculty.id)}
                                                 className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors mr-2"
                                             >
                                                 Approve
                                             </button>
                                             <button
-                                                onClick={() => handleReject(faculty._id)}
+                                                onClick={() => handleReject(faculty.id)}
                                                 className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
                                             >
                                                 Reject
