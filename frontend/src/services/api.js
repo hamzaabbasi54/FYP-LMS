@@ -225,14 +225,4 @@ export const attendanceApi = {
     }
 };
 
-// Legacy APIs (for backward compatibility)
-export const adminAuth = {
-    login: (email, password) => authApi.login(email, password, 'deptadmin'),
-};
-
-export const facultyAuth = {
-    signup: (fullName, email, password) => authApi.signup({ fullName, email, password, role: 'faculty' }),
-    login: (email, password) => authApi.login(email, password, 'faculty'),
-};
-
 export default api;

@@ -5,7 +5,7 @@
 
 import express from 'express';
 import pool from '../config/db.js';
-import { verifyToken, isSuperAdmin, isAdmin } from '../middleware/auth.js';
+import { verifyToken, isAdmin } from '../middleware/auth.js';
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
 
 const router = express.Router();
@@ -30,8 +30,8 @@ router.get('/faculties', async (req, res) => {
     }
 });
 
-// POST create faculty (superadmin only)
-router.post('/faculties', isSuperAdmin, async (req, res) => {
+// POST create faculty (admin only)
+router.post('/faculties', isAdmin, async (req, res) => {
     try {
         const { name } = req.body;
         if (!name || name.trim().length < 2) {
@@ -52,8 +52,8 @@ router.post('/faculties', isSuperAdmin, async (req, res) => {
     }
 });
 
-// PUT update faculty (superadmin only)
-router.put('/faculties/:id', isSuperAdmin, async (req, res) => {
+// PUT update faculty (admin only)
+router.put('/faculties/:id', isAdmin, async (req, res) => {
     try {
         const { name } = req.body;
         if (!name || name.trim().length < 2) {
@@ -73,8 +73,8 @@ router.put('/faculties/:id', isSuperAdmin, async (req, res) => {
     }
 });
 
-// DELETE faculty (superadmin only)
-router.delete('/faculties/:id', isSuperAdmin, async (req, res) => {
+// DELETE faculty (admin only)
+router.delete('/faculties/:id', isAdmin, async (req, res) => {
     try {
         const [result] = await pool.query('DELETE FROM faculties WHERE id = ?', [req.params.id]);
         if (result.affectedRows === 0) {
@@ -155,7 +155,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// POST create department (superadmin/dean)
+// POST create department (admin only)
 router.post('/', isAdmin, async (req, res) => {
     try {
         const { name, faculty_id } = req.body;
@@ -206,7 +206,7 @@ router.put('/:id', isAdmin, async (req, res) => {
 });
 
 // DELETE department
-router.delete('/:id', isSuperAdmin, async (req, res) => {
+router.delete('/:id', isAdmin, async (req, res) => {
     try {
         const [result] = await pool.query('DELETE FROM departments WHERE id = ?', [req.params.id]);
         if (result.affectedRows === 0) {

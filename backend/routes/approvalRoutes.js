@@ -6,12 +6,12 @@ import {
     getUsersByRole,
     deleteUser
 } from '../controllers/approvalController.js';
-import { verifyToken, canApprove } from '../middleware/auth.js';
+import { verifyToken, isAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// All approval routes require authentication and approval permission
-router.use(verifyToken, canApprove);
+// All approval routes require authentication and admin privileges
+router.use(verifyToken, isAdmin);
 
 // Get pending users (based on approver's role)
 router.get('/pending', getPendingUsers);

@@ -5,8 +5,6 @@ import 'react-toastify/dist/ReactToastify.css';
 
 // Layouts
 import AdminMainLayout from "./components/layout/admin/AdminMainLayout.jsx";
-import SuperAdminMainLayout from "./components/layout/superadmin/SuperAdminMainLayout.jsx";
-import DeanMainLayout from "./components/layout/dean/DeanMainLayout.jsx";
 import FacultyMainLayout from "./components/layout/faculty/FacultyMainLayout.jsx";
 
 // Auth Pages
@@ -14,12 +12,6 @@ import Login from "./pages/login/Login.jsx";
 import Signup from "./pages/login/Signup.jsx";
 import ForgotPassword from "./pages/login/ForgotPassword.jsx";
 import ResetPassword from "./pages/login/ResetPassword.jsx";
-
-// Super Admin Pages
-import SuperAdminDashboard from "./pages/superadmin-pages/Dashboard.jsx";
-
-// Dean Pages
-import DeanDashboard from "./pages/dean-pages/Dashboard.jsx";
 
 // Admin (Department Admin) Pages
 import Dashboard from "./pages/admin-pages/Dashboard.jsx";
@@ -61,26 +53,6 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-
-            {/* Super Admin Protected Routes */}
-            <Route element={<ProtectedRoute allowedRole="superadmin" />}>
-                <Route element={<SuperAdminMainLayout />}>
-                    <Route path="/superadmin-dashboard" element={<SuperAdminDashboard />} />
-                    <Route path="/superadmin-pending-deans" element={<SuperAdminDashboard />} />
-                    <Route path="/superadmin-manage-deans" element={<SuperAdminDashboard />} />
-                    <Route path="/superadmin-settings" element={<Settings />} />
-                </Route>
-            </Route>
-
-            {/* Dean Protected Routes */}
-            <Route element={<ProtectedRoute allowedRole="dean" />}>
-                <Route element={<DeanMainLayout />}>
-                    <Route path="/dean-dashboard" element={<DeanDashboard />} />
-                    <Route path="/dean-pending-admins" element={<DeanDashboard />} />
-                    <Route path="/dean-manage-admins" element={<DeanDashboard />} />
-                    <Route path="/dean-settings" element={<Settings />} />
-                </Route>
-            </Route>
 
             {/* Department Admin Protected Routes */}
             <Route element={<ProtectedRoute allowedRole="deptadmin" />}>

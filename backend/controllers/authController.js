@@ -1,22 +1,22 @@
 // ============================================
 // File: backend/controllers/authController.js
-// Auth Controller — MySQL Version
+// Auth Controller — MySQL Version (2-Role: deptadmin + faculty)
 // ============================================
 
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import pool from '../config/db.js';
 
-// Signup Controller
+// Signup Controller — Faculty only (admins are seeded in DB)
 export const signup = async (req, res) => {
     try {
-        const { fullName, email, password, role, faculty, department, phoneNumber } = req.body;
+        const { fullName, email, password, department, phoneNumber } = req.body;
 
         // Validate required fields
-        if (!fullName || !email || !password || !role) {
+        if (!fullName || !email || !password) {
             return res.status(400).json({
                 success: false,
-                message: 'Full name, email, password, and role are required'
+                message: 'Full name, email, and password are required'
             });
         }
 
@@ -45,35 +45,11 @@ export const signup = async (req, res) => {
             });
         }
 
-        // Super admin cannot signup
-        if (role === 'superadmin') {
-            return res.status(403).json({
-                success: false,
-                message: 'Super Admin account cannot be created through signup'
-            });
-        }
-
-        // Validate role
-        const validRoles = ['dean', 'deptadmin', 'faculty'];
-        if (!validRoles.includes(role)) {
+        // Department is required for faculty
+        if (!department) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid role. Must be dean, deptadmin, or faculty'
-            });
-        }
-
-        // Validate role-specific requirements
-        if (role === 'dean' && !faculty) {
-            return res.status(400).json({
-                success: false,
-                message: 'Faculty selection is required for Dean role'
-            });
-        }
-
-        if ((role === 'deptadmin' || role === 'faculty') && !department) {
-            return res.status(400).json({
-                success: false,
-                message: 'Department selection is required for this role'
+                message: 'Department selection is required'
             });
         }
 
@@ -90,52 +66,32 @@ export const signup = async (req, res) => {
             });
         }
 
-        // Resolve faculty_id and department_id from names
-        let facultyId = null;
-        let departmentId = null;
-
-        if (role === 'dean' && faculty) {
-            const [facRows] = await pool.query(
-                'SELECT id FROM faculties WHERE name = ?',
-                [faculty]
-            );
-            if (facRows.length === 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Faculty "${faculty}" not found`
-                });
-            }
-            facultyId = facRows[0].id;
+        // Resolve department_id and faculty_id from department name
+        const [deptRows] = await pool.query(
+            'SELECT id, faculty_id FROM departments WHERE name = ?',
+            [department]
+        );
+        if (deptRows.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: `Department "${department}" not found`
+            });
         }
-
-        if ((role === 'deptadmin' || role === 'faculty') && department) {
-            const [deptRows] = await pool.query(
-                'SELECT id, faculty_id FROM departments WHERE name = ?',
-                [department]
-            );
-            if (deptRows.length === 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Department "${department}" not found`
-                });
-            }
-            departmentId = deptRows[0].id;
-            facultyId = deptRows[0].faculty_id; // auto-derive faculty from department
-        }
+        const departmentId = deptRows[0].id;
+        const facultyId = deptRows[0].faculty_id;
 
         // Hash password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Insert new user
+        // Insert new user as faculty with pending status
         const [result] = await pool.query(
             `INSERT INTO users (full_name, email, password, role, faculty_id, department_id, phone_number, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
+             VALUES (?, ?, ?, 'faculty', ?, ?, ?, 'pending')`,
             [
                 fullName.trim(),
                 email.toLowerCase(),
                 hashedPassword,
-                role,
                 facultyId,
                 departmentId,
                 phoneNumber || ''
@@ -144,12 +100,12 @@ export const signup = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: 'Signup successful! Your account is pending approval.',
+            message: 'Signup successful! Your account is pending approval by the Department Admin.',
             data: {
                 id: result.insertId,
                 fullName: fullName.trim(),
                 email: email.toLowerCase(),
-                role,
+                role: 'faculty',
                 status: 'pending'
             }
         });
@@ -162,7 +118,7 @@ export const signup = async (req, res) => {
     }
 };
 
-// Login Controller
+// Login Controller — supports deptadmin and faculty
 export const login = async (req, res) => {
     try {
         const { email, password, role } = req.body;
@@ -175,53 +131,16 @@ export const login = async (req, res) => {
             });
         }
 
-        // Super Admin login — check DB (user with role 'superadmin')
-        if (role === 'superadmin') {
-            const [admins] = await pool.query(
-                'SELECT * FROM users WHERE role = ? AND email = ?',
-                ['superadmin', email.toLowerCase()]
-            );
-
-            if (admins.length === 0) {
-                return res.status(401).json({
-                    success: false,
-                    message: 'Invalid Super Admin credentials'
-                });
-            }
-
-            const admin = admins[0];
-            const isMatch = await bcrypt.compare(password, admin.password);
-            if (!isMatch) {
-                return res.status(401).json({
-                    success: false,
-                    message: 'Invalid Super Admin credentials'
-                });
-            }
-
-            const token = jwt.sign(
-                {
-                    id: admin.id,
-                    email: admin.email,
-                    role: 'superadmin'
-                },
-                process.env.JWT_SECRET || 'KEY',
-                { expiresIn: '7d' }
-            );
-
-            return res.status(200).json({
-                success: true,
-                message: 'Super Admin login successful',
-                token,
-                data: {
-                    id: admin.id,
-                    fullName: admin.full_name,
-                    email: admin.email,
-                    role: 'superadmin'
-                }
+        // Validate role
+        const validRoles = ['deptadmin', 'faculty'];
+        if (role && !validRoles.includes(role)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid role. Must be deptadmin or faculty'
             });
         }
 
-        // Regular user login
+        // Find user
         const [users] = await pool.query(
             `SELECT u.*, f.name as faculty_name, d.name as department_name
              FROM users u
@@ -240,8 +159,8 @@ export const login = async (req, res) => {
 
         const user = users[0];
 
-        // Check if role matches
-        if (user.role !== role) {
+        // Check if role matches (if role was specified)
+        if (role && user.role !== role) {
             return res.status(401).json({
                 success: false,
                 message: `This account is registered as ${user.role}, not ${role}`
@@ -257,7 +176,7 @@ export const login = async (req, res) => {
             });
         }
 
-        // Check if approved
+        // Check if approved (faculty needs approval; admins are seeded as approved)
         if (user.status !== 'approved') {
             return res.status(403).json({
                 success: false,

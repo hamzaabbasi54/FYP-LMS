@@ -16,8 +16,6 @@ const Login = () => {
     const [loading, setLoading] = useState(false);
 
     const roleLabels = {
-        superadmin: 'Super Admin',
-        dean: 'Dean',
         deptadmin: 'Department Admin',
         faculty: 'Faculty'
     };
@@ -66,8 +64,6 @@ const Login = () => {
 
                     // Redirect based on role
                     const redirectMap = {
-                        superadmin: '/superadmin-dashboard',
-                        dean: '/dean-dashboard',
                         deptadmin: '/admin-dashboard',
                         faculty: '/faculty-dashboard'
                     };
@@ -77,7 +73,7 @@ const Login = () => {
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                const errorMessage = error.response?.data?.message || 'Failed to login. Please try again.';
+                const errorMessage = error.message || 'Failed to login. Please try again.';
                 setErrors({ password: errorMessage });
             } finally {
                 setLoading(false);
@@ -111,8 +107,6 @@ const Login = () => {
                                 onChange={handleChange}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white text-gray-800"
                             >
-                                <option value="superadmin">{roleLabels.superadmin}</option>
-                                <option value="dean">{roleLabels.dean}</option>
                                 <option value="deptadmin">{roleLabels.deptadmin}</option>
                                 <option value="faculty">{roleLabels.faculty}</option>
                             </select>
@@ -208,12 +202,12 @@ const Login = () => {
                     {/* Sign Up Link */}
                     <div className="mt-6 text-center">
                         <p className="text-sm text-gray-600">
-                            Don't have an account?{' '}
+                            Are you a faculty member?{' '}
                             <Link
                                 to="/signup"
                                 className="font-semibold text-blue-600 hover:text-blue-700 hover:underline"
                             >
-                                Sign up
+                                Sign up here
                             </Link>
                         </p>
                     </div>

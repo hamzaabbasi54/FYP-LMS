@@ -25,34 +25,12 @@ export const verifyToken = (req, res, next) => {
     }
 };
 
-// Check if user is Super Admin
-export const isSuperAdmin = (req, res, next) => {
-    if (!req.user || req.user.role !== 'superadmin') {
-        return res.status(403).json({
-            success: false,
-            message: 'Access denied. Super Admin privileges required.'
-        });
-    }
-    next();
-};
-
-// Check if user is Dean
-export const isDean = (req, res, next) => {
-    if (!req.user || req.user.role !== 'dean') {
-        return res.status(403).json({
-            success: false,
-            message: 'Access denied. Dean privileges required.'
-        });
-    }
-    next();
-};
-
-// Check if user is Department Admin
-export const isDeptAdmin = (req, res, next) => {
+// Check if user is Department Admin (the sole admin role)
+export const isAdmin = (req, res, next) => {
     if (!req.user || req.user.role !== 'deptadmin') {
         return res.status(403).json({
             success: false,
-            message: 'Access denied. Department Admin privileges required.'
+            message: 'Access denied. Admin privileges required.'
         });
     }
     next();
@@ -69,28 +47,6 @@ export const isFaculty = (req, res, next) => {
     next();
 };
 
-// Check if user is Admin (Super Admin, Dean, or Dept Admin)
-export const isAdmin = (req, res, next) => {
-    if (!req.user || !['superadmin', 'dean', 'deptadmin'].includes(req.user.role)) {
-        return res.status(403).json({
-            success: false,
-            message: 'Access denied. Admin privileges required.'
-        });
-    }
-    next();
-};
-
-// Check if user can approve others (Super Admin, Dean, or Dept Admin)
-export const canApprove = (req, res, next) => {
-    if (!req.user || !['superadmin', 'dean', 'deptadmin'].includes(req.user.role)) {
-        return res.status(403).json({
-            success: false,
-            message: 'Access denied. Approval privileges required.'
-        });
-    }
-    next();
-};
-
 // Check if user is authenticated (any valid role)
 export const isAuthenticated = (req, res, next) => {
     if (!req.user) {
@@ -100,7 +56,7 @@ export const isAuthenticated = (req, res, next) => {
         });
     }
 
-    const validRoles = ['superadmin', 'dean', 'deptadmin', 'faculty'];
+    const validRoles = ['deptadmin', 'faculty'];
     if (!validRoles.includes(req.user.role)) {
         return res.status(403).json({
             success: false,

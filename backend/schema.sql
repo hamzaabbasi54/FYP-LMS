@@ -56,7 +56,7 @@ CREATE TABLE users (
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role ENUM('superadmin', 'dean', 'deptadmin', 'faculty') NOT NULL,
+    role ENUM('deptadmin', 'faculty') NOT NULL,
     faculty_id INT DEFAULT NULL,
     department_id INT DEFAULT NULL,
     phone_number VARCHAR(20) DEFAULT '',
@@ -403,21 +403,14 @@ INSERT INTO departments (name, faculty_id) VALUES
 ('Genetics', 4),
 ('Zoology', 4);
 
--- Super Admin user (password: admin123 — bcrypt hash)
-INSERT INTO users (full_name, email, password, role, status, is_active) VALUES
-('Super Administrator', 'admin@gmail.com', '$2b$10$YourHashedPasswordHere', 'superadmin', 'approved', TRUE);
-
--- Sample Dean (password: dean123 — replace hash in production)
-INSERT INTO users (full_name, email, password, role, faculty_id, status, is_active) VALUES
-('Dr. James Wilson', 'dean.ns@university.edu', '$2b$10$YourHashedPasswordHere', 'dean', 1, 'approved', TRUE);
-
--- Sample Dept Admin
-INSERT INTO users (full_name, email, password, role, department_id, status, approved_by, is_active) VALUES
-('Prof. Sarah Khan', 'admin.physics@university.edu', '$2b$10$YourHashedPasswordHere', 'deptadmin', 1, 'approved', 2, TRUE);
+-- Department Admin (primary admin of the system)
+-- Password: admin123 — replace hash with actual bcrypt hash in production
+INSERT INTO users (full_name, email, password, role, department_id, status, is_active) VALUES
+('Prof. Sarah Khan', 'admin@gmail.com', '$2b$10$YourHashedPasswordHere', 'deptadmin', 1, 'approved', TRUE);
 
 -- Sample Faculty Member
 INSERT INTO users (full_name, email, password, role, department_id, phone_number, status, approved_by, is_active) VALUES
-('Dr. Emily Carter', 'emily.carter@university.edu', '$2b$10$YourHashedPasswordHere', 'faculty', 1, '+1 555-0101', 'approved', 3, TRUE);
+('Dr. Emily Carter', 'emily.carter@university.edu', '$2b$10$YourHashedPasswordHere', 'faculty', 1, '+1 555-0101', 'approved', 1, TRUE);
 
 -- Sample Batch
 INSERT INTO batches (name, department_id, start_date, end_date, status, is_active) VALUES
