@@ -45,6 +45,12 @@ import RegisterStudent from "./pages/faculty-pages/RegisterStudent.jsx";
 import Grading from "./pages/faculty-pages/Grading.jsx";
 import GradeAssignment from "./pages/faculty-pages/GradeAssignment.jsx";
 import CreateAssessment from "./pages/faculty-pages/CreateAssessment.jsx";
+import Messages from "./pages/faculty-pages/Messages.jsx";
+import Notifications from "./pages/faculty-pages/Notifications.jsx";
+import Schedule from "./pages/faculty-pages/Schedule.jsx";
+import ManageStudents from "./pages/faculty-pages/ManageStudents.jsx";
+import { CourseProvider } from "./context/CourseContext.jsx";
+
 
 // Protected Route
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -94,7 +100,11 @@ function App() {
 
             {/* Faculty Protected Routes */}
             <Route element={<ProtectedRoute allowedRole="faculty" />}>
-                <Route element={<FacultyMainLayout />}>
+                <Route element={
+                    <CourseProvider>
+                        <FacultyMainLayout />
+                    </CourseProvider>
+                }>
                     <Route path="/faculty-dashboard" element={<FacultyDashboard />} />
                     <Route path="/faculty-batch/:batchId" element={<BatchCourses />} />
                     <Route path="/faculty-mycourses/:assignmentId" element={<MyCourses />} />
@@ -105,9 +115,14 @@ function App() {
                     <Route path="/faculty-mycourses/:assignmentId/grading" element={<Grading />} />
                     <Route path="/faculty-mycourses/:assignmentId/grading/:gradeAssignmentId" element={<GradeAssignment />} />
                     <Route path="/faculty-mycourses/:assignmentId/grading/new" element={<CreateAssessment />} />
+                    <Route path="/faculty-mycourses/:assignmentId/students" element={<ManageStudents />} />
+                    <Route path="/faculty-messages" element={<Messages />} />
+                    <Route path="/faculty-notifications" element={<Notifications />} />
+                    <Route path="/faculty-schedule" element={<Schedule />} />
                     <Route path="/faculty-settings" element={<Settings />} />
                 </Route>
             </Route>
+
         </Routes>
         <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
     </>
