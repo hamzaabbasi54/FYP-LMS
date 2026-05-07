@@ -99,7 +99,7 @@ function App() {
             </Route>
 
             {/* Faculty Protected Routes */}
-            <Route element={<ProtectedRoute allowedRole="faculty" />}>
+            {/* <Route element={<ProtectedRoute allowedRole="faculty" />}> */}
                 <Route element={
                     <CourseProvider>
                         <FacultyMainLayout />
@@ -121,7 +121,7 @@ function App() {
                     <Route path="/faculty-schedule" element={<Schedule />} />
                     <Route path="/faculty-settings" element={<Settings />} />
                 </Route>
-            </Route>
+            {/* </Route> */}
 
         </Routes>
         <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />

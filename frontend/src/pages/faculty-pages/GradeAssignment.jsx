@@ -1,101 +1,104 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { MdSearch, MdChevronRight, MdCheckCircle, MdWarning, MdError, MdSave, MdHelp } from 'react-icons/md';
 
 const GradeAssignment = () => {
-    const { assignmentId, gradeAssignmentId } = useParams();
+    const { assignmentId } = useParams();
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
     const [scores, setScores] = useState({});
     const [unsavedChanges, setUnsavedChanges] = useState({});
 
-    const [assignment, setAssignment] = useState(null);
-    const [students, setStudents] = useState([]);
-    const [loading, setLoading] = useState(true);
+    // Mock assignment data
+    const assignment = {
+        id: assignmentId || '2',
+        label: "ASSIGNMENT 3",
+        title: "OOP Concepts Essay",
+        description: "Grading submissions for the introductory essay on Object Oriented Programming principles.",
+        dueDate: "Oct 24, 2023",
+        dueTime: "11:59 PM",
+        maxScore: 100,
+        gradedCount: 4,
+        totalStudents: 118
+    };
 
-    useEffect(() => {
-        const fetchGradingData = async () => {
-            setLoading(true);
-            try {
-                const { assessmentApi } = await import('../../services/api');
-                
-                // Fetch assessment details
-                const assessmentRes = await assessmentApi.getById(gradeAssignmentId);
-                let currentAssignment = null;
-                if (assessmentRes.success) {
-                    const data = assessmentRes.data;
-                    currentAssignment = {
-                        id: data.id,
-                        label: data.type.toUpperCase(),
-                        title: data.title,
-                        description: data.description || "No description provided.",
-                        dueDate: data.due_date ? new Date(data.due_date).toLocaleDateString() : 'N/A',
-                        dueTime: data.due_date ? new Date(data.due_date).toLocaleTimeString() : '',
-                        maxScore: data.max_score || 100,
-                        gradedCount: data.grade_stats ? data.grade_stats.graded_count : 0,
-                        totalStudents: 0 // Will update from enrolled students list
-                    };
-                    setAssignment(currentAssignment);
-                }
+    // Mock student submissions data
+    const [students, setStudents] = useState([
+        {
+            id: 1,
+            name: "Ayesha Khan",
+            studentId: "2023001",
+            initials: "AK",
+            avatarColor: "bg-purple-100 text-purple-700",
+            status: "Submitted",
+            statusColor: "text-green-600",
+            statusIcon: MdCheckCircle,
+            submittedDate: "Oct 24, 10:45 AM",
+            submissionFile: "essay_ayesha.pdf",
+            score: 92
+        },
+        {
+            id: 2,
+            name: "Bilal Ahmed",
+            studentId: "2023015",
+            initials: "BA",
+            avatarColor: "bg-pink-100 text-pink-700",
+            status: "Late Submission",
+            statusColor: "text-yellow-600",
+            statusIcon: MdWarning,
+            submittedDate: "Oct 25, 09:12 AM",
+            submissionFile: "oop_essay_bilal.docx",
+            score: null
+        },
+        {
+            id: 3,
+            name: "Chaudhry Nazeer",
+            studentId: "2023042",
+            initials: "CN",
+            avatarColor: "bg-green-100 text-green-700",
+            status: "Missing",
+            statusColor: "text-red-600",
+            statusIcon: MdError,
+            submittedDate: "Due Oct 24",
+            submissionFile: null,
+            score: 0
+        },
+        {
+            id: 4,
+            name: "Dua Khalid",
+            studentId: "2023089",
+            initials: "DK",
+            avatarColor: "bg-yellow-100 text-yellow-700",
+            status: "Submitted",
+            statusColor: "text-green-600",
+            statusIcon: MdCheckCircle,
+            submittedDate: "Oct 23, 04:20 PM",
+            submissionFile: "essay_dua.pdf",
+            score: null
+        },
+        {
+            id: 5,
+            name: "Ehab Latif",
+            studentId: "2023102",
+            initials: "EL",
+            avatarColor: "bg-indigo-100 text-indigo-700",
+            status: "Submitted",
+            statusColor: "text-green-600",
+            statusIcon: MdCheckCircle,
+            submittedDate: "Oct 24, 11:15 AM",
+            submissionFile: "oop_assign3_ehab.pdf",
+            score: 88
+        }
+    ]);
 
-                // Fetch enrolled students for this course assignment
-                const { studentApi } = await import('../../services/api');
-                const studentsRes = await studentApi.getEnrolledStudents(assignmentId);
-                let enrolledStudents = [];
-                if (studentsRes.success) {
-                    enrolledStudents = studentsRes.data.data || studentsRes.data;
-                }
-
-                if (currentAssignment) {
-                    setAssignment(prev => ({ ...prev, totalStudents: enrolledStudents.length }));
-                }
-
-                // Fetch existing grades
-                const gradesRes = await assessmentApi.getGrades(gradeAssignmentId);
-                let gradesMap = {};
-                if (gradesRes.success) {
-                    const gradesData = gradesRes.data.data || gradesRes.data;
-                    gradesData.forEach(g => {
-                        gradesMap[g.student_id] = g;
-                    });
-                }
-
-                // Merge students and grades
-                const mappedStudents = enrolledStudents.map(item => {
-                    const gradeRecord = gradesMap[item.id];
-                    const score = gradeRecord && gradeRecord.score !== null ? gradeRecord.score : null;
-                    return {
-                        id: item.id,
-                        name: `${item.first_name} ${item.last_name}`,
-                        studentId: item.student_id_number,
-                        initials: `${item.first_name.charAt(0)}${item.last_name.charAt(0)}`.toUpperCase(),
-                        avatarColor: "bg-blue-100 text-blue-700",
-                        status: score !== null ? "Graded" : "Needs Grading",
-                        statusColor: score !== null ? "text-green-600" : "text-yellow-600",
-                        statusIcon: score !== null ? MdCheckCircle : MdWarning,
-                        submittedDate: gradeRecord && gradeRecord.graded_at ? `Graded ${new Date(gradeRecord.graded_at).toLocaleDateString()}` : '',
-                        submissionFile: null,
-                        score: score
-                    };
-                });
-                
-                setStudents(mappedStudents);
-
-                // Initialize scores
-                const initialScores = {};
-                mappedStudents.forEach(student => {
-                    initialScores[student.id] = student.score !== null ? student.score : '';
-                });
-                setScores(initialScores);
-            } catch (error) {
-                console.error("Error fetching grade assignment data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (gradeAssignmentId) fetchGradingData();
-    }, [gradeAssignmentId]);
+    // Initialize scores state
+    React.useEffect(() => {
+        const initialScores = {};
+        students.forEach(student => {
+            initialScores[student.id] = student.score !== null ? student.score : '';
+        });
+        setScores(initialScores);
+    }, []);
 
     // Handle score change
     const handleScoreChange = (studentId, value) => {
@@ -108,7 +111,7 @@ const GradeAssignment = () => {
         // Track unsaved changes
         const originalScore = students.find(s => s.id === studentId)?.score;
         const hasChanged = originalScore !== (numValue === '' ? null : numValue);
-        
+
         setUnsavedChanges(prev => {
             const newChanges = { ...prev };
             if (hasChanged) {
@@ -121,36 +124,18 @@ const GradeAssignment = () => {
     };
 
     // Handle save
-    const handleSave = async () => {
-        try {
-            const { assessmentApi } = await import('../../services/api');
-            
-            const gradesToSave = Object.keys(unsavedChanges).map(studentId => ({
-                student_id: parseInt(studentId),
-                score: scores[studentId] !== '' ? parseInt(scores[studentId]) : null
-            })).filter(g => g.score !== null); // Only save actual scores
-            
-            if (gradesToSave.length === 0) return;
-
-            const response = await assessmentApi.submitGrades(gradeAssignmentId, gradesToSave);
-            if (response.success) {
-                alert('Grades saved successfully!');
-                setUnsavedChanges({});
-                // Update local state
-                setStudents(prevStudents =>
-                    prevStudents.map(student => ({
-                        ...student,
-                        score: scores[student.id] !== '' ? scores[student.id] : null,
-                        status: scores[student.id] !== '' ? "Graded" : "Needs Grading",
-                        statusColor: scores[student.id] !== '' ? "text-green-600" : "text-yellow-600",
-                        statusIcon: scores[student.id] !== '' ? MdCheckCircle : MdWarning,
-                    }))
-                );
-            }
-        } catch (error) {
-            console.error("Error saving grades:", error);
-            alert("Error saving grades.");
-        }
+    const handleSave = () => {
+        console.log('Saving grades:', scores);
+        // In a real app, you would send this to an API
+        alert('Grades saved successfully!');
+        setUnsavedChanges({});
+        // Update students with new scores
+        setStudents(prevStudents =>
+            prevStudents.map(student => ({
+                ...student,
+                score: scores[student.id] !== '' ? scores[student.id] : null
+            }))
+        );
     };
 
     // Handle cancel
@@ -172,19 +157,15 @@ const GradeAssignment = () => {
 
     const unsavedCount = Object.keys(unsavedChanges).length;
 
-    if (loading || !assignment) {
-        return <div className="p-8 text-center text-gray-500">Loading grading assignment...</div>;
-    }
-
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
             {/* Breadcrumbs */}
             <div className="flex items-center text-sm text-gray-500 mb-4">
                 <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
-                    Courses
+                    CS-101
                 </Link>
                 <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                <Link to={`/faculty-mycourses/${assignmentId}/grading`} className="hover:text-blue-600 transition-colors">
+                <Link to="/faculty-mycourses/grading" className="hover:text-blue-600 transition-colors">
                     Grades
                 </Link>
                 <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
@@ -328,9 +309,8 @@ const GradeAssignment = () => {
                                                     max={assignment.maxScore}
                                                     value={scores[student.id] !== undefined ? scores[student.id] : ''}
                                                     onChange={(e) => handleScoreChange(student.id, e.target.value)}
-                                                    className={`w-20 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                                        unsavedChanges[student.id] ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'
-                                                    }`}
+                                                    className={`w-20 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'
+                                                        }`}
                                                     placeholder="0"
                                                 />
                                                 <span className="text-sm text-gray-600">/ {assignment.maxScore}</span>
@@ -381,4 +361,3 @@ const GradeAssignment = () => {
 };
 
 export default GradeAssignment;
-

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { MdEdit, MdPeople, MdCheckCircle, MdAssignment, MdArrowForward } from 'react-icons/md';
 
 // Component for Course Management Cards
@@ -25,47 +25,17 @@ const ManagementCard = ({ icon: Icon, title, description, buttonText, iconColor,
 };
 
 const MyCourses = () => {
-    const { assignmentId } = useParams();
-    const [course, setCourse] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchCourseDetails = async () => {
-            try {
-                const { courseApi } = await import('../../services/api');
-                const response = await courseApi.getAssignmentDetails(assignmentId);
-                if (response.success) {
-                    const data = response.data;
-                    setCourse({
-                        title: data.title,
-                        code: data.code,
-                        schedule: "Schedule TBA", // Assuming schedule isn't strictly in DB yet
-                        room: "Room TBA",
-                        credits: `${data.credit_hours} Credits`,
-                        description: data.description || "No description provided.",
-                        totalStudents: data.student_count || 0,
-                        batch: data.batch_name
-                    });
-                }
-            } catch (error) {
-                console.error("Error fetching course details:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (assignmentId) {
-            fetchCourseDetails();
-        }
-    }, [assignmentId]);
-
-    if (loading) {
-        return <div className="p-8 text-center text-gray-500">Loading course details...</div>;
-    }
-
-    if (!course) {
-        return <div className="p-8 text-center text-gray-500">Course not found.</div>;
-    }
+    // Course data
+    const course = {
+        title: "Introduction to Programming",
+        code: "CS-101",
+        schedule: "Mon, Wed 10:00 AM",
+        room: "Room 304",
+        credits: "4 Credits",
+        description: "Fundamental concepts of programming using Python. Control structures, data types, and basic algorithms.",
+        totalStudents: 118,
+        batch: "Batch 2023-2027"
+    };
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
@@ -78,9 +48,6 @@ const MyCourses = () => {
                     </h1>
                     <span className="bg-blue-100 text-blue-700 text-sm font-semibold px-3 py-1 rounded-full">
                         {course.code}
-                    </span>
-                    <span className="bg-purple-100 text-purple-700 text-sm font-semibold px-3 py-1 rounded-full">
-                        {course.batch}
                     </span>
                 </div>
 
@@ -107,14 +74,14 @@ const MyCourses = () => {
                         {/* Action Buttons */}
                         <div className="flex flex-col sm:flex-row gap-3">
                             <Link
-                                to={`/faculty-mycourses/${assignmentId}/register-student`}
-                                className="flex items-center justify-center bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
+                                to="/faculty-mycourses/register-student"
+                                className="flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
                             >
                                 <MdPeople className="w-4 h-4 mr-2" />
-                                Manage Roster
+                                Add Student
                             </Link>
                             <Link
-                                to={`/faculty-mycourses/${assignmentId}/edit-syllabus`}
+                                to="/faculty-mycourses/edit-syllabus"
                                 className="flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
                             >
                                 <MdEdit className="w-4 h-4 mr-2" />
@@ -134,7 +101,7 @@ const MyCourses = () => {
             {/* Course Management Section */}
             <div>
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">Course Management</h2>
-                
+
                 {/* Management Cards Grid - Equal height cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     <ManagementCard
@@ -145,7 +112,7 @@ const MyCourses = () => {
                         iconColor="text-blue-600"
                         buttonColor="text-blue-600"
                         iconBgColor="bg-blue-50"
-                        to={`/faculty-mycourses/${assignmentId}/register-student`}
+                        to="/faculty-mycourses/students"
                     />
                     <ManagementCard
                         icon={MdCheckCircle}
@@ -155,7 +122,7 @@ const MyCourses = () => {
                         iconColor="text-green-600"
                         buttonColor="text-green-600"
                         iconBgColor="bg-green-50"
-                        to={`/faculty-attendance?assignmentId=${assignmentId}`}
+                        to="/faculty-attendance"
                     />
                     <ManagementCard
                         icon={MdAssignment}
@@ -165,7 +132,7 @@ const MyCourses = () => {
                         iconColor="text-purple-600"
                         buttonColor="text-purple-600"
                         iconBgColor="bg-purple-50"
-                        to={`/faculty-mycourses/${assignmentId}/grading`}
+                        to="/faculty-mycourses/grading"
                     />
                 </div>
             </div>

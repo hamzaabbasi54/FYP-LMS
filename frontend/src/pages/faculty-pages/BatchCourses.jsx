@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { MdPeople, MdBarChart, MdMoreVert, MdArrowForward, MdArrowDropDown } from 'react-icons/md';
 
 // Component for Course Cards
-const CourseCard = ({ courseCode, schedule, title, description, enrolled, pendingGrades, borderColor, assignmentId }) => {
+const CourseCard = ({ courseCode, schedule, title, description, enrolled, pendingGrades, borderColor }) => {
     return (
         <Link
-            to={`/faculty-mycourses/${assignmentId}`}
+            to="/faculty-mycourses"
             className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 block cursor-pointer"
         >
             <div className="flex">
@@ -60,67 +60,51 @@ const CourseCard = ({ courseCode, schedule, title, description, enrolled, pendin
 
 const BatchCourses = () => {
     const { batchId } = useParams();
-    const [courses, setCourses] = useState([]);
-    const [batchDetails, setBatchDetails] = useState(null);
-    const [loading, setLoading] = useState(true);
+    
+    // Mock batch data
+    const batch = {
+        id: batchId || "2023-2027",
+        name: "Batch 2023-2027",
+        year: "Year 1",
+        type: "Full Time",
+        department: "Computer Science Department",
+        semester: "Fall Semester 2023",
+        totalStudents: 120
+    };
 
-    const borderColors = ["bg-blue-500", "bg-purple-500", "bg-orange-500", "bg-green-500"];
-
-    useEffect(() => {
-        const fetchBatchCourses = async () => {
-            try {
-                const { courseApi } = await import('../../services/api');
-                const response = await courseApi.getAssigned();
-                if (response.success) {
-                    // Filter courses for this specific batch
-                    const batchAssignments = response.data.filter(c => c.batch_id.toString() === batchId.toString());
-                    
-                    if (batchAssignments.length > 0) {
-                        // Extract batch info from the first assignment
-                        const first = batchAssignments[0];
-                        setBatchDetails({
-                            id: first.batch_id,
-                            name: first.batch_name,
-                            year: `Year ${new Date().getFullYear() - new Date(first.start_date).getFullYear() + 1 > 0 ? new Date().getFullYear() - new Date(first.start_date).getFullYear() + 1 : 1}`,
-                            type: "Full Time",
-                            department: "Department", // Can be extended to fetch exact department
-                            semester: first.semester_name,
-                            // Use max student count as rough batch size
-                            totalStudents: Math.max(...batchAssignments.map(a => a.student_count))
-                        });
-
-                        setCourses(batchAssignments.map((a, idx) => ({
-                            id: a.course_id,
-                            assignmentId: a.assignment_id,
-                            courseCode: a.code,
-                            schedule: "Schedule TBA", // Add schedule logic if present in schema
-                            title: a.title,
-                            description: `${a.credit_hours} Credit Hours`,
-                            enrolled: `${a.student_count} Enrolled`,
-                            pendingGrades: "0 Pending Grades", // Add grades logic
-                            borderColor: borderColors[idx % borderColors.length]
-                        })));
-                    } else {
-                        // Optional: Fetch batch details directly if no courses, but for now we expect courses
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching batch courses:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchBatchCourses();
-    }, [batchId]);
-
-    if (loading) {
-        return <div className="p-8 text-center text-gray-500">Loading batch courses...</div>;
-    }
-
-    if (!batchDetails && courses.length === 0) {
-        return <div className="p-8 text-center text-gray-500">No courses assigned for this batch.</div>;
-    }
+    // Mock courses data
+    const courses = [
+        {
+            id: "CS-101",
+            courseCode: "CS-101",
+            schedule: "Mon, Wed 10:00 AM",
+            title: "Introduction to Programming",
+            description: "Fundamental concepts of programming using Python. Control structures, data types, and basic algorithms.",
+            enrolled: "118 Enrolled",
+            pendingGrades: "2 Pending Grades",
+            borderColor: "bg-blue-500"
+        },
+        {
+            id: "MA-102",
+            courseCode: "MA-102",
+            schedule: "Tue, Thu 02:00 PM",
+            title: "Discrete Mathematics",
+            description: "Logic, sets, functions, relations, and combinatorics tailored for computer science students.",
+            enrolled: "120 Enrolled",
+            pendingGrades: "0 Pending Grades",
+            borderColor: "bg-purple-500"
+        },
+        {
+            id: "CS-105L",
+            courseCode: "CS-105L",
+            schedule: "Fri 09:00 AM",
+            title: "Programming Lab I",
+            description: "Practical application of programming concepts. Weekly assignments and hands-on coding tests.",
+            enrolled: "60 Enrolled (Group A)",
+            pendingGrades: "0 Pending Grades",
+            borderColor: "bg-orange-500"
+        }
+    ];
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
@@ -131,15 +115,15 @@ const BatchCourses = () => {
                     <div className="flex-1">
                         <div className="flex flex-wrap items-center gap-2 mb-4">
                             <span className="bg-white bg-opacity-20 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1 rounded-full">
-                                {batchDetails?.year}
+                                {batch.year}
                             </span>
                             <span className="bg-white bg-opacity-20 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1 rounded-full">
-                                {batchDetails?.type}
+                                {batch.type}
                             </span>
                         </div>
-                        <h1 className="text-3xl sm:text-4xl font-bold mb-2">{batchDetails?.name}</h1>
+                        <h1 className="text-3xl sm:text-4xl font-bold mb-2">{batch.name}</h1>
                         <p className="text-blue-100 text-sm sm:text-base">
-                            {batchDetails?.department} • {batchDetails?.semester}
+                            {batch.department} • {batch.semester}
                         </p>
                     </div>
 
@@ -147,7 +131,7 @@ const BatchCourses = () => {
                     <div className="flex flex-col sm:flex-row gap-3">
                         <button className="flex items-center justify-center bg-white bg-opacity-20 backdrop-blur-sm hover:bg-opacity-30 text-white px-5 py-2.5 rounded-lg transition-colors font-medium text-sm whitespace-nowrap">
                             <MdPeople className="w-5 h-5 mr-2" />
-                            Student List ({batchDetails?.totalStudents})
+                            Student List ({batch.totalStudents})
                         </button>
                         <button className="flex items-center justify-center bg-white bg-opacity-20 backdrop-blur-sm hover:bg-opacity-30 text-white px-5 py-2.5 rounded-lg transition-colors font-medium text-sm whitespace-nowrap">
                             <MdBarChart className="w-5 h-5 mr-2" />
@@ -178,7 +162,6 @@ const BatchCourses = () => {
                     {courses.map((course) => (
                         <CourseCard
                             key={course.id}
-                            assignmentId={course.assignmentId}
                             courseCode={course.courseCode}
                             schedule={course.schedule}
                             title={course.title}

@@ -91,8 +91,8 @@ const Attendance = () => {
         const firstDay = getFirstDayOfMonth(calendarMonth);
         const days = [];
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
-                           'July', 'August', 'September', 'October', 'November', 'December'];
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'];
 
         // Add empty cells for days before the first day of the month
         for (let i = 0; i < firstDay; i++) {
@@ -110,78 +110,72 @@ const Attendance = () => {
     const calendarData = generateCalendarDays();
     const isToday = (day) => {
         const today = new Date();
-        return day === today.getDate() && 
-               calendarMonth.getMonth() === today.getMonth() && 
-               calendarMonth.getFullYear() === today.getFullYear();
+        return day === today.getDate() &&
+            calendarMonth.getMonth() === today.getMonth() &&
+            calendarMonth.getFullYear() === today.getFullYear();
     };
 
     const isSelected = (day) => {
-        return day === selectedDate.getDate() && 
-               calendarMonth.getMonth() === selectedDate.getMonth() && 
-               calendarMonth.getFullYear() === selectedDate.getFullYear();
+        return day === selectedDate.getDate() &&
+            calendarMonth.getMonth() === selectedDate.getMonth() &&
+            calendarMonth.getFullYear() === selectedDate.getFullYear();
     };
 
-    const [students, setStudents] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    const queryParams = new URLSearchParams(window.location.search);
-    const assignmentId = queryParams.get('assignmentId');
-
-    // Fetch data when date or assignmentId changes
-    useEffect(() => {
-        const fetchAttendanceData = async () => {
-            if (!assignmentId) return;
-            setLoading(true);
-            try {
-                const { attendanceApi, studentApi } = await import('../../services/api');
-                
-                // Format date as YYYY-MM-DD
-                const dateStr = `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`;
-                
-                // 1. Fetch attendance records for this date
-                const attendanceResponse = await attendanceApi.getByCourse(assignmentId, { date: dateStr, limit: 1000 });
-                
-                // 2. Fetch all enrolled students
-                const enrolledResponse = await studentApi.getEnrolledStudents(assignmentId);
-                
-                if (enrolledResponse.success) {
-                    const enrolledStudents = enrolledResponse.data.data || enrolledResponse.data;
-                    const existingRecords = attendanceResponse.success ? (attendanceResponse.data.data || attendanceResponse.data) : [];
-                    
-                    // Map existing records to student IDs for quick lookup
-                    const recordsMap = {};
-                    existingRecords.forEach(r => {
-                        recordsMap[r.student_id] = r;
-                    });
-                    
-                    // Merge enrolled students with existing attendance or default to 'present'
-                    const mergedStudents = enrolledStudents.map(student => {
-                        const record = recordsMap[student.id];
-                        return {
-                            id: student.id,
-                            name: `${student.first_name} ${student.last_name}`,
-                            studentId: student.student_id_number,
-                            initials: `${student.first_name.charAt(0)}${student.last_name.charAt(0)}`.toUpperCase(),
-                            status: record ? record.status : 'present',
-                            remarks: record ? record.remarks : ''
-                        };
-                    });
-                    
-                    setStudents(mergedStudents);
-                }
-            } catch (error) {
-                console.error("Error fetching attendance data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchAttendanceData();
-    }, [selectedDate, assignmentId]);
+    // Mock student data
+    const [students, setStudents] = useState([
+        {
+            id: 1,
+            name: "Ayesha Khan",
+            studentId: "2023001",
+            initials: "AK",
+            status: "present",
+            remarks: ""
+        },
+        {
+            id: 2,
+            name: "Bilal Ahmed",
+            studentId: "2023002",
+            initials: "BA",
+            status: "absent",
+            remarks: "Sick Leave"
+        },
+        {
+            id: 3,
+            name: "Chaudhry Nazeer",
+            studentId: "2023003",
+            initials: "CN",
+            status: "present",
+            remarks: "15 min late"
+        },
+        {
+            id: 4,
+            name: "Dawood Karim",
+            studentId: "2023004",
+            initials: "DK",
+            status: "present",
+            remarks: ""
+        },
+        {
+            id: 5,
+            name: "Esha Siddiqui",
+            studentId: "2023005",
+            initials: "ES",
+            status: "present",
+            remarks: ""
+        },
+        {
+            id: 6,
+            name: "Fahad Jamal",
+            studentId: "2023006",
+            initials: "FJ",
+            status: "absent",
+            remarks: ""
+        }
+    ]);
 
     const toggleStatus = (id) => {
-        setStudents(students.map(student => 
-            student.id === id 
+        setStudents(students.map(student =>
+            student.id === id
                 ? { ...student, status: student.status === 'present' ? 'absent' : 'present' }
                 : student
         ));
@@ -192,37 +186,16 @@ const Attendance = () => {
     };
 
     const updateRemarks = (id, remarks) => {
-        setStudents(students.map(student => 
+        setStudents(students.map(student =>
             student.id === id ? { ...student, remarks } : student
         ));
-    };
-    
-    const saveChanges = async () => {
-        try {
-            const { attendanceApi } = await import('../../services/api');
-            const dateStr = `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`;
-            
-            const records = students.map(s => ({
-                student_id: s.id,
-                status: s.status,
-                remarks: s.remarks
-            }));
-            
-            const response = await attendanceApi.saveCourseAttendance(assignmentId, { date: dateStr, records });
-            if (response.success) {
-                alert("Attendance saved successfully!");
-            }
-        } catch (error) {
-            console.error("Error saving attendance:", error);
-            alert("Error saving attendance.");
-        }
     };
 
     const presentCount = students.filter(s => s.status === 'present').length;
     const absentCount = students.filter(s => s.status === 'absent').length;
     const totalStudents = students.length;
-    const presentPercentage = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
-    const absentPercentage = totalStudents > 0 ? Math.round((absentCount / totalStudents) * 100) : 0;
+    const presentPercentage = Math.round((presentCount / totalStudents) * 100);
+    const absentPercentage = Math.round((absentCount / totalStudents) * 100);
 
     const filteredStudents = students.filter(student =>
         student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -252,18 +225,18 @@ const Attendance = () => {
             {/* Session Date and Summary Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-lg font-bold text-gray-800 mb-4">Select Session Date</h2>
-                
+
                 {/* Date Picker */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
                     <div className="relative flex items-center gap-2" ref={calendarRef}>
-                        <button 
+                        <button
                             onClick={handlePreviousDay}
                             className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-600 hover:text-gray-800 transition-colors"
                         >
                             <MdChevronLeft className="w-5 h-5" />
                         </button>
                         <div className="relative">
-                            <div 
+                            <div
                                 className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white cursor-pointer hover:bg-gray-50 transition-colors"
                                 onClick={() => setShowCalendar(!showCalendar)}
                             >
@@ -275,7 +248,7 @@ const Attendance = () => {
                                     className="text-sm font-medium text-gray-700 focus:outline-none w-32 cursor-pointer"
                                 />
                             </div>
-                            
+
                             {/* Calendar Dropdown */}
                             {showCalendar && (
                                 <div className="absolute top-full left-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-50 w-80 p-4">
@@ -315,18 +288,17 @@ const Attendance = () => {
                                             }
                                             const isTodayDate = isToday(day);
                                             const isSelectedDate = isSelected(day);
-                                            
+
                                             return (
                                                 <button
                                                     key={day}
                                                     onClick={() => handleDateSelect(day)}
-                                                    className={`aspect-square flex items-center justify-center text-sm rounded transition-colors ${
-                                                        isSelectedDate
-                                                            ? 'bg-blue-600 text-white font-semibold'
-                                                            : isTodayDate
+                                                    className={`aspect-square flex items-center justify-center text-sm rounded transition-colors ${isSelectedDate
+                                                        ? 'bg-blue-600 text-white font-semibold'
+                                                        : isTodayDate
                                                             ? 'bg-blue-100 text-blue-700 font-semibold'
                                                             : 'hover:bg-gray-100 text-gray-700'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {day}
                                                 </button>
@@ -346,7 +318,7 @@ const Attendance = () => {
                                 </div>
                             )}
                         </div>
-                        <button 
+                        <button
                             onClick={handleNextDay}
                             className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-600 hover:text-gray-800 transition-colors"
                         >
@@ -355,7 +327,7 @@ const Attendance = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <button 
+                        <button
                             onClick={handleToday}
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm"
                         >
@@ -493,10 +465,7 @@ const Attendance = () => {
                         <button className="px-6 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm">
                             Cancel
                         </button>
-                        <button 
-                            onClick={saveChanges}
-                            className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm"
-                        >
+                        <button className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm">
                             <MdSave className="w-5 h-5 mr-2" />
                             Save Changes
                         </button>
@@ -533,4 +502,3 @@ const Attendance = () => {
 };
 
 export default Attendance;
-

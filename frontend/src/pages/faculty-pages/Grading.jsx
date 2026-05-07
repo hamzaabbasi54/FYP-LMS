@@ -1,19 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { MdSearch, MdNotifications, MdChevronRight, MdAdd, MdEdit, MdDelete, MdMoreVert, MdNotificationsActive, MdGrade, MdDescription, MdHelpOutline, MdStar, MdDiamond } from 'react-icons/md';
 
 const Grading = () => {
     const navigate = useNavigate();
-    const { assignmentId } = useParams();
     const [activeTab, setActiveTab] = useState('All');
     const [statusFilter, setStatusFilter] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [showNewAssessmentDropdown, setShowNewAssessmentDropdown] = useState(false);
     const dropdownRef = useRef(null);
-
-    const [assessments, setAssessments] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [courseInfo, setCourseInfo] = useState({ code: 'Loading...', totalStudents: 0 });
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -32,75 +27,90 @@ const Grading = () => {
         };
     }, [showNewAssessmentDropdown]);
 
-    useEffect(() => {
-        const fetchAssessments = async () => {
-            try {
-                const { assessmentApi, courseApi } = await import('../../services/api');
-                
-                // Fetch course details
-                const courseRes = await courseApi.getAssignmentDetails(assignmentId);
-                if (courseRes.success) {
-                    setCourseInfo({
-                        code: courseRes.data.code,
-                        totalStudents: courseRes.data.student_count
-                    });
-                }
-                
-                // Fetch assessments
-                const assessRes = await assessmentApi.getByCourse(assignmentId);
-                if (assessRes.success) {
-                    const data = assessRes.data.data || assessRes.data;
-                    const mapped = data.map(item => {
-                        let icon = MdDescription;
-                        let iconColor = "bg-blue-100 text-blue-600";
-                        if (item.type === 'Quiz') {
-                            icon = MdHelpOutline;
-                            iconColor = "bg-purple-100 text-purple-600";
-                        } else if (item.type === 'Midterm') {
-                            iconColor = "bg-orange-100 text-orange-600";
-                        } else if (item.type === 'Finals') {
-                            icon = MdStar;
-                        }
-                        
-                        let statusColor = "bg-gray-100 text-gray-700";
-                        if (item.status === 'published') statusColor = "bg-green-100 text-green-700";
-                        else if (item.status === 'graded') statusColor = "bg-purple-100 text-purple-700";
-                        else if (item.status === 'needs_grading') statusColor = "bg-red-100 text-red-700";
-
-                        return {
-                            id: item.id,
-                            name: item.title,
-                            type: item.type,
-                            icon,
-                            iconColor,
-                            dueDate: item.due_date ? new Date(item.due_date).toLocaleDateString() : 'N/A',
-                            dueTime: item.due_date ? new Date(item.due_date).toLocaleTimeString() : '',
-                            weight: item.weight ? `${item.weight}%` : 'N/A',
-                            status: item.status || 'draft',
-                            statusColor,
-                            actions: ["edit", "grade", "delete"]
-                        };
-                    });
-                    setAssessments(mapped);
-                }
-            } catch (error) {
-                console.error("Error fetching grading data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (assignmentId) {
-            fetchAssessments();
+    // Mock assessments data
+    const assessments = [
+        {
+            id: 1,
+            name: "Midterm Exam",
+            type: "Midterm",
+            icon: MdDescription,
+            iconColor: "bg-orange-100 text-orange-600",
+            dueDate: "Oct 28, 2023",
+            dueTime: "Closed",
+            weight: "30%",
+            status: "Graded",
+            statusColor: "bg-purple-100 text-purple-700",
+            actions: ["notify", "edit", "more"]
+        },
+        {
+            id: 2,
+            name: "OOP Concepts Essay",
+            type: "Assignment 3",
+            icon: MdDescription,
+            iconColor: "bg-blue-100 text-blue-600",
+            dueDate: "Oct 24, 2023",
+            dueTime: "11:59 PM",
+            weight: "10%",
+            status: "Needs Grading",
+            statusColor: "bg-red-100 text-red-700",
+            actions: ["grade", "edit", "more"]
+        },
+        {
+            id: 3,
+            name: "Control Structures",
+            type: "Quiz 3",
+            icon: MdHelpOutline,
+            iconColor: "bg-purple-100 text-purple-600",
+            dueDate: "Oct 10, 2023",
+            dueTime: "Closed",
+            weight: "5%",
+            status: "Published",
+            statusColor: "bg-green-100 text-green-700",
+            actions: ["edit", "delete", "more"]
+        },
+        {
+            id: 4,
+            name: "Data Structures Intro",
+            type: "Quiz 4",
+            icon: MdHelpOutline,
+            iconColor: "bg-gray-100 text-gray-600",
+            dueDate: "Nov 05, 2023",
+            dueTime: "10:00 AM",
+            weight: "5%",
+            status: "Scheduled",
+            statusColor: "bg-yellow-100 text-yellow-700",
+            actions: ["edit", "more"]
+        },
+        {
+            id: 5,
+            name: "Final Project",
+            type: "Finals",
+            icon: MdStar,
+            iconColor: "bg-blue-100 text-blue-600",
+            dueDate: "Dec 15, 2023",
+            dueTime: "Tentative",
+            weight: "40%",
+            status: "Draft",
+            statusColor: "bg-gray-100 text-gray-700",
+            actions: ["edit", "delete", "more"]
         }
-    }, [assignmentId]);
+    ];
 
-    const tabs = ['All', 'Quiz', 'Assignment', 'Midterm', 'Finals'];
-    const statusOptions = ['All', 'graded', 'needs_grading', 'published', 'scheduled', 'draft'];
+    const course = {
+        code: "CS-101",
+        totalStudents: 118
+    };
+
+    const tabs = ['All', 'Quizzes', 'Assignments', 'Midterms', 'Finals'];
+    const statusOptions = ['All', 'Graded', 'Needs Grading', 'Published', 'Scheduled', 'Draft'];
 
     // Filter assessments based on active tab and search
     const filteredAssessments = assessments.filter(assessment => {
-        const matchesTab = activeTab === 'All' || assessment.type === activeTab;
+        const matchesTab = activeTab === 'All' || 
+            (activeTab === 'Quizzes' && assessment.type.includes('Quiz')) ||
+            (activeTab === 'Assignments' && assessment.type.includes('Assignment')) ||
+            (activeTab === 'Midterms' && assessment.type.includes('Midterm')) ||
+            (activeTab === 'Finals' && assessment.type.includes('Finals'));
         
         const matchesStatus = statusFilter === 'All' || assessment.status === statusFilter;
         const matchesSearch = assessment.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -116,10 +126,6 @@ const Grading = () => {
     const endIndex = startIndex + itemsPerPage;
     const paginatedAssessments = filteredAssessments.slice(startIndex, endIndex);
 
-    if (loading) {
-        return <div className="p-8 text-center text-gray-500">Loading grading data...</div>;
-    }
-
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
             {/* Breadcrumbs */}
@@ -128,7 +134,7 @@ const Grading = () => {
                     Courses
                 </Link>
                 <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                <span className="text-gray-400">{courseInfo.code}</span>
+                <span className="text-gray-400">CS-101</span>
                 <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
                 <span className="text-gray-700 font-medium">Grading</span>
             </div>
@@ -142,11 +148,11 @@ const Grading = () => {
                     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                         <div className="flex items-center gap-2">
                             <MdDiamond className="w-4 h-4 text-blue-600" />
-                            <span className="font-medium">{courseInfo.code}</span>
+                            <span className="font-medium">{course.code}</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <MdGrade className="w-4 h-4 text-gray-400" />
-                            <span>{courseInfo.totalStudents} Students</span>
+                            <span>{course.totalStudents} Students</span>
                         </div>
                     </div>
                 </div>
@@ -167,7 +173,7 @@ const Grading = () => {
                             <button 
                                 onClick={() => {
                                     setShowNewAssessmentDropdown(false);
-                                    navigate(`/faculty-mycourses/${assignmentId}/grading/new`);
+                                    navigate('/faculty-mycourses/grading/new');
                                 }}
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                             >
@@ -176,7 +182,7 @@ const Grading = () => {
                             <button 
                                 onClick={() => {
                                     setShowNewAssessmentDropdown(false);
-                                    navigate(`/faculty-mycourses/${assignmentId}/grading/new`);
+                                    navigate('/faculty-mycourses/grading/new');
                                 }}
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                             >
@@ -185,7 +191,7 @@ const Grading = () => {
                             <button 
                                 onClick={() => {
                                     setShowNewAssessmentDropdown(false);
-                                    navigate(`/faculty-mycourses/${assignmentId}/grading/new`);
+                                    navigate('/faculty-mycourses/grading/new');
                                 }}
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                             >
@@ -194,7 +200,7 @@ const Grading = () => {
                             <button 
                                 onClick={() => {
                                     setShowNewAssessmentDropdown(false);
-                                    navigate(`/faculty-mycourses/${assignmentId}/grading/new`);
+                                    navigate('/faculty-mycourses/grading/new');
                                 }}
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                             >
