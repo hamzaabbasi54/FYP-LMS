@@ -219,4 +219,47 @@ router.delete('/:id', isAdmin, async (req, res) => {
     }
 });
 
+// ===================== PLOS =====================
+
+// GET PLOs for a department
+router.get('/:id/plos', async (req, res) => {
+    try {
+        const [plos] = await pool.query(
+            'SELECT * FROM plos WHERE department_id = ? ORDER BY plo_number',
+            [req.params.id]
+        );
+        res.json({ success: true, data: plos });
+    } catch (error) {
+        console.error('Get PLOs error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching PLOs' });
+    }
+});
+
+// PUT update PLOs for a department (replace all)
+router.put('/:id/plos', isAdmin, async (req, res) => {
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+        const { plos } = req.body;
+        if (!plos || !Array.isArray(plos)) {
+            return res.status(400).json({ success: false, message: 'plos array is required' });
+        }
+
+        await conn.query('DELETE FROM plos WHERE department_id = ?', [req.params.id]);
+        if (plos.length > 0) {
+            const ploValues = plos.map((desc, i) => [req.params.id, i + 1, desc]);
+            await conn.query('INSERT INTO plos (department_id, plo_number, description) VALUES ?', [ploValues]);
+        }
+
+        await conn.commit();
+        res.json({ success: true, message: 'PLOs updated' });
+    } catch (error) {
+        await conn.rollback();
+        console.error('Update PLOs error:', error);
+        res.status(500).json({ success: false, message: 'Error updating PLOs' });
+    } finally {
+        conn.release();
+    }
+});
+
 export default router;

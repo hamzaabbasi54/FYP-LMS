@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MdAdd, MdSearch, MdFilterList, MdChevronLeft, MdChevronRight, MdDelete, MdEdit } from 'react-icons/md';
+import { MdAdd, MdSearch, MdFilterList, MdChevronLeft, MdChevronRight, MdDelete, MdInfoOutline } from 'react-icons/md';
 import { courseApi } from '../../services/api';
 import { toast } from 'react-toastify';
 
@@ -164,9 +164,11 @@ const ManageCourses = () => {
                                     </div>
 
                                     <div className="p-5">
-                                        <h3 className="text-lg font-bold text-slate-800 mb-2 line-clamp-2">
-                                            {course.title}
-                                        </h3>
+                                        <Link to={`/admin-managecourses/${course.id}`}>
+                                            <h3 className="text-lg font-bold text-slate-800 mb-2 line-clamp-2 hover:text-indigo-600 transition-colors">
+                                                {course.title}
+                                            </h3>
+                                        </Link>
                                         <p className="text-sm text-slate-500 mb-3">
                                             {course.department_name || 'No Department'}
                                         </p>
@@ -176,6 +178,13 @@ const ManageCourses = () => {
                                                 {course.status || 'Active'}
                                             </span>
                                             <div className="flex items-center gap-1">
+                                                <Link
+                                                    to={`/admin-managecourses/${course.id}`}
+                                                    className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                    title="View Details"
+                                                >
+                                                    <MdInfoOutline className="w-5 h-5" />
+                                                </Link>
                                                 <button
                                                     onClick={() => handleDelete(course.id)}
                                                     className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"

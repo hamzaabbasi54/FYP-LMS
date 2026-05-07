@@ -9,10 +9,7 @@ const BatchDetails = () => {
     const [batchData, setBatchData] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // PLO Edit Dialog State
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [editedPlos, setEditedPlos] = useState([]);
-    const [currentPlos, setCurrentPlos] = useState([]);
+
 
     // Add Semester Dialog State
     const [isAddSemesterDialogOpen, setIsAddSemesterDialogOpen] = useState(false);
@@ -40,8 +37,7 @@ const BatchDetails = () => {
             const response = await batchApi.getById(id);
             if (response.success) {
                 setBatchData(response.data);
-                const ploDescriptions = (response.data.plos || []).map(p => p.description);
-                setCurrentPlos(ploDescriptions);
+
                 setCurrentSemesters(response.data.semesters || []);
             }
         } catch (error) {
@@ -52,35 +48,7 @@ const BatchDetails = () => {
         }
     };
 
-    // PLO Handlers
-    const handleOpenEditDialog = () => {
-        setEditedPlos([...currentPlos]);
-        setIsEditDialogOpen(true);
-    };
-    const handleCloseEditDialog = () => setIsEditDialogOpen(false);
-    const handlePloChange = (index, value) => {
-        const updated = [...editedPlos];
-        updated[index] = value;
-        setEditedPlos(updated);
-    };
-    const handleSavePlos = async () => {
-        try {
-            // Save each PLO to backend
-            const plos = batchData.plos || [];
-            for (let i = 0; i < editedPlos.length; i++) {
-                if (plos[i]) {
-                    await batchApi.updatePLO(id, plos[i].id, { description: editedPlos[i] });
-                }
-            }
-            setCurrentPlos([...editedPlos]);
-            setIsEditDialogOpen(false);
-            toast.success('PLOs updated successfully');
-            fetchBatchDetails();
-        } catch (error) {
-            console.error('Error saving PLOs:', error);
-            toast.error('Failed to save PLOs');
-        }
-    };
+
 
     // Semester Handlers
     const handleOpenAddSemesterDialog = () => {
@@ -198,32 +166,7 @@ const BatchDetails = () => {
                     })}
                 </div>
 
-                {/* PLOs */}
-                <div className="bg-white rounded-2xl border border-slate-100 p-6 mb-10 shadow-sm">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-2 h-6 bg-gradient-to-b from-violet-500 to-purple-600 rounded-full"></div>
-                            <h3 className="text-lg font-bold text-slate-800">Program Learning Outcomes</h3>
-                        </div>
-                        <button onClick={handleOpenEditDialog} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 border border-slate-200 hover:border-indigo-300 rounded-xl transition-all">
-                            <MdEdit className="w-4 h-4" /> Edit
-                        </button>
-                    </div>
-                    {currentPlos.length === 0 ? (
-                        <p className="text-slate-400 text-sm">No PLOs defined yet. Click Edit to add them.</p>
-                    ) : (
-                        <div className="space-y-3">
-                            {currentPlos.map((plo, index) => (
-                                <div key={index} className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
-                                    <span className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-lg flex items-center justify-center text-xs font-bold shadow">
-                                        {index + 1}
-                                    </span>
-                                    <p className="text-slate-600 text-sm leading-relaxed pt-1">{plo}</p>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+
 
                 {/* Semesters */}
                 <div>
@@ -272,49 +215,7 @@ const BatchDetails = () => {
                     )}
                 </div>
 
-                {/* PLO Edit Dialog */}
-                {isEditDialogOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-                            <div className="flex items-center justify-between p-6 border-b border-slate-200">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-2 h-6 bg-gradient-to-b from-violet-500 to-purple-600 rounded-full"></div>
-                                    <h2 className="text-xl font-bold text-slate-800">Edit Program Learning Outcomes</h2>
-                                </div>
-                                <button onClick={handleCloseEditDialog} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                                    <MdClose className="w-5 h-5 text-slate-500" />
-                                </button>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-6">
-                                <div className="space-y-4">
-                                    {editedPlos.map((plo, index) => (
-                                        <div key={index} className="space-y-2">
-                                            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                                                <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-lg flex items-center justify-center text-xs font-bold shadow">
-                                                    {index + 1}
-                                                </span>
-                                                PLO {index + 1}
-                                            </label>
-                                            <textarea
-                                                value={plo}
-                                                onChange={(e) => handlePloChange(index, e.target.value)}
-                                                rows={3}
-                                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none text-sm text-slate-700"
-                                                placeholder={`Enter PLO ${index + 1} description...`}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200 bg-slate-50">
-                                <button onClick={handleCloseEditDialog} className="px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 border border-slate-300 rounded-xl hover:bg-white transition-all">Cancel</button>
-                                <button onClick={handleSavePlos} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-indigo-500/25 transition-all text-sm">
-                                    <MdSave className="w-4 h-4" /> Save Changes
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+
 
                 {/* Add Semester Dialog */}
                 {isAddSemesterDialogOpen && (

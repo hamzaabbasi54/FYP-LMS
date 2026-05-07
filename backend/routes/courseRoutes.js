@@ -4,12 +4,16 @@
 // ============================================
 
 import express from 'express';
+import multer from 'multer';
 import pool from '../config/db.js';
 import { verifyToken, isAdmin, isAuthenticated } from '../middleware/auth.js';
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
+import { parseExcel, generateExcel, getUploadDir } from '../utils/excel.js';
 
 const router = express.Router();
 router.use(verifyToken);
+
+const upload = multer({ dest: getUploadDir() });
 
 // ===================== COURSES =====================
 
@@ -48,6 +52,111 @@ router.get('/', async (req, res) => {
     }
 });
 
+// ===================== EXCEL IMPORT / EXPORT =====================
+
+// POST import courses from Excel
+router.post('/import', upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({
+            success: false,
+            message: 'Excel file required.',
+            expected_columns: ['title', 'code', 'department_name', 'credit_hours', 'prerequisites', 'description']
+        });
+    }
+
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+        const rows = parseExcel(req.file.path);
+        let imported = 0, skipped = 0;
+        const errors = [];
+
+        // Pre-fetch all departments to match names to IDs
+        const [departments] = await conn.query('SELECT id, name FROM departments');
+        const deptMap = {};
+        departments.forEach(d => {
+            deptMap[d.name.toLowerCase()] = d.id;
+        });
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            try {
+                if (!row.title || !row.code || !row.department_name || !row.credit_hours) {
+                    throw new Error('Missing required fields (title, code, department_name, credit_hours)');
+                }
+
+                const deptNameLower = String(row.department_name).trim().toLowerCase();
+                const departmentId = deptMap[deptNameLower];
+
+                if (!departmentId) {
+                    throw new Error(`Department '${row.department_name}' not found in database`);
+                }
+
+                await conn.query(
+                    `INSERT INTO courses (title, code, department_id, credit_hours, prerequisites, description)
+                     VALUES (?, ?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE 
+                     title = VALUES(title), department_id = VALUES(department_id), 
+                     credit_hours = VALUES(credit_hours), prerequisites = VALUES(prerequisites), 
+                     description = VALUES(description)`,
+                    [
+                        row.title, 
+                        row.code, 
+                        departmentId, 
+                        parseInt(row.credit_hours) || 3, 
+                        row.prerequisites || '', 
+                        row.description || ''
+                    ]
+                );
+                imported++;
+            } catch (err) {
+                skipped++;
+                errors.push({ row: i + 2, code: row.code, error: err.message });
+            }
+        }
+
+        await conn.commit();
+        res.json({
+            success: true,
+            message: `Courses import: ${imported} saved, ${skipped} skipped`,
+            data: { imported, skipped, errors: errors.slice(0, 20) }
+        });
+    } catch (error) {
+        await conn.rollback();
+        console.error('Import courses error:', error);
+        res.status(500).json({ success: false, message: 'Error importing courses' });
+    } finally {
+        conn.release();
+    }
+});
+
+// GET export courses as Excel
+router.get('/export', async (req, res) => {
+    try {
+        const [courses] = await pool.query(
+            `SELECT c.title, c.code, d.name as department_name, c.credit_hours, c.prerequisites, c.description
+             FROM courses c
+             JOIN departments d ON c.department_id = d.id
+             ORDER BY d.name, c.code`
+        );
+
+        if (courses.length === 0) {
+            return res.status(404).json({ success: false, message: 'No courses to export' });
+        }
+
+        const buffer = generateExcel(courses, 'Courses');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=courses_export.xlsx');
+        res.send(buffer);
+    } catch (error) {
+        console.error('Export courses error:', error);
+        res.status(500).json({ success: false, message: 'Error exporting courses' });
+    }
+});
+
+// =================================================================
+
+
 // GET courses assigned to logged in faculty
 router.get('/assigned', async (req, res) => {
     try {
@@ -75,6 +184,29 @@ router.get('/assigned', async (req, res) => {
     }
 });
 
+// GET all course assignments (admin view)
+router.get('/assignments', isAdmin, async (req, res) => {
+    try {
+        const [assignments] = await pool.query(
+            `SELECT ca.id as assignment_id, c.id as course_id, c.title, c.code, c.credit_hours,
+                    s.id as semester_id, s.name as semester_name,
+                    b.id as batch_id, b.name as batch_name, b.start_date, b.end_date,
+                    u.id as faculty_id, u.full_name as faculty_name,
+                    (SELECT COUNT(*) FROM enrollments e WHERE e.course_assignment_id = ca.id) as student_count
+             FROM course_assignments ca
+             JOIN courses c ON ca.course_id = c.id
+             JOIN semesters s ON ca.semester_id = s.id
+             JOIN batches b ON s.batch_id = b.id
+             LEFT JOIN users u ON ca.faculty_id = u.id
+             ORDER BY b.start_date DESC, s.name ASC, c.title ASC`
+        );
+        res.json({ success: true, data: assignments });
+    } catch (error) {
+        console.error('Get all assignments error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching assignments' });
+    }
+});
+
 // GET single course with CLOs and syllabus
 router.get('/:id', async (req, res) => {
     try {
@@ -90,8 +222,20 @@ router.get('/:id', async (req, res) => {
         }
 
         const [clos] = await pool.query(
-            'SELECT * FROM clos WHERE course_id = ? ORDER BY clo_number', [req.params.id]
+            `SELECT c.*, 
+                    COALESCE((SELECT JSON_ARRAYAGG(plo_id) FROM clo_plo_mapping WHERE clo_id = c.id), '[]') as mapped_plos
+             FROM clos c WHERE c.course_id = ? ORDER BY c.clo_number`, [req.params.id]
         );
+        
+        clos.forEach(clo => {
+            if (typeof clo.mapped_plos === 'string') {
+                try {
+                    clo.mapped_plos = JSON.parse(clo.mapped_plos);
+                } catch(e) {
+                    clo.mapped_plos = [];
+                }
+            }
+        });
         const [syllabi] = await pool.query(
             'SELECT * FROM syllabi WHERE course_id = ?', [req.params.id]
         );
@@ -130,14 +274,22 @@ router.post('/', isAdmin, async (req, res) => {
 
         // Insert CLOs if provided
         if (clos && Array.isArray(clos) && clos.length > 0) {
-            const cloValues = clos.map((clo, i) => [
-                courseId, i + 1, clo.title, clo.description || null,
-                clo.cognitive_level || null, clo.plo_mapping || null
-            ]);
-            await conn.query(
-                'INSERT INTO clos (course_id, clo_number, title, description, cognitive_level, plo_mapping) VALUES ?',
-                [cloValues]
-            );
+            for (let i = 0; i < clos.length; i++) {
+                const clo = clos[i];
+                const [cloResult] = await conn.query(
+                    'INSERT INTO clos (course_id, clo_number, title, description, cognitive_level) VALUES (?, ?, ?, ?, ?)',
+                    [courseId, i + 1, clo.title, clo.description || null, clo.cognitive_level || null]
+                );
+                
+                if (clo.mapped_plos && Array.isArray(clo.mapped_plos) && clo.mapped_plos.length > 0) {
+                    const cloId = cloResult.insertId;
+                    const mappingValues = clo.mapped_plos.map(ploId => [cloId, ploId]);
+                    await conn.query(
+                        'INSERT INTO clo_plo_mapping (clo_id, plo_id) VALUES ?',
+                        [mappingValues]
+                    );
+                }
+            }
         }
 
         await conn.commit();
@@ -214,14 +366,22 @@ router.put('/:id/clos', isAdmin, async (req, res) => {
         }
         await conn.query('DELETE FROM clos WHERE course_id = ?', [req.params.id]);
         if (clos.length > 0) {
-            const cloValues = clos.map((clo, i) => [
-                req.params.id, i + 1, clo.title, clo.description || null,
-                clo.cognitive_level || null, clo.plo_mapping || null
-            ]);
-            await conn.query(
-                'INSERT INTO clos (course_id, clo_number, title, description, cognitive_level, plo_mapping) VALUES ?',
-                [cloValues]
-            );
+            for (let i = 0; i < clos.length; i++) {
+                const clo = clos[i];
+                const [cloResult] = await conn.query(
+                    'INSERT INTO clos (course_id, clo_number, title, description, cognitive_level) VALUES (?, ?, ?, ?, ?)',
+                    [req.params.id, i + 1, clo.title, clo.description || null, clo.cognitive_level || null]
+                );
+                
+                if (clo.mapped_plos && Array.isArray(clo.mapped_plos) && clo.mapped_plos.length > 0) {
+                    const cloId = cloResult.insertId;
+                    const mappingValues = clo.mapped_plos.map(ploId => [cloId, ploId]);
+                    await conn.query(
+                        'INSERT INTO clo_plo_mapping (clo_id, plo_id) VALUES ?',
+                        [mappingValues]
+                    );
+                }
+            }
         }
         await conn.commit();
         res.json({ success: true, message: 'CLOs updated' });

@@ -37,6 +37,30 @@ router.get('/course/:courseAssignmentId', async (req, res) => {
             [...params, limit, offset]
         );
 
+        // Fetch mapped CLOs for these assessments
+        if (assessments.length > 0) {
+            const assessmentIds = assessments.map(a => a.id);
+            const [mappings] = await pool.query(
+                `SELECT m.assessment_id, c.id, c.clo_number, c.title
+                 FROM assessment_clo_mapping m
+                 JOIN clos c ON m.clo_id = c.id
+                 WHERE m.assessment_id IN (?)`,
+                [assessmentIds]
+            );
+
+            // Group mappings by assessment_id
+            const cloMap = {};
+            mappings.forEach(m => {
+                if (!cloMap[m.assessment_id]) cloMap[m.assessment_id] = [];
+                cloMap[m.assessment_id].push({ id: m.id, clo_number: m.clo_number, title: m.title });
+            });
+
+            // Attach to assessments
+            assessments.forEach(a => {
+                a.mapped_clos = cloMap[a.id] || [];
+            });
+        }
+
         res.json(paginatedResponse(assessments, total, page, limit));
     } catch (error) {
         console.error('Get assessments error:', error);
@@ -66,7 +90,15 @@ router.get('/:id', async (req, res) => {
             [req.params.id]
         );
 
-        res.json({ success: true, data: { ...assessments[0], grade_stats: stats[0] } });
+        const [mappings] = await pool.query(
+            `SELECT c.id, c.clo_number, c.title
+             FROM assessment_clo_mapping m
+             JOIN clos c ON m.clo_id = c.id
+             WHERE m.assessment_id = ?`,
+            [req.params.id]
+        );
+
+        res.json({ success: true, data: { ...assessments[0], grade_stats: stats[0], mapped_clos: mappings } });
     } catch (error) {
         console.error('Get assessment error:', error);
         res.status(500).json({ success: false, message: 'Error fetching assessment' });
@@ -75,28 +107,45 @@ router.get('/:id', async (req, res) => {
 
 // POST create assessment
 router.post('/', async (req, res) => {
+    const conn = await pool.getConnection();
     try {
-        const { course_assignment_id, type, title, description, due_date, release_grades_on, max_score, weight, duration_minutes, status } = req.body;
+        await conn.beginTransaction();
+        const { course_assignment_id, type, title, description, due_date, release_grades_on, max_score, weight, duration_minutes, status, mapped_clos } = req.body;
         if (!course_assignment_id || !type || !title) {
             return res.status(400).json({ success: false, message: 'course_assignment_id, type, and title are required' });
         }
-        const [result] = await pool.query(
+        
+        const [result] = await conn.query(
             `INSERT INTO assessments (course_assignment_id, type, title, description, due_date, release_grades_on, max_score, weight, duration_minutes, status)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [course_assignment_id, type, title, description || null, due_date || null, release_grades_on || null,
              max_score || 100, weight || null, duration_minutes || null, status || 'draft']
         );
-        res.status(201).json({ success: true, message: 'Assessment created', data: { id: result.insertId, title, type } });
+        
+        const assessmentId = result.insertId;
+
+        if (mapped_clos && Array.isArray(mapped_clos) && mapped_clos.length > 0) {
+            const mappingValues = mapped_clos.map(cloId => [assessmentId, cloId]);
+            await conn.query('INSERT INTO assessment_clo_mapping (assessment_id, clo_id) VALUES ?', [mappingValues]);
+        }
+
+        await conn.commit();
+        res.status(201).json({ success: true, message: 'Assessment created', data: { id: assessmentId, title, type } });
     } catch (error) {
+        await conn.rollback();
         console.error('Create assessment error:', error);
         res.status(500).json({ success: false, message: 'Error creating assessment' });
+    } finally {
+        conn.release();
     }
 });
 
 // PUT update assessment
 router.put('/:id', async (req, res) => {
+    const conn = await pool.getConnection();
     try {
-        const { type, title, description, due_date, release_grades_on, max_score, weight, duration_minutes, status } = req.body;
+        await conn.beginTransaction();
+        const { type, title, description, due_date, release_grades_on, max_score, weight, duration_minutes, status, mapped_clos } = req.body;
         const fields = [];
         const values = [];
         if (type) { fields.push('type = ?'); values.push(type); }
@@ -108,18 +157,32 @@ router.put('/:id', async (req, res) => {
         if (weight !== undefined) { fields.push('weight = ?'); values.push(weight); }
         if (duration_minutes !== undefined) { fields.push('duration_minutes = ?'); values.push(duration_minutes); }
         if (status) { fields.push('status = ?'); values.push(status); }
-        if (fields.length === 0) {
-            return res.status(400).json({ success: false, message: 'No fields to update' });
+        
+        if (fields.length > 0) {
+            values.push(req.params.id);
+            const [result] = await conn.query(`UPDATE assessments SET ${fields.join(', ')} WHERE id = ?`, values);
+            if (result.affectedRows === 0) {
+                await conn.rollback();
+                return res.status(404).json({ success: false, message: 'Assessment not found' });
+            }
         }
-        values.push(req.params.id);
-        const [result] = await pool.query(`UPDATE assessments SET ${fields.join(', ')} WHERE id = ?`, values);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Assessment not found' });
+
+        if (mapped_clos && Array.isArray(mapped_clos)) {
+            await conn.query('DELETE FROM assessment_clo_mapping WHERE assessment_id = ?', [req.params.id]);
+            if (mapped_clos.length > 0) {
+                const mappingValues = mapped_clos.map(cloId => [req.params.id, cloId]);
+                await conn.query('INSERT INTO assessment_clo_mapping (assessment_id, clo_id) VALUES ?', [mappingValues]);
+            }
         }
+
+        await conn.commit();
         res.json({ success: true, message: 'Assessment updated' });
     } catch (error) {
+        await conn.rollback();
         console.error('Update assessment error:', error);
         res.status(500).json({ success: false, message: 'Error updating assessment' });
+    } finally {
+        conn.release();
     }
 });
 

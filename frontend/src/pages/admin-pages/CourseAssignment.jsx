@@ -31,7 +31,7 @@ const CourseAssignment = () => {
         try {
             setLoading(true);
             const [coursesRes, facultyRes] = await Promise.all([
-                courseApi.getAll({ limit: 100 }),
+                courseApi.getAssignments(),
                 approvalApi.getUsersByRole('faculty')
             ]);
             if (coursesRes.success) setCourses(coursesRes.data || []);
@@ -49,18 +49,16 @@ const CourseAssignment = () => {
         
         setAssigning(true);
         try {
-            const course = courses.find(c => c.id === selectedCourseId);
+            const course = courses.find(c => c.assignment_id === selectedCourseId);
             const prof = faculty.find(f => f.id === selectedFacultyId);
             
             // Call the course assignment API
-            await courseApi.assign({
-                course_id: selectedCourseId,
-                user_id: selectedFacultyId
-            });
+            await courseApi.updateAssignmentFaculty(selectedCourseId, selectedFacultyId);
             
             toast.success(`Assigned "${course?.title}" to ${prof?.full_name || prof?.fullName}`);
             setSelectedCourseId(null);
             setSelectedFacultyId(null);
+            fetchData(); // Refresh the list
         } catch (error) {
             console.error('Error assigning course:', error);
             toast.error(error.response?.data?.message || 'Failed to assign course');
@@ -81,7 +79,7 @@ const CourseAssignment = () => {
                dept.toLowerCase().includes(facultySearch.toLowerCase());
     });
 
-    const selectedCourse = courses.find(c => c.id === selectedCourseId);
+    const selectedCourse = courses.find(c => c.assignment_id === selectedCourseId);
     const selectedFac = faculty.find(f => f.id === selectedFacultyId);
 
     const getInitials = (name) => {
@@ -139,23 +137,24 @@ const CourseAssignment = () => {
                                     <p className="text-center py-8 text-slate-400">No courses found</p>
                                 ) : (
                                     filteredCourses.map((course, index) => (
-                                        <div key={course.id} onClick={() => setSelectedCourseId(course.id)}
+                                        <div key={course.assignment_id} onClick={() => setSelectedCourseId(course.assignment_id)}
                                             className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all duration-200 ${
-                                                selectedCourseId === course.id ? 'bg-indigo-50 border-2 border-indigo-500' : 'bg-slate-50 border-2 border-transparent hover:bg-slate-100'
+                                                selectedCourseId === course.assignment_id ? 'bg-indigo-50 border-2 border-indigo-500' : 'bg-slate-50 border-2 border-transparent hover:bg-slate-100'
                                             }`}>
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colorPalette[index % colorPalette.length]} flex items-center justify-center`}>
                                                     <span className="text-white text-xs font-bold">{(course.code || '').slice(0, 2)}</span>
                                                 </div>
                                                 <div>
-                                                    <p className="font-medium text-slate-800 text-sm">{course.title}</p>
-                                                    <p className="text-xs text-slate-400">{course.code}</p>
+                                                    <p className="font-medium text-slate-800 text-sm line-clamp-1" title={course.title}>{course.title}</p>
+                                                    <p className="text-xs text-slate-500">{course.code} • {course.semester_name}</p>
+                                                    {course.faculty_name && <p className="text-xs text-indigo-500 font-medium mt-0.5">Assigned: {course.faculty_name}</p>}
                                                 </div>
                                             </div>
-                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                                selectedCourseId === course.id ? 'border-indigo-500 bg-indigo-500' : 'border-slate-300'
+                                            <div className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                                selectedCourseId === course.assignment_id ? 'border-indigo-500 bg-indigo-500' : 'border-slate-300'
                                             }`}>
-                                                {selectedCourseId === course.id && <MdCheck className="w-4 h-4 text-white" />}
+                                                {selectedCourseId === course.assignment_id && <MdCheck className="w-4 h-4 text-white" />}
                                             </div>
                                         </div>
                                     ))

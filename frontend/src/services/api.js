@@ -157,6 +157,10 @@ export const batchApi = {
         return response.data;
     },
     // Semesters
+    getSemester: async (batchId, semId) => {
+        const response = await api.get(`/batches/${batchId}/semesters/${semId}`);
+        return response.data;
+    },
     addSemester: async (batchId, data) => {
         const response = await api.post(`/batches/${batchId}/semesters`, data);
         return response.data;
@@ -174,8 +178,8 @@ export const batchApi = {
         const response = await api.post(`/batches/${batchId}/plos`, data);
         return response.data;
     },
-    updatePLO: async (batchId, ploId, data) => {
-        const response = await api.put(`/batches/${batchId}/plos/${ploId}`, data);
+    updateAllPLOs: async (batchId, plos) => {
+        const response = await api.put(`/batches/${batchId}/plos`, { plos });
         return response.data;
     },
     deletePLO: async (batchId, ploId) => {
@@ -208,9 +212,25 @@ export const courseApi = {
         const response = await api.delete(`/courses/${id}`);
         return response.data;
     },
+    import: async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post('/courses/import', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
+    export: () => {
+        const token = localStorage.getItem('token');
+        window.open(`http://localhost:3000/api/courses/export?token=${token}`, '_blank');
+    },
     // Course Assignments
     assign: async (data) => {
         const response = await api.post('/courses/assign', data);
+        return response.data;
+    },
+    updateAssignmentFaculty: async (assignmentId, facultyId) => {
+        const response = await api.put(`/courses/assign/${assignmentId}`, { faculty_id: facultyId });
         return response.data;
     },
     getAssignments: async (params = {}) => {
@@ -417,6 +437,10 @@ export const departmentApi = {
     },
     getAllFaculty: async () => {
         const response = await api.get('/departments/faculty');
+        return response.data;
+    },
+    getPLOs: async (departmentId) => {
+        const response = await api.get(`/departments/${departmentId}/plos`);
         return response.data;
     }
 };

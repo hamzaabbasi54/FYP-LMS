@@ -64,9 +64,6 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ success: false, message: 'Batch not found' });
         }
 
-        const [plos] = await pool.query(
-            'SELECT * FROM plos WHERE batch_id = ? ORDER BY plo_number', [req.params.id]
-        );
         const [semesters] = await pool.query(
             `SELECT s.*,
                     (SELECT COUNT(*) FROM course_assignments ca WHERE ca.semester_id = s.id) as course_count
@@ -76,7 +73,7 @@ router.get('/:id', async (req, res) => {
 
         res.json({
             success: true,
-            data: { ...batches[0], plos, semesters }
+            data: { ...batches[0], semesters }
         });
     } catch (error) {
         console.error('Get batch error:', error);
@@ -100,15 +97,6 @@ router.post('/', isAdmin, async (req, res) => {
             [name, department_id, start_date, end_date, is_active || false]
         );
         const batchId = result.insertId;
-
-        // Insert PLOs if provided
-        if (plos && Array.isArray(plos) && plos.length > 0) {
-            const ploValues = plos.map((desc, i) => [batchId, i + 1, desc]);
-            await conn.query(
-                'INSERT INTO plos (batch_id, plo_number, description) VALUES ?',
-                [ploValues]
-            );
-        }
 
         await conn.commit();
         res.status(201).json({
@@ -163,35 +151,6 @@ router.delete('/:id', isAdmin, async (req, res) => {
     } catch (error) {
         console.error('Delete batch error:', error);
         res.status(500).json({ success: false, message: 'Error deleting batch' });
-    }
-});
-
-// ===================== PLOS =====================
-
-// PUT update PLOs for a batch (replace all)
-router.put('/:id/plos', isAdmin, async (req, res) => {
-    const conn = await pool.getConnection();
-    try {
-        await conn.beginTransaction();
-        const { plos } = req.body;
-        if (!plos || !Array.isArray(plos)) {
-            return res.status(400).json({ success: false, message: 'plos array is required' });
-        }
-
-        await conn.query('DELETE FROM plos WHERE batch_id = ?', [req.params.id]);
-        if (plos.length > 0) {
-            const ploValues = plos.map((desc, i) => [req.params.id, i + 1, desc]);
-            await conn.query('INSERT INTO plos (batch_id, plo_number, description) VALUES ?', [ploValues]);
-        }
-
-        await conn.commit();
-        res.json({ success: true, message: 'PLOs updated' });
-    } catch (error) {
-        await conn.rollback();
-        console.error('Update PLOs error:', error);
-        res.status(500).json({ success: false, message: 'Error updating PLOs' });
-    } finally {
-        conn.release();
     }
 });
 

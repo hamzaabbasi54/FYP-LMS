@@ -13,6 +13,8 @@ DROP TABLE IF EXISTS course_assignments;
 DROP TABLE IF EXISTS parents;
 DROP TABLE IF EXISTS students;
 DROP TABLE IF EXISTS syllabi;
+DROP TABLE IF EXISTS assessment_clo_mapping;
+DROP TABLE IF EXISTS clo_plo_mapping;
 DROP TABLE IF EXISTS clos;
 DROP TABLE IF EXISTS courses;
 DROP TABLE IF EXISTS semesters;
@@ -111,17 +113,17 @@ CREATE TABLE batches (
 -- 5. PLOS (Program Learning Outcomes)
 CREATE TABLE plos (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    batch_id INT NOT NULL,
+    department_id INT NOT NULL,
     plo_number INT NOT NULL,
     description TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    UNIQUE KEY uq_plo_batch (batch_id, plo_number),
-    INDEX idx_plos_batch (batch_id),
+    UNIQUE KEY uq_plo_dept (department_id, plo_number),
+    INDEX idx_plos_dept (department_id),
 
-    CONSTRAINT fk_plos_batch
-        FOREIGN KEY (batch_id) REFERENCES batches(id)
+    CONSTRAINT fk_plos_dept
+        FOREIGN KEY (department_id) REFERENCES departments(id)
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -174,7 +176,6 @@ CREATE TABLE clos (
     title VARCHAR(100) NOT NULL,
     description TEXT DEFAULT NULL,
     cognitive_level ENUM('C1', 'C2', 'C3', 'C4', 'C5', 'C6') DEFAULT NULL,
-    plo_mapping VARCHAR(20) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -183,6 +184,20 @@ CREATE TABLE clos (
 
     CONSTRAINT fk_clos_course
         FOREIGN KEY (course_id) REFERENCES courses(id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 8.5. CLO_PLO_MAPPING (Junction Table)
+CREATE TABLE clo_plo_mapping (
+    clo_id INT NOT NULL,
+    plo_id INT NOT NULL,
+    PRIMARY KEY (clo_id, plo_id),
+    
+    CONSTRAINT fk_mapping_clo
+        FOREIGN KEY (clo_id) REFERENCES clos(id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_mapping_plo
+        FOREIGN KEY (plo_id) REFERENCES plos(id)
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -319,6 +334,21 @@ CREATE TABLE assessments (
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 14.5 ASSESSMENT_CLO_MAPPING (Junction Table)
+CREATE TABLE assessment_clo_mapping (
+    assessment_id INT NOT NULL,
+    clo_id INT NOT NULL,
+    PRIMARY KEY (assessment_id, clo_id),
+    
+    CONSTRAINT fk_mapping_assess
+        FOREIGN KEY (assessment_id) REFERENCES assessments(id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_mapping_assess_clo
+        FOREIGN KEY (clo_id) REFERENCES clos(id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
 -- 15. GRADES
 CREATE TABLE grades (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -416,8 +446,8 @@ INSERT INTO users (full_name, email, password, role, department_id, phone_number
 INSERT INTO batches (name, department_id, start_date, end_date, status, is_active) VALUES
 ('Physics - Class of 2027', 1, '2023-08-01', '2027-06-30', 'active', TRUE);
 
--- Sample PLOs for the batch
-INSERT INTO plos (batch_id, plo_number, description) VALUES
+-- Sample PLOs for the department
+INSERT INTO plos (department_id, plo_number, description) VALUES
 (1, 1, 'Analyze complex physics problems and apply principles of physics.'),
 (1, 2, 'Design, implement, and evaluate physics-based solutions.'),
 (1, 3, 'Communicate effectively in a variety of professional contexts.'),
@@ -437,10 +467,16 @@ INSERT INTO courses (title, code, department_id, credit_hours, semester_level, p
 ('Electromagnetism', 'PHY-201', 1, 3, 2, 'PHY-101', 'Electric and magnetic fields, Maxwells equations.');
 
 -- Sample CLOs
-INSERT INTO clos (course_id, clo_number, title, description, cognitive_level, plo_mapping) VALUES
-(1, 1, 'Wave-Particle Duality', 'Understand wave-particle duality of matter.', 'C2', 'PLO-1'),
-(1, 2, 'Schrodinger Equation', 'Apply Schrodinger equation to simple systems.', 'C3', 'PLO-1'),
-(2, 1, 'Newton Laws', 'Analyze motion using Newtons laws.', 'C3', 'PLO-1');
+INSERT INTO clos (course_id, clo_number, title, description, cognitive_level) VALUES
+(1, 1, 'Wave-Particle Duality', 'Understand wave-particle duality of matter.', 'C2'),
+(1, 2, 'Schrodinger Equation', 'Apply Schrodinger equation to simple systems.', 'C3'),
+(2, 1, 'Newton Laws', 'Analyze motion using Newtons laws.', 'C3');
+
+-- Sample CLO-PLO Mappings
+INSERT INTO clo_plo_mapping (clo_id, plo_id) VALUES
+(1, 1),
+(2, 1),
+(3, 1);
 
 -- Sample Syllabus
 INSERT INTO syllabi (course_id, course_overview, learning_objectives, weekly_schedule) VALUES
@@ -483,6 +519,14 @@ INSERT INTO assessments (course_assignment_id, type, title, description, due_dat
 (1, 'assignment', 'OOP Concepts Essay', 'Write about quantum principles.', '2023-10-24 23:59:00', 50, 10.00, NULL, 'needs_grading'),
 (1, 'quiz', 'Control Structures Quiz', 'Quick quiz on wave mechanics.', '2023-10-10 10:00:00', 20, 5.00, 30, 'published'),
 (1, 'final', 'Final Project', 'Comprehensive final project.', '2023-12-15 09:00:00', 100, 40.00, NULL, 'draft');
+
+-- Sample Assessment-CLO Mappings
+INSERT INTO assessment_clo_mapping (assessment_id, clo_id) VALUES
+(1, 1), (1, 2), -- Midterm tests CLO 1 and 2
+(2, 2),         -- Essay tests CLO 2
+(3, 1),         -- Quiz tests CLO 1
+(4, 1), (4, 2); -- Final tests CLO 1 and 2
+
 
 -- Sample Grades
 INSERT INTO grades (assessment_id, student_id, score, remarks, graded_by, graded_at) VALUES
