@@ -1,49 +1,24 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { MdSearch, MdCheckCircle, MdClose, MdAccessTime, MdRadioButtonUnchecked, MdChevronLeft, MdChevronRight, MdDownload, MdSave, MdArrowBack } from 'react-icons/md';
+import { useCourse } from '../../context/CourseContext';
+import { studentApi, attendanceApi } from '../../services/api';
 
 const MonthlyReport = () => {
     const navigate = useNavigate();
-    const [currentMonth, setCurrentMonth] = useState({ month: 10, year: 2023 });
+    const { selectedCourse } = useCourse();
+    const { assignmentId } = useParams();
+    const courseAssignmentId = selectedCourse?.assignment_id || assignmentId;
+
+    const now = new Date();
+    const [currentMonth, setCurrentMonth] = useState({ month: now.getMonth() + 1, year: now.getFullYear() });
     const [searchQuery, setSearchQuery] = useState('');
-
-    // Generate days for October 2023 (full month)
-    const generateDays = () => {
-        const days = [];
-        const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-        
-        // Generate all 31 days of October 2023
-        const daysInMonth = 31;
-        for (let day = 1; day <= daysInMonth; day++) {
-            const date = new Date(2023, 9, day); // Month is 0-indexed (9 = October)
-            const dayOfWeek = date.getDay();
-            const dayName = dayNames[dayOfWeek];
-            
-            days.push({
-                day: day,
-                dayName: dayName,
-                isWeekend: dayOfWeek === 0 || dayOfWeek === 6
-            });
-        }
-        return days;
-    };
-
-    const weekdays = generateDays();
-
-    // Helper function to generate random attendance data for all days
-    const generateAttendanceData = () => {
-        const attendance = {};
-        weekdays.forEach((dayObj) => {
-            if (!dayObj.isWeekend) {
-                const random = Math.random();
-                if (random < 0.7) attendance[dayObj.day] = 'present';
-                else if (random < 0.85) attendance[dayObj.day] = 'absent';
-                else if (random < 0.95) attendance[dayObj.day] = 'late';
-                else attendance[dayObj.day] = 'na';
-            }
-        });
-        return attendance;
-    };
+    const [students, setStudents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState(null);
+    const [exporting, setExporting] = useState(false);
+    const [pendingChanges, setPendingChanges] = useState({}); // { `${studentId}-${day}`: newStatus }
 
     // Avatar color options
     const avatarColors = [
@@ -59,59 +34,195 @@ const MonthlyReport = () => {
         "bg-cyan-100 text-cyan-700"
     ];
 
-    // Mock student data with attendance for each day
-    const [students, setStudents] = useState([
-        { id: 1, name: "Alice Smith", studentId: "2023001", initials: "AS", avatarColor: avatarColors[0], attendance: generateAttendanceData() },
-        { id: 2, name: "Bob Jones", studentId: "2023002", initials: "BJ", avatarColor: avatarColors[1], attendance: generateAttendanceData() },
-        { id: 3, name: "Charlie Miller", studentId: "2023003", initials: "CM", avatarColor: avatarColors[2], attendance: generateAttendanceData() },
-        { id: 4, name: "David Kim", studentId: "2023004", initials: "DK", avatarColor: avatarColors[3], attendance: generateAttendanceData() },
-        { id: 5, name: "Eva Sanchez", studentId: "2023005", initials: "ES", avatarColor: avatarColors[4], attendance: generateAttendanceData() },
-        { id: 6, name: "Frank White", studentId: "2023006", initials: "FW", avatarColor: avatarColors[5], attendance: generateAttendanceData() },
-        { id: 7, name: "Grace Lee", studentId: "2023007", initials: "GL", avatarColor: avatarColors[6], attendance: generateAttendanceData() },
-        { id: 8, name: "Henry Brown", studentId: "2023008", initials: "HB", avatarColor: avatarColors[7], attendance: generateAttendanceData() },
-        { id: 9, name: "Isabella Garcia", studentId: "2023009", initials: "IG", avatarColor: avatarColors[8], attendance: generateAttendanceData() },
-        { id: 10, name: "Jack Wilson", studentId: "2023010", initials: "JW", avatarColor: avatarColors[9], attendance: generateAttendanceData() },
-        { id: 11, name: "Katherine Taylor", studentId: "2023011", initials: "KT", avatarColor: avatarColors[0], attendance: generateAttendanceData() },
-        { id: 12, name: "Liam Martinez", studentId: "2023012", initials: "LM", avatarColor: avatarColors[1], attendance: generateAttendanceData() },
-        { id: 13, name: "Mia Anderson", studentId: "2023013", initials: "MA", avatarColor: avatarColors[2], attendance: generateAttendanceData() },
-        { id: 14, name: "Noah Thomas", studentId: "2023014", initials: "NT", avatarColor: avatarColors[3], attendance: generateAttendanceData() },
-        { id: 15, name: "Olivia Jackson", studentId: "2023015", initials: "OJ", avatarColor: avatarColors[4], attendance: generateAttendanceData() },
-        { id: 16, name: "Paul Harris", studentId: "2023016", initials: "PH", avatarColor: avatarColors[5], attendance: generateAttendanceData() },
-        { id: 17, name: "Quinn Thompson", studentId: "2023017", initials: "QT", avatarColor: avatarColors[6], attendance: generateAttendanceData() },
-        { id: 18, name: "Rachel Davis", studentId: "2023018", initials: "RD", avatarColor: avatarColors[7], attendance: generateAttendanceData() },
-        { id: 19, name: "Samuel Moore", studentId: "2023019", initials: "SM", avatarColor: avatarColors[8], attendance: generateAttendanceData() },
-        { id: 20, name: "Tina Clark", studentId: "2023020", initials: "TC", avatarColor: avatarColors[9], attendance: generateAttendanceData() },
-        { id: 21, name: "Victor Lewis", studentId: "2023021", initials: "VL", avatarColor: avatarColors[0], attendance: generateAttendanceData() },
-        { id: 22, name: "Wendy Walker", studentId: "2023022", initials: "WW", avatarColor: avatarColors[1], attendance: generateAttendanceData() },
-        { id: 23, name: "Xavier Hall", studentId: "2023023", initials: "XH", avatarColor: avatarColors[2], attendance: generateAttendanceData() },
-        { id: 24, name: "Yara Young", studentId: "2023024", initials: "YY", avatarColor: avatarColors[3], attendance: generateAttendanceData() },
-        { id: 25, name: "Zoe King", studentId: "2023025", initials: "ZK", avatarColor: avatarColors[4], attendance: generateAttendanceData() }
-    ]);
+    const getAvatarColor = (name) => {
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return avatarColors[Math.abs(hash) % avatarColors.length];
+    };
+
+    // Generate days for the current month
+    const generateDays = () => {
+        const days = [];
+        const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+        const daysInMonth = new Date(currentMonth.year, currentMonth.month, 0).getDate();
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(currentMonth.year, currentMonth.month - 1, day);
+            const dayOfWeek = date.getDay();
+            const dayName = dayNames[dayOfWeek];
+
+            days.push({
+                day: day,
+                dayName: dayName,
+                isWeekend: dayOfWeek === 0 || dayOfWeek === 6
+            });
+        }
+        return days;
+    };
+
+    const weekdays = generateDays();
+
+    // Fetch enrolled students and monthly attendance data
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!courseAssignmentId) return;
+
+            try {
+                setLoading(true);
+                setPendingChanges({});
+                setSaveMessage(null);
+
+                // Fetch enrolled students
+                const enrolledRes = await studentApi.getEnrolledStudents(courseAssignmentId);
+                const enrolledStudents = enrolledRes.success ? (enrolledRes.data || []) : [];
+
+                // Fetch monthly attendance
+                let monthlyRecords = [];
+                try {
+                    const monthlyRes = await attendanceApi.getMonthly(courseAssignmentId, currentMonth.month, currentMonth.year);
+                    if (monthlyRes.success) {
+                        monthlyRecords = monthlyRes.data || [];
+                    }
+                } catch (err) {
+                    // No attendance data yet
+                }
+
+                // Build attendance map: { studentId: { day: status } }
+                const attendanceMap = {};
+                monthlyRecords.forEach(record => {
+                    const studentId = record.student_id;
+                    if (!attendanceMap[studentId]) attendanceMap[studentId] = {};
+                    const day = new Date(record.date).getDate();
+                    attendanceMap[studentId][day] = record.status;
+                });
+
+                // Merge students with attendance
+                const mergedStudents = enrolledStudents.map(student => {
+                    const fullName = `${student.first_name} ${student.last_name}`;
+                    const initials = `${(student.first_name || '')[0] || ''}${(student.last_name || '')[0] || ''}`.toUpperCase();
+
+                    return {
+                        id: student.id,
+                        name: fullName,
+                        studentId: student.student_id_number,
+                        initials: initials,
+                        avatarColor: getAvatarColor(fullName),
+                        attendance: attendanceMap[student.id] || {}
+                    };
+                });
+
+                setStudents(mergedStudents);
+            } catch (err) {
+                console.error('Error fetching monthly data:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [courseAssignmentId, currentMonth.month, currentMonth.year]);
 
     const toggleAttendance = (studentId, day) => {
-        setStudents(students.map(student => {
-            if (student.id === studentId) {
-                const currentStatus = student.attendance[day] || 'na';
-                let nextStatus;
-                if (currentStatus === 'present') nextStatus = 'absent';
-                else if (currentStatus === 'absent') nextStatus = 'late';
-                else if (currentStatus === 'late') nextStatus = 'na';
-                else nextStatus = 'present';
-                
+        const student = students.find(s => s.id === studentId);
+        if (!student) return;
+
+        const currentStatus = student.attendance[day] || 'na';
+        let nextStatus;
+        if (currentStatus === 'present') nextStatus = 'absent';
+        else if (currentStatus === 'absent') nextStatus = 'late';
+        else if (currentStatus === 'late') nextStatus = 'na';
+        else nextStatus = 'present';
+
+        setStudents(students.map(s => {
+            if (s.id === studentId) {
                 return {
-                    ...student,
+                    ...s,
                     attendance: {
-                        ...student.attendance,
+                        ...s.attendance,
                         [day]: nextStatus
                     }
                 };
             }
-            return student;
+            return s;
         }));
+
+        // Track this change for saving
+        setPendingChanges(prev => ({
+            ...prev,
+            [`${studentId}-${day}`]: { studentId, day, status: nextStatus }
+        }));
+
+        setSaveMessage(null);
+    };
+
+    // Save pending changes to the database
+    const handleSaveChanges = async () => {
+        if (!courseAssignmentId) return;
+        const changes = Object.values(pendingChanges);
+        if (changes.length === 0) {
+            setSaveMessage({ type: 'info', text: 'No changes to save.' });
+            return;
+        }
+
+        try {
+            setSaving(true);
+            setSaveMessage(null);
+
+            // Group changes by date
+            const changesByDate = {};
+            changes.forEach(change => {
+                const dateStr = `${currentMonth.year}-${String(currentMonth.month).padStart(2, '0')}-${String(change.day).padStart(2, '0')}`;
+                if (!changesByDate[dateStr]) changesByDate[dateStr] = [];
+                changesByDate[dateStr].push({
+                    student_id: change.studentId,
+                    status: change.status === 'na' ? 'absent' : change.status,
+                    remarks: ''
+                });
+            });
+
+            // Save each date's changes
+            let savedCount = 0;
+            for (const [date, records] of Object.entries(changesByDate)) {
+                await attendanceApi.saveCourseAttendance(courseAssignmentId, { date, records });
+                savedCount += records.length;
+            }
+
+            setPendingChanges({});
+            setSaveMessage({ type: 'success', text: `Saved ${savedCount} attendance change(s) successfully!` });
+        } catch (err) {
+            console.error('Error saving monthly attendance:', err);
+            setSaveMessage({ type: 'error', text: 'Failed to save attendance changes.' });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Export monthly attendance as Excel
+    const handleExportCSV = async () => {
+        if (!courseAssignmentId) return;
+        try {
+            setExporting(true);
+            const blob = await attendanceApi.exportMonthly(courseAssignmentId, currentMonth.month, currentMonth.year);
+            const url = window.URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `attendance_${monthNames[currentMonth.month - 1]}_${currentMonth.year}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Export error:', err);
+            setSaveMessage({ type: 'error', text: 'Failed to export. Make sure there is data to export.' });
+        } finally {
+            setExporting(false);
+        }
     };
 
     const calculateStats = (student) => {
-        const attendanceDays = weekdays.filter(d => !d.isWeekend).map(d => d.day.toString());
+        const attendanceDays = weekdays.filter(d => !d.isWeekend).map(d => d.day);
         const presentDays = attendanceDays.filter(day => {
             const status = student.attendance[day] || 'na';
             return status === 'present' || status === 'late';
@@ -133,8 +244,8 @@ const MonthlyReport = () => {
         }
     };
 
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
-                        'July', 'August', 'September', 'October', 'November', 'December'];
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
 
     const handlePreviousMonth = () => {
         if (currentMonth.month === 1) {
@@ -157,17 +268,21 @@ const MonthlyReport = () => {
         student.studentId.includes(searchQuery)
     );
 
+    const backUrl = courseAssignmentId
+        ? `/faculty-mycourses/${courseAssignmentId}/attendance`
+        : '/faculty-attendance';
+
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
-                        Monthly Attendance Report CS-101
+                        Monthly Attendance Report {selectedCourse ? selectedCourse.code : ''}
                     </h1>
                 </div>
                 <Link
-                    to="/faculty-attendance"
+                    to={backUrl}
                     className="flex items-center text-blue-600 hover:text-blue-700 font-medium text-sm whitespace-nowrap"
                 >
                     <MdArrowBack className="w-5 h-5 mr-1" />
@@ -237,9 +352,13 @@ const MonthlyReport = () => {
                         </div>
 
                         {/* Export Button */}
-                        <button className="flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm whitespace-nowrap">
+                        <button
+                            onClick={handleExportCSV}
+                            disabled={exporting}
+                            className="flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
+                        >
                             <MdDownload className="w-5 h-5 mr-2" />
-                            Export CSV
+                            {exporting ? 'Exporting...' : 'Export CSV'}
                         </button>
                     </div>
                 </div>
@@ -247,107 +366,148 @@ const MonthlyReport = () => {
 
             {/* Attendance Table */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="overflow-auto max-h-[600px]">
-                    <table className="w-full min-w-[800px] border-collapse">
-                        <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-20">
-                            <tr>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider sticky left-0 bg-gray-50 z-30 border-r border-gray-200 shadow-sm">
-                                    STUDENT DETAILS
-                                </th>
-                                {weekdays.map((day) => (
-                                    <th
-                                        key={day.day}
-                                        className={`px-3 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[80px] ${
-                                            day.isWeekend ? 'bg-gray-100' : 'bg-gray-50'
-                                        }`}
-                                    >
-                                        <div className="flex flex-col">
-                                            <span>{day.dayName}</span>
-                                            <span className="font-normal">{day.day.toString().padStart(2, '0')}</span>
-                                        </div>
-                                    </th>
-                                ))}
-                                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50">
-                                    STATS
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 bg-white">
-                            {filteredStudents.map((student, rowIndex) => {
-                                const isEvenRow = rowIndex % 2 === 0;
-                                return (
-                                    <tr key={student.id} className={`hover:bg-gray-50 transition-colors ${isEvenRow ? 'bg-white' : 'bg-gray-50'}`}>
-                                        {/* Student Details */}
-                                        <td className={`px-6 py-4 sticky left-0 z-10 border-r border-gray-200 shadow-sm ${
-                                            isEvenRow ? 'bg-white' : 'bg-gray-50'
-                                        }`}>
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-full ${student.avatarColor} flex items-center justify-center flex-shrink-0`}>
-                                                    <span className="font-bold text-sm">{student.initials}</span>
-                                                </div>
-                                                <div>
-                                                    <p className="font-semibold text-gray-800 text-sm">{student.name}</p>
-                                                    <p className="text-gray-500 text-xs">ID: {student.studentId}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-
-                                        {/* Attendance Days */}
-                                        {weekdays.map((day) => (
-                                            <td
-                                                key={day.day}
-                                                className={`px-3 py-4 text-center ${
-                                                    day.isWeekend 
-                                                        ? 'bg-gray-50' 
-                                                        : `cursor-pointer hover:bg-blue-50 ${isEvenRow ? 'bg-white' : 'bg-gray-50'}`
-                                                }`}
-                                                onClick={() => !day.isWeekend && toggleAttendance(student.id, day.day)}
-                                            >
-                                                {day.isWeekend ? (
-                                                    <span className="text-gray-300 text-xs">•</span>
-                                                ) : (
-                                                    <div className="flex justify-center">
-                                                        {getStatusIcon(student.attendance[day.day] || 'na')}
-                                                    </div>
-                                                )}
-                                            </td>
-                                        ))}
-
-                                        {/* Stats */}
-                                        <td className={`px-6 py-4 text-center ${isEvenRow ? 'bg-white' : 'bg-gray-50'}`}>
-                                            <span className="text-sm font-bold text-gray-800">
-                                                {calculateStats(student)}%
-                                            </span>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Footer */}
-                <div className="p-6 border-t border-gray-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                    <p className="text-xs text-gray-500">
-                        Click on any cell to toggle attendance status.
-                    </p>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => navigate('/faculty-attendance')}
-                            className="px-6 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm"
-                        >
-                            Cancel
-                        </button>
-                        <button className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm">
-                            <MdSave className="w-5 h-5 mr-2" />
-                            Save Changes
-                        </button>
+                {/* Loading State */}
+                {loading && (
+                    <div className="p-12 text-center">
+                        <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                        <p className="text-gray-500 text-sm">Loading attendance data...</p>
                     </div>
-                </div>
+                )}
+
+                {/* Empty State */}
+                {!loading && students.length === 0 && (
+                    <div className="p-12 text-center">
+                        <p className="text-gray-500 text-sm">No students enrolled in this course.</p>
+                    </div>
+                )}
+
+                {/* Table */}
+                {!loading && students.length > 0 && (
+                    <>
+                        <div className="overflow-auto max-h-[600px]">
+                            <table className="w-full min-w-[800px] border-collapse">
+                                <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-20">
+                                    <tr>
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider sticky left-0 bg-gray-50 z-30 border-r border-gray-200 shadow-sm">
+                                            STUDENT DETAILS
+                                        </th>
+                                        {weekdays.map((day) => (
+                                            <th
+                                                key={day.day}
+                                                className={`px-3 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[80px] ${day.isWeekend ? 'bg-gray-100' : 'bg-gray-50'
+                                                    }`}
+                                            >
+                                                <div className="flex flex-col">
+                                                    <span>{day.dayName}</span>
+                                                    <span className="font-normal">{day.day.toString().padStart(2, '0')}</span>
+                                                </div>
+                                            </th>
+                                        ))}
+                                        <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50">
+                                            STATS
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 bg-white">
+                                    {filteredStudents.map((student, rowIndex) => {
+                                        const isEvenRow = rowIndex % 2 === 0;
+                                        return (
+                                            <tr key={student.id} className={`hover:bg-gray-50 transition-colors ${isEvenRow ? 'bg-white' : 'bg-gray-50'}`}>
+                                                {/* Student Details */}
+                                                <td className={`px-6 py-4 sticky left-0 z-10 border-r border-gray-200 shadow-sm ${isEvenRow ? 'bg-white' : 'bg-gray-50'
+                                                    }`}>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-10 h-10 rounded-full ${student.avatarColor} flex items-center justify-center flex-shrink-0`}>
+                                                            <span className="font-bold text-sm">{student.initials}</span>
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-semibold text-gray-800 text-sm">{student.name}</p>
+                                                            <p className="text-gray-500 text-xs">ID: {student.studentId}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                {/* Attendance Days */}
+                                                {weekdays.map((day) => (
+                                                    <td
+                                                        key={day.day}
+                                                        className={`px-3 py-4 text-center ${day.isWeekend
+                                                                ? 'bg-gray-50'
+                                                                : `cursor-pointer hover:bg-blue-50 ${isEvenRow ? 'bg-white' : 'bg-gray-50'}`
+                                                            }`}
+                                                        onClick={() => !day.isWeekend && toggleAttendance(student.id, day.day)}
+                                                    >
+                                                        {day.isWeekend ? (
+                                                            <span className="text-gray-300 text-xs">•</span>
+                                                        ) : (
+                                                            <div className="flex justify-center">
+                                                                {getStatusIcon(student.attendance[day.day] || 'na')}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                ))}
+
+                                                {/* Stats */}
+                                                <td className={`px-6 py-4 text-center ${isEvenRow ? 'bg-white' : 'bg-gray-50'}`}>
+                                                    <span className="text-sm font-bold text-gray-800">
+                                                        {calculateStats(student)}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-6 border-t border-gray-200">
+                            {/* Save Message */}
+                            {saveMessage && (
+                                <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${saveMessage.type === 'success'
+                                        ? 'bg-green-50 text-green-700 border border-green-200'
+                                        : saveMessage.type === 'info'
+                                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                            : 'bg-red-50 text-red-700 border border-red-200'
+                                    }`}>
+                                    {saveMessage.text}
+                                </div>
+                            )}
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                                <p className="text-xs text-gray-500">
+                                    Click on any cell to toggle attendance status.
+                                    {Object.keys(pendingChanges).length > 0 && (
+                                        <span className="ml-2 text-blue-600 font-medium">
+                                            ({Object.keys(pendingChanges).length} unsaved change{Object.keys(pendingChanges).length !== 1 ? 's' : ''})
+                                        </span>
+                                    )}
+                                </p>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => navigate(backUrl)}
+                                        className="px-6 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSaveChanges}
+                                        disabled={saving || Object.keys(pendingChanges).length === 0}
+                                        className={`flex items-center px-6 py-2 rounded-lg shadow-sm transition-colors font-medium text-sm ${saving || Object.keys(pendingChanges).length === 0
+                                                ? 'bg-blue-400 text-white cursor-not-allowed'
+                                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                                            }`}
+                                    >
+                                        <MdSave className="w-5 h-5 mr-2" />
+                                        {saving ? 'Saving...' : 'Save Changes'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );
 };
 
 export default MonthlyReport;
-

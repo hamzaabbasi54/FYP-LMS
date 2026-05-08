@@ -86,11 +86,11 @@ const Sidebar = () => {
                 {/* The 'to' prop is the destination URL */}
                 <NavItem to="/faculty-dashboard" icon={MdDashboard} label="Dashboard" />
                 <NavItem
-                    to="/faculty-mycourses"
+                    to={selectedCourse ? `/faculty-mycourses/${selectedCourse.assignment_id}` : '/faculty-dashboard'}
                     icon={MdBook}
                     label="My Courses"
-                    matchPaths={['/faculty-mycourses/edit-syllabus', '/faculty-mycourses/register-student']}
-                    excludePaths={['/faculty-mycourses/grading']}
+                    matchPaths={['/faculty-mycourses']}
+                    excludePaths={['/faculty-mycourses/grading', '/grading']}
                     disabled={!selectedCourse}
                 />
                 <NavItem to="/faculty-schedule" icon={MdSchedule} label="Schedule" disabled={!selectedCourse} />
@@ -102,10 +102,10 @@ const Sidebar = () => {
                     disabled={!selectedCourse}
                 />
                 <NavItem
-                    to="/faculty-mycourses/grading"
+                    to={selectedCourse ? `/faculty-mycourses/${selectedCourse.assignment_id}/grading` : '/faculty-dashboard'}
                     icon={MdGrade}
                     label="Grades"
-                    matchPaths={['/faculty-mycourses/grading']}
+                    matchPaths={['/grading']}
                     disabled={!selectedCourse}
                 />
 

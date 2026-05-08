@@ -397,8 +397,9 @@ export const attendanceApi = {
         const response = await api.put(`/attendance/${id}`, data);
         return response.data;
     },
-    export: async (courseAssignmentId) => {
+    export: async (courseAssignmentId, params = {}) => {
         const response = await api.get(`/attendance/export/${courseAssignmentId}`, {
+            params,
             responseType: 'blob'
         });
         return response.data;
@@ -411,9 +412,16 @@ export const attendanceApi = {
         });
         return response.data;
     },
-    getMonthlyReport: async (courseAssignmentId, month) => {
-        const response = await api.get(`/attendance/course/${courseAssignmentId}`, {
-            params: { month }
+    getMonthly: async (courseAssignmentId, month, year) => {
+        const response = await api.get(`/attendance/monthly/${courseAssignmentId}`, {
+            params: { month, year }
+        });
+        return response.data;
+    },
+    exportMonthly: async (courseAssignmentId, month, year) => {
+        const response = await api.get(`/attendance/export-monthly/${courseAssignmentId}`, {
+            params: { month, year },
+            responseType: 'blob'
         });
         return response.data;
     }

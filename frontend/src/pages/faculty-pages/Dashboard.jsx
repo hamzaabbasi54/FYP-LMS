@@ -1,7 +1,23 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MdSchool, MdScience, MdSettings, MdArrowForward, MdViewList, MdViewModule, MdBook } from 'react-icons/md';
+import { MdSchool, MdScience, MdSettings, MdArrowForward, MdViewList, MdViewModule, MdBook, MdComputer, MdBiotech } from 'react-icons/md';
 import { useCourse } from '../../context/CourseContext';
+import { courseApi } from '../../services/api';
+
+// Gradient color palette for course cards
+const GRADIENT_COLORS = [
+    "bg-gradient-to-br from-purple-600 to-purple-400",
+    "bg-gradient-to-br from-green-600 to-green-400",
+    "bg-gradient-to-br from-blue-600 to-blue-400",
+    "bg-gradient-to-br from-orange-500 to-orange-400",
+    "bg-gradient-to-br from-pink-600 to-pink-400",
+    "bg-gradient-to-br from-teal-600 to-teal-400",
+    "bg-gradient-to-br from-indigo-600 to-indigo-400",
+    "bg-gradient-to-br from-red-500 to-red-400",
+];
+
+// Icons to cycle through
+const ICONS = [MdSchool, MdScience, MdSettings, MdBook, MdComputer, MdBiotech];
 
 // Component for Course Cards
 const CourseCard = ({ course, icon: Icon, gradientColor }) => {
@@ -10,7 +26,7 @@ const CourseCard = ({ course, icon: Icon, gradientColor }) => {
 
     const handleClick = () => {
         setCourse(course);
-        navigate('/faculty-mycourses');
+        navigate(`/faculty-mycourses/${course.assignment_id}`);
     };
 
     return (
@@ -27,17 +43,18 @@ const CourseCard = ({ course, icon: Icon, gradientColor }) => {
                 </div>
                 <div className="absolute top-4 right-4 text-right">
                     <p className="text-sm font-bold text-white">{course.code}</p>
-                    <p className="text-xs text-white text-opacity-90">{course.credits}</p>
+                    <p className="text-xs text-white text-opacity-90">{course.credit_hours} Credits</p>
                 </div>
             </div>
 
             {/* Content Section */}
             <div className="p-5 flex-grow flex flex-col">
                 <h3 className="text-lg font-bold text-gray-800 mb-2 leading-tight">{course.title}</h3>
-                <p className="text-sm text-gray-500 mb-4">{course.batch}</p>
+                <p className="text-sm text-gray-500 mb-1">{course.batch_name}</p>
+                <p className="text-xs text-gray-400 mb-4">{course.semester_name}</p>
 
                 <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
-                    <p className="text-sm font-bold text-gray-700">{course.totalStudents} Students</p>
+                    <p className="text-sm font-bold text-gray-700">{course.student_count} Students</p>
                     <span className="inline-flex items-center text-blue-600 font-semibold text-sm group">
                         Manage Course
                         <MdArrowForward className="ml-1 w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -50,66 +67,31 @@ const CourseCard = ({ course, icon: Icon, gradientColor }) => {
 
 const Dashboard = () => {
     const { setCourse } = useCourse();
+    const [courses, setCourses] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         setCourse(null);
     }, [setCourse]);
 
-    // Mock Data for Assigned Courses
-    const courses = [
-        {
-            id: 1,
-            title: "Introduction to Programming",
-            code: "CS-101",
-            batch: "Batch 2023-2027",
-            schedule: "Mon, Wed 10:00 AM",
-            room: "Room 304",
-            credits: "4 Credits",
-            description: "Fundamental concepts of programming using Python. Control structures, data types, and basic algorithms.",
-            totalStudents: 118,
-            icon: MdSchool,
-            gradientColor: "bg-gradient-to-br from-purple-600 to-purple-400"
-        },
-        {
-            id: 2,
-            title: "Data Structures & Algorithms",
-            code: "CS-201",
-            batch: "Batch 2022-2026",
-            schedule: "Tue, Thu 11:30 AM",
-            room: "Lab 2",
-            credits: "3 Credits",
-            description: "Advanced data structures including trees, graphs, and hash tables.",
-            totalStudents: 115,
-            icon: MdScience,
-            gradientColor: "bg-gradient-to-br from-green-600 to-green-400"
-        },
-        {
-            id: 3,
-            title: "Operating Systems",
-            code: "CS-302",
-            batch: "Batch 2021-2025",
-            schedule: "Fri 09:00 AM",
-            room: "Room 101",
-            credits: "3 Credits",
-            description: "Process management, memory management, file systems, and I/O systems.",
-            totalStudents: 108,
-            icon: MdSettings,
-            gradientColor: "bg-gradient-to-br from-blue-600 to-blue-400"
-        },
-        {
-            id: 4,
-            title: "Advanced Machine Learning",
-            code: "CS-501",
-            batch: "Batch 2023-2025",
-            schedule: "Mon 02:00 PM",
-            room: "AI Lab",
-            credits: "3 Credits",
-            description: "Deep learning neural networks, CNNs, RNNs, and reinforcement learning.",
-            totalStudents: 24,
-            icon: MdBook,
-            gradientColor: "bg-gradient-to-br from-orange-500 to-orange-400"
-        }
-    ];
+    // Fetch assigned courses from the API
+    useEffect(() => {
+        const fetchCourses = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const response = await courseApi.getAssigned();
+                setCourses(response.data || []);
+            } catch (err) {
+                console.error('Error fetching assigned courses:', err);
+                setError('Failed to load assigned courses. Please try again.');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchCourses();
+    }, []);
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
@@ -133,17 +115,43 @@ const Dashboard = () => {
                     </div>
                 </div>
 
+                {/* Loading State */}
+                {loading && (
+                    <div className="flex justify-center items-center py-20">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                        <span className="ml-3 text-gray-500">Loading courses...</span>
+                    </div>
+                )}
+
+                {/* Error State */}
+                {error && !loading && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                        <p className="text-red-600 font-medium">{error}</p>
+                    </div>
+                )}
+
+                {/* Empty State */}
+                {!loading && !error && courses.length === 0 && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-12 text-center">
+                        <MdBook className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-600 mb-2">No Courses Assigned</h3>
+                        <p className="text-gray-400">You don't have any courses assigned yet. Please contact your department admin.</p>
+                    </div>
+                )}
+
                 {/* Course Cards Grid - Responsive */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                    {courses.map((course) => (
-                        <CourseCard
-                            key={course.id}
-                            course={course}
-                            icon={course.icon}
-                            gradientColor={course.gradientColor}
-                        />
-                    ))}
-                </div>
+                {!loading && !error && courses.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                        {courses.map((course, index) => (
+                            <CourseCard
+                                key={course.assignment_id}
+                                course={course}
+                                icon={ICONS[index % ICONS.length]}
+                                gradientColor={GRADIENT_COLORS[index % GRADIENT_COLORS.length]}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

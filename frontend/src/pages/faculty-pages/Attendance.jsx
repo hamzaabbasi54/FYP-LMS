@@ -1,13 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { MdSearch, MdCheckCircle, MdRadioButtonUnchecked, MdFilterList, MdDownload, MdCalendarToday, MdChevronLeft, MdChevronRight, MdSave, MdGridOn } from 'react-icons/md';
+import { useCourse } from '../../context/CourseContext';
+import { studentApi, attendanceApi } from '../../services/api';
 
 const Attendance = () => {
-    const [selectedDate, setSelectedDate] = useState(new Date(2023, 9, 25)); // October 25, 2023
+    const { selectedCourse } = useCourse();
+    const { assignmentId } = useParams();
+    const courseAssignmentId = selectedCourse?.assignment_id || assignmentId;
+
+    const [selectedDate, setSelectedDate] = useState(new Date());
     const [searchQuery, setSearchQuery] = useState('');
     const [showCalendar, setShowCalendar] = useState(false);
-    const [calendarMonth, setCalendarMonth] = useState(new Date(2023, 9, 25)); // Current month view
+    const [calendarMonth, setCalendarMonth] = useState(new Date());
     const calendarRef = useRef(null);
+
+    const [students, setStudents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState(null);
+    const [exporting, setExporting] = useState(false);
 
     // Close calendar when clicking outside
     useEffect(() => {
@@ -25,6 +37,76 @@ const Attendance = () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [showCalendar]);
+
+    // Fetch enrolled students and existing attendance for the selected date
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!courseAssignmentId) return;
+
+            try {
+                setLoading(true);
+
+                // Fetch enrolled students
+                const enrolledRes = await studentApi.getEnrolledStudents(courseAssignmentId);
+                const enrolledStudents = enrolledRes.success ? (enrolledRes.data || []) : [];
+
+                // Format date for API (YYYY-MM-DD)
+                const dateStr = formatDateForApi(selectedDate);
+
+                // Fetch existing attendance for this date
+                let existingAttendance = [];
+                try {
+                    const attendanceRes = await attendanceApi.getByCourse(courseAssignmentId, { date: dateStr });
+                    if (attendanceRes.success) {
+                        existingAttendance = attendanceRes.data || [];
+                    }
+                } catch (err) {
+                    // No existing attendance — that's fine, default all to present
+                }
+
+                // Build attendance map from existing records
+                const attendanceMap = {};
+                existingAttendance.forEach(record => {
+                    attendanceMap[record.student_id] = {
+                        status: record.status || 'present',
+                        remarks: record.remarks || ''
+                    };
+                });
+
+                // Merge enrolled students with attendance data
+                const mergedStudents = enrolledStudents.map(student => {
+                    const existing = attendanceMap[student.id];
+                    const fullName = `${student.first_name} ${student.last_name}`;
+                    const initials = `${(student.first_name || '')[0] || ''}${(student.last_name || '')[0] || ''}`.toUpperCase();
+
+                    return {
+                        id: student.id,
+                        name: fullName,
+                        studentId: student.student_id_number,
+                        initials: initials,
+                        status: existing ? existing.status : 'present',
+                        remarks: existing ? existing.remarks : ''
+                    };
+                });
+
+                setStudents(mergedStudents);
+            } catch (err) {
+                console.error('Error fetching attendance data:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [courseAssignmentId, selectedDate]);
+
+    // Format date for API calls (YYYY-MM-DD)
+    const formatDateForApi = (date) => {
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
 
     // Format date for display
     const formatDate = (date) => {
@@ -121,81 +203,98 @@ const Attendance = () => {
             calendarMonth.getFullYear() === selectedDate.getFullYear();
     };
 
-    // Mock student data
-    const [students, setStudents] = useState([
-        {
-            id: 1,
-            name: "Ayesha Khan",
-            studentId: "2023001",
-            initials: "AK",
-            status: "present",
-            remarks: ""
-        },
-        {
-            id: 2,
-            name: "Bilal Ahmed",
-            studentId: "2023002",
-            initials: "BA",
-            status: "absent",
-            remarks: "Sick Leave"
-        },
-        {
-            id: 3,
-            name: "Chaudhry Nazeer",
-            studentId: "2023003",
-            initials: "CN",
-            status: "present",
-            remarks: "15 min late"
-        },
-        {
-            id: 4,
-            name: "Dawood Karim",
-            studentId: "2023004",
-            initials: "DK",
-            status: "present",
-            remarks: ""
-        },
-        {
-            id: 5,
-            name: "Esha Siddiqui",
-            studentId: "2023005",
-            initials: "ES",
-            status: "present",
-            remarks: ""
-        },
-        {
-            id: 6,
-            name: "Fahad Jamal",
-            studentId: "2023006",
-            initials: "FJ",
-            status: "absent",
-            remarks: ""
-        }
-    ]);
-
     const toggleStatus = (id) => {
         setStudents(students.map(student =>
             student.id === id
                 ? { ...student, status: student.status === 'present' ? 'absent' : 'present' }
                 : student
         ));
+        setSaveMessage(null);
     };
 
     const markAllPresent = () => {
         setStudents(students.map(student => ({ ...student, status: 'present' })));
+        setSaveMessage(null);
     };
 
     const updateRemarks = (id, remarks) => {
         setStudents(students.map(student =>
             student.id === id ? { ...student, remarks } : student
         ));
+        setSaveMessage(null);
+    };
+
+    // Save attendance to database
+    const handleSaveAttendance = async () => {
+        if (!courseAssignmentId || students.length === 0) return;
+
+        try {
+            setSaving(true);
+            setSaveMessage(null);
+
+            const dateStr = formatDateForApi(selectedDate);
+            const records = students.map(student => ({
+                student_id: student.id,
+                status: student.status,
+                remarks: student.remarks || ''
+            }));
+
+            const response = await attendanceApi.saveCourseAttendance(courseAssignmentId, {
+                date: dateStr,
+                records: records
+            });
+
+            if (response.success) {
+                setSaveMessage({ type: 'success', text: response.message || 'Attendance saved successfully!' });
+            } else {
+                setSaveMessage({ type: 'error', text: response.message || 'Failed to save attendance' });
+            }
+        } catch (err) {
+            console.error('Error saving attendance:', err);
+            setSaveMessage({ type: 'error', text: 'Failed to save attendance. Please try again.' });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Reset attendance (cancel unsaved changes by refetching)
+    const handleCancel = () => {
+        // Re-trigger fetch by toggling a reload
+        const currentDate = new Date(selectedDate);
+        setSelectedDate(new Date(currentDate));
+        setSaveMessage(null);
+    };
+
+    // Export monthly attendance as Excel
+    const handleExportCSV = async () => {
+        if (!courseAssignmentId) return;
+        try {
+            setExporting(true);
+            const month = selectedDate.getMonth() + 1;
+            const year = selectedDate.getFullYear();
+            const blob = await attendanceApi.exportMonthly(courseAssignmentId, month, year);
+            const url = window.URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement('a');
+            link.href = url;
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            link.setAttribute('download', `attendance_${monthNames[month - 1]}_${year}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Export error:', err);
+            setSaveMessage({ type: 'error', text: 'Failed to export attendance. Make sure there is data to export.' });
+        } finally {
+            setExporting(false);
+        }
     };
 
     const presentCount = students.filter(s => s.status === 'present').length;
     const absentCount = students.filter(s => s.status === 'absent').length;
     const totalStudents = students.length;
-    const presentPercentage = Math.round((presentCount / totalStudents) * 100);
-    const absentPercentage = Math.round((absentCount / totalStudents) * 100);
+    const presentPercentage = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
+    const absentPercentage = totalStudents > 0 ? Math.round((absentCount / totalStudents) * 100) : 0;
 
     const filteredStudents = students.filter(student =>
         student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -211,7 +310,7 @@ const Attendance = () => {
                         Attendance Management
                     </h1>
                     <span className="bg-blue-100 text-blue-700 text-sm font-semibold px-3 py-1 rounded-full">
-                        CS-101
+                        {selectedCourse ? selectedCourse.code : 'Course'}
                     </span>
                 </div>
                 <Link
@@ -394,83 +493,123 @@ const Attendance = () => {
                     </div>
                 </div>
 
+                {/* Loading State */}
+                {loading && (
+                    <div className="p-12 text-center">
+                        <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                        <p className="text-gray-500 text-sm">Loading students...</p>
+                    </div>
+                )}
+
+                {/* Empty State */}
+                {!loading && students.length === 0 && (
+                    <div className="p-12 text-center">
+                        <p className="text-gray-500 text-sm">No students enrolled in this course.</p>
+                    </div>
+                )}
+
                 {/* Student Table */}
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    STUDENT DETAILS
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    STATUS
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    REMARKS
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {filteredStudents.map((student) => (
-                                <tr key={student.id} className="hover:bg-gray-50 transition-colors">
-                                    {/* Student Details */}
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                                <span className="text-blue-700 font-bold text-sm">{student.initials}</span>
-                                            </div>
-                                            <div>
-                                                <p className="font-semibold text-gray-800 text-sm">{student.name}</p>
-                                                <p className="text-gray-500 text-xs">ID: {student.studentId}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-
-                                    {/* Status */}
-                                    <td className="px-6 py-4">
-                                        <button
-                                            onClick={() => toggleStatus(student.id)}
-                                            className="focus:outline-none"
-                                        >
-                                            {student.status === 'present' ? (
-                                                <MdCheckCircle className="w-6 h-6 text-green-600" />
-                                            ) : (
-                                                <MdRadioButtonUnchecked className="w-6 h-6 text-gray-400 hover:text-gray-600" />
-                                            )}
-                                        </button>
-                                    </td>
-
-                                    {/* Remarks */}
-                                    <td className="px-6 py-4">
-                                        <input
-                                            type="text"
-                                            placeholder="Add note..."
-                                            value={student.remarks}
-                                            onChange={(e) => updateRemarks(student.id, e.target.value)}
-                                            className="text-sm text-gray-700 border-none bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1 w-full max-w-xs placeholder-gray-400"
-                                        />
-                                    </td>
+                {!loading && students.length > 0 && (
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        STUDENT DETAILS
+                                    </th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        STATUS
+                                    </th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        REMARKS
+                                    </th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {filteredStudents.map((student) => (
+                                    <tr key={student.id} className="hover:bg-gray-50 transition-colors">
+                                        {/* Student Details */}
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                    <span className="text-blue-700 font-bold text-sm">{student.initials}</span>
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold text-gray-800 text-sm">{student.name}</p>
+                                                    <p className="text-gray-500 text-xs">ID: {student.studentId}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        {/* Status */}
+                                        <td className="px-6 py-4">
+                                            <button
+                                                onClick={() => toggleStatus(student.id)}
+                                                className="focus:outline-none"
+                                            >
+                                                {student.status === 'present' ? (
+                                                    <MdCheckCircle className="w-6 h-6 text-green-600" />
+                                                ) : (
+                                                    <MdRadioButtonUnchecked className="w-6 h-6 text-gray-400 hover:text-gray-600" />
+                                                )}
+                                            </button>
+                                        </td>
+
+                                        {/* Remarks */}
+                                        <td className="px-6 py-4">
+                                            <input
+                                                type="text"
+                                                placeholder="Add note..."
+                                                value={student.remarks}
+                                                onChange={(e) => updateRemarks(student.id, e.target.value)}
+                                                className="text-sm text-gray-700 border-none bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1 w-full max-w-xs placeholder-gray-400"
+                                            />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
 
                 {/* Footer with Pagination and Actions */}
-                <div className="p-6 border-t border-gray-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                    <p className="text-sm text-gray-500">
-                        Showing <span className="font-semibold text-gray-700">{filteredStudents.length}</span> of <span className="font-semibold text-gray-700">118</span> students
-                    </p>
-                    <div className="flex items-center gap-3">
-                        <button className="px-6 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm">
-                            Cancel
-                        </button>
-                        <button className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm">
-                            <MdSave className="w-5 h-5 mr-2" />
-                            Save Changes
-                        </button>
+                {!loading && students.length > 0 && (
+                    <div className="p-6 border-t border-gray-200">
+                        {/* Save Message */}
+                        {saveMessage && (
+                            <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${saveMessage.type === 'success'
+                                    ? 'bg-green-50 text-green-700 border border-green-200'
+                                    : 'bg-red-50 text-red-700 border border-red-200'
+                                }`}>
+                                {saveMessage.text}
+                            </div>
+                        )}
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                            <p className="text-sm text-gray-500">
+                                Showing <span className="font-semibold text-gray-700">{filteredStudents.length}</span> of <span className="font-semibold text-gray-700">{totalStudents}</span> students
+                            </p>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={handleCancel}
+                                    className="px-6 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveAttendance}
+                                    disabled={saving}
+                                    className={`flex items-center px-6 py-2 rounded-lg shadow-sm transition-colors font-medium text-sm ${saving
+                                            ? 'bg-blue-400 text-white cursor-not-allowed'
+                                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                                        }`}
+                                >
+                                    <MdSave className="w-5 h-5 mr-2" />
+                                    {saving ? 'Saving...' : 'Save Changes'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Attendance History Section */}
@@ -484,15 +623,19 @@ const Attendance = () => {
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3">
                         <Link
-                            to="/faculty-attendance/monthly-report"
+                            to={courseAssignmentId ? `/faculty-mycourses/${courseAssignmentId}/attendance/monthly-report` : '/faculty-attendance/monthly-report'}
                             className="flex items-center justify-center px-5 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm"
                         >
                             <MdGridOn className="w-5 h-5 mr-2" />
                             View Monthly Report
                         </Link>
-                        <button className="flex items-center justify-center px-5 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm">
+                        <button
+                            onClick={handleExportCSV}
+                            disabled={exporting}
+                            className="flex items-center justify-center px-5 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm"
+                        >
                             <MdDownload className="w-5 h-5 mr-2" />
-                            Export CSV
+                            {exporting ? 'Exporting...' : 'Export CSV'}
                         </button>
                     </div>
                 </div>

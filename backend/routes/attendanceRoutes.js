@@ -196,37 +196,122 @@ router.post('/import/:courseAssignmentId', upload.single('file'), async (req, re
     }
 });
 
-// ===================== EXCEL EXPORT =====================
+// ===================== MONTHLY ATTENDANCE =====================
 
-// GET export attendance as Excel
-router.get('/export/:courseAssignmentId', async (req, res) => {
+// GET all attendance for a course in a specific month (no pagination — for monthly grid view)
+router.get('/monthly/:courseAssignmentId', async (req, res) => {
     try {
-        const { date } = req.query;
-        let whereClause = 'WHERE a.course_assignment_id = ?';
-        const params = [req.params.courseAssignmentId];
-        if (date) { whereClause += ' AND a.date = ?'; params.push(date); }
-
-        const [records] = await pool.query(
-            `SELECT s.student_id_number, s.first_name, s.last_name, a.date, a.status, a.remarks
-             FROM attendance a
-             JOIN students s ON a.student_id = s.id
-             ${whereClause}
-             ORDER BY a.date, s.last_name`,
-            params
-        );
-
-        if (records.length === 0) {
-            return res.status(404).json({ success: false, message: 'No attendance records to export' });
+        const { month, year } = req.query;
+        if (!month || !year) {
+            return res.status(400).json({ success: false, message: 'month and year query params are required' });
         }
 
-        const buffer = generateExcel(records, 'Attendance');
+        const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+        const endDate = new Date(parseInt(year), parseInt(month), 0);
+        const endDateStr = `${year}-${String(month).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+
+        const [records] = await pool.query(
+            `SELECT a.id, a.student_id, a.date, a.status, a.remarks,
+                    s.first_name, s.last_name, s.student_id_number
+             FROM attendance a
+             JOIN students s ON a.student_id = s.id
+             WHERE a.course_assignment_id = ? AND a.date >= ? AND a.date <= ?
+             ORDER BY s.last_name, s.first_name, a.date`,
+            [req.params.courseAssignmentId, startDate, endDateStr]
+        );
+
+        res.json({ success: true, data: records });
+    } catch (error) {
+        console.error('Get monthly attendance error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching monthly attendance' });
+    }
+});
+
+// GET export monthly attendance as Excel (grid format: students × dates)
+router.get('/export-monthly/:courseAssignmentId', async (req, res) => {
+    try {
+        const { month, year } = req.query;
+        if (!month || !year) {
+            return res.status(400).json({ success: false, message: 'month and year query params are required' });
+        }
+
+        const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+        const endDate = new Date(parseInt(year), parseInt(month), 0);
+        const endDateStr = `${year}-${String(month).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+        const daysInMonth = endDate.getDate();
+
+        // Get enrolled students
+        const [students] = await pool.query(
+            `SELECT s.id, s.student_id_number, s.first_name, s.last_name
+             FROM students s
+             JOIN enrollments e ON s.id = e.student_id
+             WHERE e.course_assignment_id = ?
+             ORDER BY s.last_name, s.first_name`,
+            [req.params.courseAssignmentId]
+        );
+
+        // Get attendance records for the month
+        const [records] = await pool.query(
+            `SELECT a.student_id, a.date, a.status
+             FROM attendance a
+             WHERE a.course_assignment_id = ? AND a.date >= ? AND a.date <= ?`,
+            [req.params.courseAssignmentId, startDate, endDateStr]
+        );
+
+        // Build lookup: { studentId: { day: status } }
+        const attendanceMap = {};
+        records.forEach(r => {
+            if (!attendanceMap[r.student_id]) attendanceMap[r.student_id] = {};
+            const day = new Date(r.date).getDate();
+            attendanceMap[r.student_id][day] = r.status;
+        });
+
+        // Build Excel rows
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'];
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        const excelRows = students.map(student => {
+            const row = {
+                'Student ID': student.student_id_number,
+                'Name': `${student.first_name} ${student.last_name}`
+            };
+
+            let presentCount = 0;
+            let totalWeekdays = 0;
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(parseInt(year), parseInt(month) - 1, day);
+                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                const dayLabel = `${dayNames[date.getDay()]} ${String(day).padStart(2, '0')}`;
+
+                if (isWeekend) {
+                    row[dayLabel] = '-';
+                } else {
+                    totalWeekdays++;
+                    const status = attendanceMap[student.id]?.[day] || '';
+                    row[dayLabel] = status ? status.charAt(0).toUpperCase() + status.slice(1) : 'N/A';
+                    if (status === 'present' || status === 'late') presentCount++;
+                }
+            }
+
+            row['Attendance %'] = totalWeekdays > 0 ? `${Math.round((presentCount / totalWeekdays) * 100)}%` : 'N/A';
+            return row;
+        });
+
+        if (excelRows.length === 0) {
+            return res.status(404).json({ success: false, message: 'No data to export' });
+        }
+
+        const buffer = generateExcel(excelRows, `Attendance ${monthNames[parseInt(month) - 1]} ${year}`);
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', 'attachment; filename=attendance_export.xlsx');
+        res.setHeader('Content-Disposition', `attachment; filename=attendance_${monthNames[parseInt(month) - 1]}_${year}.xlsx`);
         res.send(buffer);
     } catch (error) {
-        console.error('Export attendance error:', error);
-        res.status(500).json({ success: false, message: 'Error exporting attendance' });
+        console.error('Export monthly attendance error:', error);
+        res.status(500).json({ success: false, message: 'Error exporting monthly attendance' });
     }
 });
 
 export default router;
+
