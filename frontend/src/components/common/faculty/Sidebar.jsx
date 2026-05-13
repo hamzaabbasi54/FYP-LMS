@@ -1,11 +1,32 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { MdDashboard, MdBook, MdSchedule, MdPeople, MdGrade, MdMessage, MdNotifications, MdLogout, MdSchool } from 'react-icons/md';
 import { useCourse } from '../../../context/CourseContext';
 
 const Sidebar = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     const { selectedCourse } = useCourse();
+
+    // Get logged-in user data from localStorage
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const facultyName = user.faculty || 'Faculty';
+    const professorName = user.fullName || 'Professor';
+    const professorInitials = professorName
+        .split(' ')
+        .filter(n => n.length > 0)
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+
+    // Handle logout
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('selectedFacultyCourse');
+        navigate('/');
+    };
 
     // The 'to' prop tells React Router where to redirect
     const NavItem = ({ icon: Icon, label, to, badge, matchPaths, excludePaths, disabled }) => {
@@ -76,7 +97,7 @@ const Sidebar = () => {
                     <MdSchool className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div className="min-w-0">
-                    <h2 className="text-base sm:text-lg font-bold text-gray-800 leading-tight truncate">Eng. Faculty LMS</h2>
+                    <h2 className="text-base sm:text-lg font-bold text-gray-800 leading-tight truncate">{facultyName} LMS</h2>
                     <p className="text-xs text-gray-500 font-semibold">Faculty Panel</p>
                 </div>
             </div>
@@ -129,13 +150,17 @@ const Sidebar = () => {
             <div className="mt-auto pt-4 border-t border-gray-200">
                 <div className="flex items-center px-2 mb-3">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
-                        <span className="text-blue-600 font-bold text-xs sm:text-sm">AK</span>
+                        <span className="text-blue-600 font-bold text-xs sm:text-sm">{professorInitials}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-gray-800 font-semibold text-xs sm:text-sm truncate">Dr. Ahmed Khan</p>
-                        <p className="text-gray-500 text-xs truncate">Senior Professor</p>
+                        <p className="text-gray-800 font-semibold text-xs sm:text-sm truncate">{professorName}</p>
+                        <p className="text-gray-500 text-xs truncate capitalize">{user.role || 'Faculty'}</p>
                     </div>
-                    <button className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 ml-2">
+                    <button 
+                        onClick={handleLogout}
+                        className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 ml-2"
+                        title="Logout"
+                    >
                         <MdLogout className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                 </div>

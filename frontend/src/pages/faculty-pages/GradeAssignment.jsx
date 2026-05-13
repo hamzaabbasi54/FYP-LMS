@@ -1,116 +1,133 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { MdSearch, MdChevronRight, MdCheckCircle, MdWarning, MdError, MdSave, MdHelp } from 'react-icons/md';
+import { MdSearch, MdChevronRight, MdSave } from 'react-icons/md';
+import { useCourse } from '../../context/CourseContext';
+import { assessmentApi, gradeApi, studentApi } from '../../services/api';
 
 const GradeAssignment = () => {
-    const { assignmentId } = useParams();
+    const { assignmentId, gradeAssignmentId } = useParams();
     const navigate = useNavigate();
-    const [searchQuery, setSearchQuery] = useState('');
-    const [scores, setScores] = useState({});
-    const [unsavedChanges, setUnsavedChanges] = useState({});
+    const { selectedCourse } = useCourse();
+    const courseAssignmentId = selectedCourse?.assignment_id || assignmentId;
+    const courseCode = selectedCourse?.code || 'Course';
 
-    // Mock assignment data
-    const assignment = {
-        id: assignmentId || '2',
-        label: "ASSIGNMENT 3",
-        title: "OOP Concepts Essay",
-        description: "Grading submissions for the introductory essay on Object Oriented Programming principles.",
-        dueDate: "Oct 24, 2023",
-        dueTime: "11:59 PM",
-        maxScore: 100,
-        gradedCount: 4,
-        totalStudents: 118
+    const [searchQuery, setSearchQuery] = useState('');
+    const [assessment, setAssessment] = useState(null);
+    const [students, setStudents] = useState([]);
+    const [scores, setScores] = useState({});
+    const [remarks, setRemarks] = useState({});
+    const [originalScores, setOriginalScores] = useState({});
+    const [unsavedChanges, setUnsavedChanges] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState(null);
+
+    // Avatar color options
+    const avatarColors = [
+        "bg-purple-100 text-purple-700",
+        "bg-pink-100 text-pink-700",
+        "bg-green-100 text-green-700",
+        "bg-yellow-100 text-yellow-700",
+        "bg-indigo-100 text-indigo-700",
+        "bg-blue-100 text-blue-700",
+        "bg-red-100 text-red-700",
+        "bg-orange-100 text-orange-700",
+        "bg-teal-100 text-teal-700",
+        "bg-cyan-100 text-cyan-700"
+    ];
+
+    const getAvatarColor = (name) => {
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return avatarColors[Math.abs(hash) % avatarColors.length];
     };
 
-    // Mock student submissions data
-    const [students, setStudents] = useState([
-        {
-            id: 1,
-            name: "Ayesha Khan",
-            studentId: "2023001",
-            initials: "AK",
-            avatarColor: "bg-purple-100 text-purple-700",
-            status: "Submitted",
-            statusColor: "text-green-600",
-            statusIcon: MdCheckCircle,
-            submittedDate: "Oct 24, 10:45 AM",
-            submissionFile: "essay_ayesha.pdf",
-            score: 92
-        },
-        {
-            id: 2,
-            name: "Bilal Ahmed",
-            studentId: "2023015",
-            initials: "BA",
-            avatarColor: "bg-pink-100 text-pink-700",
-            status: "Late Submission",
-            statusColor: "text-yellow-600",
-            statusIcon: MdWarning,
-            submittedDate: "Oct 25, 09:12 AM",
-            submissionFile: "oop_essay_bilal.docx",
-            score: null
-        },
-        {
-            id: 3,
-            name: "Chaudhry Nazeer",
-            studentId: "2023042",
-            initials: "CN",
-            avatarColor: "bg-green-100 text-green-700",
-            status: "Missing",
-            statusColor: "text-red-600",
-            statusIcon: MdError,
-            submittedDate: "Due Oct 24",
-            submissionFile: null,
-            score: 0
-        },
-        {
-            id: 4,
-            name: "Dua Khalid",
-            studentId: "2023089",
-            initials: "DK",
-            avatarColor: "bg-yellow-100 text-yellow-700",
-            status: "Submitted",
-            statusColor: "text-green-600",
-            statusIcon: MdCheckCircle,
-            submittedDate: "Oct 23, 04:20 PM",
-            submissionFile: "essay_dua.pdf",
-            score: null
-        },
-        {
-            id: 5,
-            name: "Ehab Latif",
-            studentId: "2023102",
-            initials: "EL",
-            avatarColor: "bg-indigo-100 text-indigo-700",
-            status: "Submitted",
-            statusColor: "text-green-600",
-            statusIcon: MdCheckCircle,
-            submittedDate: "Oct 24, 11:15 AM",
-            submissionFile: "oop_assign3_ehab.pdf",
-            score: 88
-        }
-    ]);
+    // Fetch assessment, enrolled students, and existing grades
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!gradeAssignmentId || !courseAssignmentId) return;
 
-    // Initialize scores state
-    React.useEffect(() => {
-        const initialScores = {};
-        students.forEach(student => {
-            initialScores[student.id] = student.score !== null ? student.score : '';
-        });
-        setScores(initialScores);
-    }, []);
+            try {
+                setLoading(true);
+
+                // Fetch assessment details
+                const assessmentRes = await assessmentApi.getById(gradeAssignmentId);
+                if (assessmentRes.success) {
+                    setAssessment(assessmentRes.data);
+                }
+
+                // Fetch enrolled students
+                const enrolledRes = await studentApi.getEnrolledStudents(courseAssignmentId);
+                const enrolledStudents = enrolledRes.success ? (enrolledRes.data || []) : [];
+
+                // Fetch existing grades
+                let existingGrades = [];
+                try {
+                    const gradesRes = await gradeApi.getByAssessment(gradeAssignmentId, { limit: 500 });
+                    existingGrades = gradesRes.data || [];
+                } catch (err) {
+                    // No grades yet
+                }
+
+                // Build grade lookup: { studentId: { score, remarks } }
+                const gradeMap = {};
+                existingGrades.forEach(g => {
+                    gradeMap[g.student_id] = { score: g.score, remarks: g.remarks || '' };
+                });
+
+                // Merge students with grades
+                const mergedStudents = enrolledStudents.map(student => {
+                    const fullName = `${student.first_name} ${student.last_name}`;
+                    const initials = `${(student.first_name || '')[0] || ''}${(student.last_name || '')[0] || ''}`.toUpperCase();
+                    const grade = gradeMap[student.id];
+
+                    return {
+                        id: student.id,
+                        name: fullName,
+                        studentId: student.student_id_number,
+                        initials,
+                        avatarColor: getAvatarColor(fullName),
+                        score: grade?.score ?? null,
+                        remarks: grade?.remarks || ''
+                    };
+                });
+
+                setStudents(mergedStudents);
+
+                // Initialize scores
+                const initialScores = {};
+                const initialRemarks = {};
+                mergedStudents.forEach(s => {
+                    initialScores[s.id] = s.score !== null ? s.score : '';
+                    initialRemarks[s.id] = s.remarks || '';
+                });
+                setScores(initialScores);
+                setRemarks(initialRemarks);
+                setOriginalScores({ ...initialScores });
+
+            } catch (err) {
+                console.error('Error fetching grading data:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [gradeAssignmentId, courseAssignmentId]);
 
     // Handle score change
     const handleScoreChange = (studentId, value) => {
-        const numValue = value === '' ? '' : parseInt(value);
+        const numValue = value === '' ? '' : parseFloat(value);
         setScores(prev => ({
             ...prev,
             [studentId]: numValue
         }));
 
         // Track unsaved changes
-        const originalScore = students.find(s => s.id === studentId)?.score;
-        const hasChanged = originalScore !== (numValue === '' ? null : numValue);
+        const original = originalScores[studentId];
+        const hasChanged = original !== (numValue === '' ? '' : numValue);
 
         setUnsavedChanges(prev => {
             const newChanges = { ...prev };
@@ -121,32 +138,84 @@ const GradeAssignment = () => {
             }
             return newChanges;
         });
+
+        setSaveMessage(null);
     };
 
-    // Handle save
-    const handleSave = () => {
-        console.log('Saving grades:', scores);
-        // In a real app, you would send this to an API
-        alert('Grades saved successfully!');
-        setUnsavedChanges({});
-        // Update students with new scores
-        setStudents(prevStudents =>
-            prevStudents.map(student => ({
-                ...student,
-                score: scores[student.id] !== '' ? scores[student.id] : null
-            }))
-        );
+    // Handle remarks change
+    const handleRemarksChange = (studentId, value) => {
+        setRemarks(prev => ({
+            ...prev,
+            [studentId]: value
+        }));
+
+        // Mark as changed
+        setUnsavedChanges(prev => ({
+            ...prev,
+            [studentId]: true
+        }));
+
+        setSaveMessage(null);
+    };
+
+    // Handle save — sends grades to the backend
+    const handleSave = async () => {
+        try {
+            setSaving(true);
+            setSaveMessage(null);
+
+            // Build grades array from all students that have scores
+            const gradesPayload = students
+                .filter(s => scores[s.id] !== '' && scores[s.id] !== undefined)
+                .map(s => ({
+                    student_id: s.id,
+                    score: parseFloat(scores[s.id]),
+                    remarks: remarks[s.id] || null
+                }));
+
+            if (gradesPayload.length === 0) {
+                setSaveMessage({ type: 'info', text: 'No scores to save.' });
+                setSaving(false);
+                return;
+            }
+
+            const response = await gradeApi.save(gradeAssignmentId, gradesPayload);
+
+            if (response.success) {
+                setSaveMessage({ type: 'success', text: response.message || 'Grades saved successfully!' });
+                setUnsavedChanges({});
+                // Update original scores
+                setOriginalScores({ ...scores });
+                // Update students with new scores
+                setStudents(prev =>
+                    prev.map(student => ({
+                        ...student,
+                        score: scores[student.id] !== '' ? parseFloat(scores[student.id]) : null,
+                        remarks: remarks[student.id] || ''
+                    }))
+                );
+            } else {
+                setSaveMessage({ type: 'error', text: response.message || 'Failed to save grades.' });
+            }
+        } catch (err) {
+            console.error('Save grades error:', err);
+            setSaveMessage({ type: 'error', text: 'Failed to save grades. Please try again.' });
+        } finally {
+            setSaving(false);
+        }
     };
 
     // Handle cancel
     const handleCancel = () => {
         // Reset scores to original values
-        const originalScores = {};
-        students.forEach(student => {
-            originalScores[student.id] = student.score !== null ? student.score : '';
+        setScores({ ...originalScores });
+        const originalRemarks = {};
+        students.forEach(s => {
+            originalRemarks[s.id] = s.remarks || '';
         });
-        setScores(originalScores);
+        setRemarks(originalRemarks);
         setUnsavedChanges({});
+        setSaveMessage(null);
     };
 
     // Filter students based on search
@@ -156,20 +225,72 @@ const GradeAssignment = () => {
     );
 
     const unsavedCount = Object.keys(unsavedChanges).length;
+    const gradedCount = students.filter(s => scores[s.id] !== '' && scores[s.id] !== undefined && scores[s.id] !== null).length;
+
+    // Format type label
+    const formatTypeLabel = (type) => {
+        const labels = {
+            quiz: 'QUIZ',
+            assignment: 'ASSIGNMENT',
+            midterm: 'MIDTERM',
+            final: 'FINAL',
+            project: 'PROJECT'
+        };
+        return labels[type] || type?.toUpperCase() || '';
+    };
+
+    // Format date
+    const formatDate = (dateStr) => {
+        if (!dateStr) return { date: 'No date', time: '' };
+        const date = new Date(dateStr);
+        const options = { month: 'short', day: 'numeric', year: 'numeric' };
+        const formattedDate = date.toLocaleDateString('en-US', options);
+        const formattedTime = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        return { date: formattedDate, time: formattedTime };
+    };
+
+    if (loading) {
+        return (
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="flex justify-center items-center py-20">
+                    <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                    <p className="text-gray-500 text-sm ml-4">Loading assessment data...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!assessment) {
+        return (
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="text-center py-20">
+                    <p className="text-gray-500 text-sm">Assessment not found.</p>
+                    <Link
+                        to={`/faculty-mycourses/${courseAssignmentId}/grading`}
+                        className="text-blue-600 hover:text-blue-700 font-medium text-sm mt-4 inline-block"
+                    >
+                        ← Back to Grading
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    const { date: dueDate, time: dueTime } = formatDate(assessment.due_date);
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
             {/* Breadcrumbs */}
             <div className="flex items-center text-sm text-gray-500 mb-4">
-                <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
-                    CS-101
+                <Link to={`/faculty-mycourses/${courseAssignmentId}`} className="hover:text-blue-600 transition-colors">
+                    {courseCode}
                 </Link>
                 <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                <Link to="/faculty-mycourses/grading" className="hover:text-blue-600 transition-colors">
+                <Link to={`/faculty-mycourses/${courseAssignmentId}/grading`} className="hover:text-blue-600 transition-colors">
                     Grades
                 </Link>
                 <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                <span className="text-gray-700 font-medium">{assignment.title}</span>
+                <span className="text-gray-700 font-medium">{assessment.title}</span>
             </div>
 
             {/* Assignment Header Section */}
@@ -179,20 +300,22 @@ const GradeAssignment = () => {
                     <div className="flex-1">
                         <div className="mb-2">
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                {assignment.label}
+                                {formatTypeLabel(assessment.type)}
                             </span>
                         </div>
                         <div className="mb-2">
                             <span className="text-sm text-gray-600">
-                                Due {assignment.dueDate} at {assignment.dueTime}
+                                Due {dueDate} at {dueTime}
                             </span>
                         </div>
                         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-3">
-                            {assignment.title}
+                            {assessment.title}
                         </h1>
-                        <p className="text-gray-600 text-sm sm:text-base">
-                            {assignment.description}
-                        </p>
+                        {assessment.description && (
+                            <p className="text-gray-600 text-sm sm:text-base">
+                                {assessment.description}
+                            </p>
+                        )}
                     </div>
 
                     {/* Right Side - Max Score and Summary */}
@@ -203,13 +326,13 @@ const GradeAssignment = () => {
                                 MAX SCORE
                             </p>
                             <p className="text-2xl font-bold text-gray-800">
-                                {assignment.maxScore} <span className="text-lg font-normal text-gray-600">pts</span>
+                                {assessment.max_score} <span className="text-lg font-normal text-gray-600">pts</span>
                             </p>
                         </div>
 
                         {/* Grading Summary */}
                         <div className="text-sm text-gray-600">
-                            <span className="font-semibold text-gray-800">{assignment.gradedCount}</span> graded / <span className="font-semibold text-gray-800">{assignment.totalStudents}</span> students
+                            <span className="font-semibold text-gray-800">{gradedCount}</span> graded / <span className="font-semibold text-gray-800">{students.length}</span> students
                         </div>
                     </div>
                 </div>
@@ -240,89 +363,64 @@ const GradeAssignment = () => {
                                     STUDENT
                                 </th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    SUBMISSION STATUS
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    SUBMISSION
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                     SCORE
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    REMARKS
                                 </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                            {filteredStudents.map((student) => {
-                                const StatusIcon = student.statusIcon;
-                                return (
-                                    <tr key={student.id} className="hover:bg-gray-50 transition-colors">
-                                        {/* Student Info */}
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-full ${student.avatarColor} flex items-center justify-center flex-shrink-0`}>
-                                                    <span className="font-bold text-sm">{student.initials}</span>
-                                                </div>
-                                                <div>
-                                                    <p className="font-semibold text-gray-800 text-sm">{student.name}</p>
-                                                    <p className="text-gray-500 text-xs">ID: {student.studentId}</p>
-                                                </div>
+                            {filteredStudents.map((student) => (
+                                <tr key={student.id} className="hover:bg-gray-50 transition-colors">
+                                    {/* Student Info */}
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-full ${student.avatarColor} flex items-center justify-center flex-shrink-0`}>
+                                                <span className="font-bold text-sm">{student.initials}</span>
                                             </div>
-                                        </td>
-
-                                        {/* Submission Status */}
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <StatusIcon className={`w-5 h-5 ${student.statusColor}`} />
-                                                <div>
-                                                    <p className={`text-sm font-medium ${student.statusColor}`}>
-                                                        {student.status}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">{student.submittedDate}</p>
-                                                </div>
+                                            <div>
+                                                <p className="font-semibold text-gray-800 text-sm">{student.name}</p>
+                                                <p className="text-gray-500 text-xs">ID: {student.studentId}</p>
                                             </div>
-                                        </td>
+                                        </div>
+                                    </td>
 
-                                        {/* Submission File */}
-                                        <td className="px-6 py-4">
-                                            {student.submissionFile ? (
-                                                <a
-                                                    href="#"
-                                                    className="text-blue-600 hover:text-blue-700 hover:underline text-sm font-medium"
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        // In a real app, this would download/open the file
-                                                        console.log('Opening file:', student.submissionFile);
-                                                    }}
-                                                >
-                                                    {student.submissionFile}
-                                                </a>
-                                            ) : (
-                                                <span className="text-gray-400 text-sm italic">No file submitted</span>
-                                            )}
-                                        </td>
+                                    {/* Score Input */}
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max={assessment.max_score}
+                                                step="0.5"
+                                                value={scores[student.id] !== undefined ? scores[student.id] : ''}
+                                                onChange={(e) => handleScoreChange(student.id, e.target.value)}
+                                                className={`w-20 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'
+                                                    }`}
+                                                placeholder="0"
+                                            />
+                                            <span className="text-sm text-gray-600">/ {assessment.max_score}</span>
+                                        </div>
+                                    </td>
 
-                                        {/* Score Input */}
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    max={assignment.maxScore}
-                                                    value={scores[student.id] !== undefined ? scores[student.id] : ''}
-                                                    onChange={(e) => handleScoreChange(student.id, e.target.value)}
-                                                    className={`w-20 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'
-                                                        }`}
-                                                    placeholder="0"
-                                                />
-                                                <span className="text-sm text-gray-600">/ {assignment.maxScore}</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
+                                    {/* Remarks Input */}
+                                    <td className="px-6 py-4">
+                                        <input
+                                            type="text"
+                                            value={remarks[student.id] || ''}
+                                            onChange={(e) => handleRemarksChange(student.id, e.target.value)}
+                                            className={`w-full max-w-xs px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'
+                                                }`}
+                                            placeholder="Add remarks..."
+                                        />
+                                    </td>
+                                </tr>
+                            ))}
                             {filteredStudents.length === 0 && (
                                 <tr>
-                                    <td colSpan="4" className="px-6 py-8 text-center text-gray-500 text-sm">
-                                        No students found.
+                                    <td colSpan="3" className="px-6 py-8 text-center text-gray-500 text-sm">
+                                        {students.length === 0 ? 'No students enrolled in this course.' : 'No students found.'}
                                     </td>
                                 </tr>
                             )}
@@ -331,30 +429,50 @@ const GradeAssignment = () => {
                 </div>
 
                 {/* Bottom Action Bar */}
-                {unsavedCount > 0 && (
-                    <div className="p-6 border-t border-gray-200 bg-gray-50">
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                            <p className="text-sm text-gray-600">
-                                Unsaved changes for <span className="font-semibold text-gray-800">{unsavedCount}</span> {unsavedCount === 1 ? 'student' : 'students'}
-                            </p>
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={handleCancel}
-                                    className="px-6 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleSave}
-                                    className="flex items-center px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm"
-                                >
-                                    <MdSave className="w-5 h-5 mr-2" />
-                                    Save Grades
-                                </button>
-                            </div>
+                <div className="p-6 border-t border-gray-200 bg-gray-50">
+                    {/* Save Message */}
+                    {saveMessage && (
+                        <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
+                            saveMessage.type === 'success'
+                                ? 'bg-green-50 text-green-700 border border-green-200'
+                                : saveMessage.type === 'info'
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                : 'bg-red-50 text-red-700 border border-red-200'
+                        }`}>
+                            {saveMessage.text}
+                        </div>
+                    )}
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                        <p className="text-sm text-gray-600">
+                            {unsavedCount > 0 ? (
+                                <>Unsaved changes for <span className="font-semibold text-gray-800">{unsavedCount}</span> {unsavedCount === 1 ? 'student' : 'students'}</>
+                            ) : (
+                                <span className="text-gray-500">Enter scores and click Save Grades.</span>
+                            )}
+                        </p>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={handleCancel}
+                                disabled={saving || unsavedCount === 0}
+                                className="px-6 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                disabled={saving}
+                                className={`flex items-center px-6 py-2.5 rounded-lg shadow-sm transition-colors font-medium text-sm ${
+                                    saving
+                                        ? 'bg-blue-400 text-white cursor-not-allowed'
+                                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                                }`}
+                            >
+                                <MdSave className="w-5 h-5 mr-2" />
+                                {saving ? 'Saving...' : 'Save Grades'}
+                            </button>
                         </div>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );

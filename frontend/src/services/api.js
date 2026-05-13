@@ -338,8 +338,8 @@ export const studentApi = {
 // Assessment API
 // ============================================
 export const assessmentApi = {
-    getByCourse: async (courseAssignmentId) => {
-        const response = await api.get(`/assessments/course/${courseAssignmentId}`);
+    getByCourse: async (courseAssignmentId, params = {}) => {
+        const response = await api.get(`/assessments/course/${courseAssignmentId}`, { params });
         return response.data;
     },
     getById: async (id) => {
@@ -357,14 +357,25 @@ export const assessmentApi = {
     delete: async (id) => {
         const response = await api.delete(`/assessments/${id}`);
         return response.data;
-    },
-    // Grades
-    getGrades: async (assessmentId) => {
-        const response = await api.get(`/assessments/${assessmentId}/grades`);
+    }
+};
+
+// ============================================
+// Grade API
+// ============================================
+export const gradeApi = {
+    getByAssessment: async (assessmentId, params = {}) => {
+        const response = await api.get(`/assessments/${assessmentId}/grades`, { params });
         return response.data;
     },
-    submitGrades: async (assessmentId, grades) => {
-        const response = await api.put(`/assessments/${assessmentId}/grades`, { grades });
+    save: async (assessmentId, grades) => {
+        const response = await api.post(`/assessments/${assessmentId}/grades`, { grades });
+        return response.data;
+    },
+    export: async (assessmentId) => {
+        const response = await api.get(`/assessments/${assessmentId}/grades/export`, {
+            responseType: 'blob'
+        });
         return response.data;
     },
     importGrades: async (assessmentId, file) => {
@@ -494,5 +505,7 @@ export const dashboardApi = {
         return response.data;
     }
 };
+
+
 
 export default api;

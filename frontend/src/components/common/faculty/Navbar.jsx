@@ -103,6 +103,9 @@ const Navbar = () => {
     const assignmentIdMatch = location.pathname.match(/\/faculty-mycourses\/(\d+)/);
     const assignmentId = assignmentIdMatch ? assignmentIdMatch[1] : null;
 
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const professorName = user.fullName || 'Professor';
+
     return (
         <div className="flex flex-col h-full bg-white border-b">
             {/* Top Section: Title/Breadcrumbs and Search */}
@@ -228,7 +231,7 @@ const Navbar = () => {
                             </h1>
                             {currentTitle === 'Overview' && (
                                 <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                                    Welcome back, Dr. Ahmed Khan. Manage your active courses.
+                                    Welcome back, {professorName}. Manage your active courses.
                                 </p>
                             )}
                         </div>

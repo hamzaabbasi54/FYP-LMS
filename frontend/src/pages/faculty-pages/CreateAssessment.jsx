@@ -1,13 +1,30 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { MdChevronRight, MdCalendarToday, MdAccessTime, MdInfo, MdHelpOutline, MdFormatBold, MdFormatItalic, MdFormatUnderlined, MdLink } from 'react-icons/md';
+import { useCourse } from '../../context/CourseContext';
+import { assessmentApi } from '../../services/api';
 
 const CreateAssessment = () => {
     const navigate = useNavigate();
+    const { selectedCourse } = useCourse();
+    const { assignmentId } = useParams();
+    const [searchParams] = useSearchParams();
+    const courseAssignmentId = selectedCourse?.assignment_id || assignmentId;
+    const courseCode = selectedCourse?.code || 'Course';
+
+    // Map query param type to form value
+    const typeMap = {
+        quiz: 'quiz',
+        assignment: 'assignment',
+        midterm: 'midterm',
+        final: 'final',
+        project: 'project'
+    };
+    const preselectedType = typeMap[searchParams.get('type')] || 'quiz';
     
     // Form state
     const [formData, setFormData] = useState({
-        assessmentType: 'Quiz',
+        assessmentType: preselectedType,
         title: '',
         description: '',
         dueDate: '',
@@ -16,6 +33,9 @@ const CreateAssessment = () => {
         weight: '',
         duration: ''
     });
+
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState(null);
 
     const [isBold, setIsBold] = useState(false);
     const [isItalic, setIsItalic] = useState(false);
@@ -28,47 +48,97 @@ const CreateAssessment = () => {
             ...prev,
             [name]: value
         }));
+        setError(null);
     };
 
     // Handle form submission
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Form submitted:', formData);
-        // In a real app, you would send this data to an API
-        alert('Assessment created successfully!');
-        navigate('/faculty-mycourses/grading');
+        
+        if (!formData.title.trim()) {
+            setError('Title is required');
+            return;
+        }
+
+        if (!formData.dueDate) {
+            setError('Due date is required');
+            return;
+        }
+
+        try {
+            setSaving(true);
+            setError(null);
+
+            const payload = {
+                course_assignment_id: parseInt(courseAssignmentId),
+                type: formData.assessmentType,
+                title: formData.title.trim(),
+                description: formData.description.trim() || null,
+                due_date: formData.dueDate || null,
+                release_grades_on: formData.releaseGradesOn || null,
+                max_score: parseInt(formData.maxScore) || 100,
+                weight: formData.weight ? parseFloat(formData.weight) : null,
+                duration_minutes: formData.duration ? parseInt(formData.duration) : null,
+                status: 'scheduled'
+            };
+
+            const response = await assessmentApi.create(payload);
+
+            if (response.success) {
+                navigate(`/faculty-mycourses/${courseAssignmentId}/grading`);
+            } else {
+                setError(response.message || 'Failed to create assessment');
+            }
+        } catch (err) {
+            console.error('Create assessment error:', err);
+            setError(err.response?.data?.message || 'Failed to create assessment. Please try again.');
+        } finally {
+            setSaving(false);
+        }
     };
 
     // Handle cancel
     const handleCancel = () => {
-        navigate('/faculty-mycourses/grading');
+        navigate(`/faculty-mycourses/${courseAssignmentId}/grading`);
+    };
+
+    // Type display names
+    const typeDisplayNames = {
+        quiz: 'Quiz',
+        assignment: 'Assignment',
+        midterm: 'Midterm Exam',
+        final: 'Final Exam',
+        project: 'Project'
     };
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
             {/* Breadcrumbs */}
             <div className="flex items-center text-sm text-gray-500 mb-4">
-                <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
-                    My Courses
+                <Link to={`/faculty-mycourses/${courseAssignmentId}`} className="hover:text-blue-600 transition-colors">
+                    {courseCode}
                 </Link>
                 <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
-                    CS-101
-                </Link>
-                <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                <Link to="/faculty-mycourses/grading" className="hover:text-blue-600 transition-colors">
+                <Link to={`/faculty-mycourses/${courseAssignmentId}/grading`} className="hover:text-blue-600 transition-colors">
                     Grading
                 </Link>
                 <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                <span className="text-gray-700 font-medium">New Assessment</span>
+                <span className="text-gray-700 font-medium">New {typeDisplayNames[formData.assessmentType]}</span>
             </div>
 
             {/* Page Header */}
             <div className="mb-6">
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
-                    Create New Assessment
+                    Create New {typeDisplayNames[formData.assessmentType]}
                 </h1>
             </div>
+
+            {/* Error Message */}
+            {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-medium">
+                    {error}
+                </div>
+            )}
 
             {/* Main Form Card */}
             <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
@@ -102,11 +172,11 @@ const CreateAssessment = () => {
                                 onChange={handleChange}
                                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm appearance-none bg-white cursor-pointer pr-8"
                             >
-                                <option value="Quiz">Quiz</option>
-                                <option value="Assignment">Assignment</option>
-                                <option value="Midterm Exam">Midterm Exam</option>
-                                <option value="Final Exam">Final Exam</option>
-                                <option value="Project">Project</option>
+                                <option value="quiz">Quiz</option>
+                                <option value="assignment">Assignment</option>
+                                <option value="midterm">Midterm Exam</option>
+                                <option value="final">Final Exam</option>
+                                <option value="project">Project</option>
                             </select>
                             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -301,15 +371,17 @@ const CreateAssessment = () => {
                     <button
                         type="button"
                         onClick={handleCancel}
-                        className="px-6 py-2.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 shadow-sm transition-colors font-medium text-sm"
+                        disabled={saving}
+                        className="px-6 py-2.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 shadow-sm transition-colors font-medium text-sm disabled:opacity-50"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
-                        className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm"
+                        disabled={saving}
+                        className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm disabled:opacity-50"
                     >
-                        Create Assessment
+                        {saving ? 'Creating...' : 'Create Assessment'}
                     </button>
                 </div>
             </form>
@@ -318,4 +390,3 @@ const CreateAssessment = () => {
 };
 
 export default CreateAssessment;
-
