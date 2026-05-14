@@ -6,32 +6,94 @@ import pool from './config/db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const migrationsDir = path.join(__dirname, 'migrations');
 
 async function migrate() {
-    const schemaPath = path.join(__dirname, 'schema.sql');
-    const sql = fs.readFileSync(schemaPath, 'utf8');
-    const statements = sql.split(';').filter(stmt => stmt.trim() !== '');
-
-    console.log('Starting migration...');
     const conn = await pool.getConnection();
     try {
-        // Disable foreign key checks temporarily for smooth drops
-        await conn.query('SET FOREIGN_KEY_CHECKS = 0');
+        console.log('Checking migration system...');
         
-        for (const stmt of statements) {
-            try {
+        // 1. Create the tracking table if it doesn't exist
+        await conn.query(`
+            CREATE TABLE IF NOT EXISTS schema_migrations (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                migration_name VARCHAR(255) NOT NULL UNIQUE,
+                executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        // 2. Ensure migrations directory exists
+        if (!fs.existsSync(migrationsDir)) {
+            fs.mkdirSync(migrationsDir);
+            console.log(`Created migrations directory at ${migrationsDir}`);
+        }
+
+        // 3. Get all .sql files in the migrations directory
+        const files = fs.readdirSync(migrationsDir)
+                        .filter(f => f.endsWith('.sql'))
+                        .sort();
+        
+        if (files.length === 0) {
+            console.log('No migration files found in /migrations directory.');
+            return;
+        }
+
+        // 4. Get already executed migrations
+        const [executed] = await conn.query('SELECT migration_name FROM schema_migrations');
+        const executedNames = executed.map(row => row.migration_name);
+
+        // --- SPECIAL SAFETY CHECK ---
+        // If the database already has tables (like users) but the schema_migrations
+        // table is empty, we assume the initial schema is already applied.
+        // This prevents '001_initial_schema.sql' from dropping existing data.
+        const [tables] = await conn.query('SHOW TABLES');
+        // 'schema_migrations' is 1 table. If there are more, they have existing data.
+        const hasExistingTables = tables.length > 1; 
+        
+        if (hasExistingTables && executedNames.length === 0 && files.includes('001_initial_schema.sql')) {
+            console.log('Detecting existing database... Marking initial schema as already applied to protect data.');
+            await conn.query('INSERT INTO schema_migrations (migration_name) VALUES (?)', ['001_initial_schema.sql']);
+            executedNames.push('001_initial_schema.sql');
+        }
+        // ----------------------------
+
+        // 5. Find pending migrations
+        const pending = files.filter(f => !executedNames.includes(f));
+
+        if (pending.length === 0) {
+            console.log('✅ Database is up to date! No new migrations to run.');
+            return;
+        }
+
+        console.log(`Found ${pending.length} new migrations to execute.`);
+
+        // 6. Execute pending migrations one by one
+        for (const file of pending) {
+            console.log(`\n⏳ Executing: ${file}...`);
+            const filePath = path.join(migrationsDir, file);
+            const sql = fs.readFileSync(filePath, 'utf8');
+            const statements = sql.split(';').filter(stmt => stmt.trim() !== '');
+
+            // Disable foreign key checks during migration execution for safety
+            await conn.query('SET FOREIGN_KEY_CHECKS = 0');
+            
+            for (const stmt of statements) {
                 if (stmt.trim()) {
                     await conn.query(stmt);
                 }
-            } catch (err) {
-                console.error('Error executing statement:', stmt.substring(0, 50) + '...');
-                console.error(err.message);
-                throw err;
             }
+
+            // Record it as executed
+            await conn.query('INSERT INTO schema_migrations (migration_name) VALUES (?)', [file]);
+            console.log(`✅ Successfully applied: ${file}`);
+            
+            await conn.query('SET FOREIGN_KEY_CHECKS = 1');
         }
-        console.log('Migration completed successfully!');
+
+        console.log('\n🎉 All migrations completed successfully!');
+
     } catch (err) {
-        console.error('Migration failed:', err);
+        console.error('\n❌ Migration failed:', err);
     } finally {
         await conn.query('SET FOREIGN_KEY_CHECKS = 1');
         conn.release();

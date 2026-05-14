@@ -19,6 +19,7 @@ import assessmentRoutes from './routes/assessmentRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import parentRoutes from './routes/parentRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 const app = express();
 
@@ -68,6 +69,9 @@ app.use('/api/attendance', attendanceRoutes);
 
 // Parent routes (protected)
 app.use('/api/parents', parentRoutes);
+
+// Notification routes (protected)
+app.use('/api/notifications', notificationRoutes);
 
 // Dashboard Analytics routes (admin only)
 app.use('/api/dashboard', dashboardRoutes);

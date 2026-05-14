@@ -24,6 +24,7 @@ import ManageCourses from "./pages/admin-pages/ManageCourses.jsx";
 import Settings from "./pages/admin-pages/Settings.jsx";
 import AddCourses from "./pages/admin-pages/AddCourses.jsx";
 import CourseDetails from "./pages/admin-pages/CourseDetails.jsx";
+import ManageCLOs from "./pages/admin-pages/ManageCLOs.jsx";
 import AddFaculty from './pages/admin-pages/AddFaculty.jsx';
 import AddBatch from './pages/admin-pages/AddBatch.jsx';
 import BatchDetails from "./pages/admin-pages/BatchDetails.jsx";
@@ -91,6 +92,7 @@ function App() {
 
                         <Route path="/admin-managecourses" element={<ManageCourses />} />
                         <Route path="/admin-managecourses/admin-addcourses" element={<AddCourses />} />
+                        <Route path="/admin-managecourses/clos" element={<ManageCLOs />} />
                         <Route path="/admin-managecourses/:id" element={<CourseDetails />} />
 
                         <Route path="/admin-obe" element={<OBEReports />} />

@@ -4,7 +4,7 @@ import { courseApi, approvalApi } from '../../services/api';
 import { toast } from 'react-toastify';
 
 const CourseAssignment = () => {
-    const [selectedCourseId, setSelectedCourseId] = useState(null);
+    const [selectedCourseIds, setSelectedCourseIds] = useState([]);
     const [selectedFacultyId, setSelectedFacultyId] = useState(null);
     const [courseSearch, setCourseSearch] = useState('');
     const [facultySearch, setFacultySearch] = useState('');
@@ -44,24 +44,43 @@ const CourseAssignment = () => {
         }
     };
 
+    const toggleCourseSelection = (assignmentId) => {
+        setSelectedCourseIds(prev =>
+            prev.includes(assignmentId)
+                ? prev.filter(id => id !== assignmentId)
+                : [...prev, assignmentId]
+        );
+    };
+
     const handleAssign = async () => {
-        if (!selectedCourseId || !selectedFacultyId) return;
+        if (selectedCourseIds.length === 0 || !selectedFacultyId) return;
         
         setAssigning(true);
         try {
-            const course = courses.find(c => c.assignment_id === selectedCourseId);
             const prof = faculty.find(f => f.id === selectedFacultyId);
-            
-            // Call the course assignment API
-            await courseApi.updateAssignmentFaculty(selectedCourseId, selectedFacultyId);
-            
-            toast.success(`Assigned "${course?.title}" to ${prof?.full_name || prof?.fullName}`);
-            setSelectedCourseId(null);
+            const profName = prof?.full_name || prof?.fullName || 'Faculty';
+
+            // Assign each selected course to the selected faculty
+            let successCount = 0;
+            for (const assignmentId of selectedCourseIds) {
+                try {
+                    await courseApi.updateAssignmentFaculty(assignmentId, selectedFacultyId);
+                    successCount++;
+                } catch (err) {
+                    const course = courses.find(c => c.assignment_id === assignmentId);
+                    console.error(`Failed to assign ${course?.title}:`, err);
+                }
+            }
+
+            if (successCount > 0) {
+                toast.success(`Assigned ${successCount} course(s) to ${profName}`);
+            }
+            setSelectedCourseIds([]);
             setSelectedFacultyId(null);
-            fetchData(); // Refresh the list
+            fetchData();
         } catch (error) {
-            console.error('Error assigning course:', error);
-            toast.error(error.response?.data?.message || 'Failed to assign course');
+            console.error('Error assigning courses:', error);
+            toast.error(error.response?.data?.message || 'Failed to assign courses');
         } finally {
             setAssigning(false);
         }
@@ -79,7 +98,6 @@ const CourseAssignment = () => {
                dept.toLowerCase().includes(facultySearch.toLowerCase());
     });
 
-    const selectedCourse = courses.find(c => c.assignment_id === selectedCourseId);
     const selectedFac = faculty.find(f => f.id === selectedFacultyId);
 
     const getInitials = (name) => {
@@ -98,15 +116,15 @@ const CourseAssignment = () => {
                             Course Assignment
                         </h1>
                     </div>
-                    <p className="text-slate-500 ml-5 mt-1">Assign faculty members to courses</p>
+                    <p className="text-slate-500 ml-5 mt-1">Select multiple courses and assign them to a faculty member</p>
                 </div>
 
                 {/* Selection Preview */}
-                {(selectedCourseId || selectedFacultyId) && (
+                {(selectedCourseIds.length > 0 || selectedFacultyId) && (
                     <div className="mb-6 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
                         <div className="flex items-center justify-center gap-4">
-                            <div className={`px-4 py-2 rounded-xl ${selectedCourse ? `bg-gradient-to-r ${colorPalette[selectedCourseId % colorPalette.length]} text-white` : 'bg-slate-100 text-slate-400'}`}>
-                                {selectedCourse ? selectedCourse.title : 'Select a course'}
+                            <div className={`px-4 py-2 rounded-xl ${selectedCourseIds.length > 0 ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                                {selectedCourseIds.length > 0 ? `${selectedCourseIds.length} course(s) selected` : 'Select courses'}
                             </div>
                             <MdSwapHoriz className="w-6 h-6 text-slate-400" />
                             <div className={`px-4 py-2 rounded-xl ${selectedFac ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
@@ -136,28 +154,31 @@ const CourseAssignment = () => {
                                 ) : filteredCourses.length === 0 ? (
                                     <p className="text-center py-8 text-slate-400">No courses found</p>
                                 ) : (
-                                    filteredCourses.map((course, index) => (
-                                        <div key={course.assignment_id} onClick={() => setSelectedCourseId(course.assignment_id)}
-                                            className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all duration-200 ${
-                                                selectedCourseId === course.assignment_id ? 'bg-indigo-50 border-2 border-indigo-500' : 'bg-slate-50 border-2 border-transparent hover:bg-slate-100'
-                                            }`}>
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colorPalette[index % colorPalette.length]} flex items-center justify-center`}>
-                                                    <span className="text-white text-xs font-bold">{(course.code || '').slice(0, 2)}</span>
+                                    filteredCourses.map((course, index) => {
+                                        const isSelected = selectedCourseIds.includes(course.assignment_id);
+                                        return (
+                                            <div key={course.assignment_id} onClick={() => toggleCourseSelection(course.assignment_id)}
+                                                className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all duration-200 ${
+                                                    isSelected ? 'bg-indigo-50 border-2 border-indigo-500' : 'bg-slate-50 border-2 border-transparent hover:bg-slate-100'
+                                                }`}>
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colorPalette[index % colorPalette.length]} flex items-center justify-center`}>
+                                                        <span className="text-white text-xs font-bold">{(course.code || '').slice(0, 2)}</span>
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium text-slate-800 text-sm line-clamp-1" title={course.title}>{course.title}</p>
+                                                        <p className="text-xs text-slate-500">{course.code} • {course.semester_name}</p>
+                                                        {course.faculty_name && <p className="text-xs text-indigo-500 font-medium mt-0.5">Assigned: {course.faculty_name}</p>}
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="font-medium text-slate-800 text-sm line-clamp-1" title={course.title}>{course.title}</p>
-                                                    <p className="text-xs text-slate-500">{course.code} • {course.semester_name}</p>
-                                                    {course.faculty_name && <p className="text-xs text-indigo-500 font-medium mt-0.5">Assigned: {course.faculty_name}</p>}
+                                                <div className={`flex-shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
+                                                    isSelected ? 'border-indigo-500 bg-indigo-500' : 'border-slate-300'
+                                                }`}>
+                                                    {isSelected && <MdCheck className="w-4 h-4 text-white" />}
                                                 </div>
                                             </div>
-                                            <div className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                                selectedCourseId === course.assignment_id ? 'border-indigo-500 bg-indigo-500' : 'border-slate-300'
-                                            }`}>
-                                                {selectedCourseId === course.assignment_id && <MdCheck className="w-4 h-4 text-white" />}
-                                            </div>
-                                        </div>
-                                    ))
+                                        );
+                                    })
                                 )}
                             </div>
                         </div>
@@ -210,13 +231,13 @@ const CourseAssignment = () => {
 
                     {/* Assign Button */}
                     <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-center">
-                        <button onClick={handleAssign} disabled={!selectedCourseId || !selectedFacultyId || assigning}
+                        <button onClick={handleAssign} disabled={selectedCourseIds.length === 0 || !selectedFacultyId || assigning}
                             className={`px-8 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                                selectedCourseId && selectedFacultyId
+                                selectedCourseIds.length > 0 && selectedFacultyId
                                     ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white hover:shadow-lg hover:shadow-indigo-500/25'
                                     : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                             }`}>
-                            {assigning ? 'Assigning...' : 'Assign Course to Faculty'}
+                            {assigning ? 'Assigning...' : `Assign ${selectedCourseIds.length > 0 ? selectedCourseIds.length : ''} Course(s) to Faculty`}
                         </button>
                     </div>
                 </div>

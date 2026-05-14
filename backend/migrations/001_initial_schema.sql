@@ -20,6 +20,7 @@ DROP TABLE IF EXISTS courses;
 DROP TABLE IF EXISTS semesters;
 DROP TABLE IF EXISTS plos;
 DROP TABLE IF EXISTS batches;
+DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS departments;
 DROP TABLE IF EXISTS faculties;
@@ -84,6 +85,20 @@ CREATE TABLE users (
     CONSTRAINT fk_users_approved_by
         FOREIGN KEY (approved_by) REFERENCES users(id)
         ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 3.5. NOTIFICATIONS
+CREATE TABLE notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    message TEXT NOT NULL,
+    type VARCHAR(50) DEFAULT 'info',
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_notifications_user (user_id),
+    CONSTRAINT fk_notifications_user 
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================
@@ -168,10 +183,19 @@ CREATE TABLE courses (
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 8. CLOS (Course Learning Outcomes)
+-- 7.5 COURSE_PREREQUISITES (Junction Table)
+CREATE TABLE course_prerequisites (
+    course_id INT NOT NULL,
+    prerequisite_course_id INT NOT NULL,
+    PRIMARY KEY (course_id, prerequisite_course_id),
+    CONSTRAINT fk_prereq_course FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_prereq_prereq FOREIGN KEY (prerequisite_course_id) REFERENCES courses(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 8. CLOS (Course Learning Outcomes - Standalone)
 CREATE TABLE clos (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    course_id INT NOT NULL,
+    course_id INT DEFAULT NULL,
     clo_number INT NOT NULL,
     title VARCHAR(100) NOT NULL,
     description TEXT DEFAULT NULL,
@@ -199,6 +223,15 @@ CREATE TABLE clo_plo_mapping (
     CONSTRAINT fk_mapping_plo
         FOREIGN KEY (plo_id) REFERENCES plos(id)
         ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 8.6 COURSE_CLO_MAPPING (Junction Table - Many-to-Many between courses and CLOs)
+CREATE TABLE course_clo_mapping (
+    course_id INT NOT NULL,
+    clo_id INT NOT NULL,
+    PRIMARY KEY (course_id, clo_id),
+    CONSTRAINT fk_ccm_course FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_ccm_clo FOREIGN KEY (clo_id) REFERENCES clos(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 9. SYLLABI

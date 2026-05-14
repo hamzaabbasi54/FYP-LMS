@@ -87,13 +87,21 @@ const ManageCourses = () => {
                             {loading ? 'Loading...' : `${total} courses found`}
                         </p>
                     </div>
-                    <Link
-                        to="/admin-managecourses/admin-addcourses"
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all duration-200"
-                    >
-                        <MdAdd className="w-5 h-5" />
-                        Add Course
-                    </Link>
+                    <div className="flex gap-3">
+                        <Link
+                            to="/admin-managecourses/clos"
+                            className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all duration-200"
+                        >
+                            CLOs
+                        </Link>
+                        <Link
+                            to="/admin-managecourses/admin-addcourses"
+                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all duration-200"
+                        >
+                            <MdAdd className="w-5 h-5" />
+                            Add Course
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Search & Filters */}

@@ -2,16 +2,62 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { MdSearch, MdNotifications, MdChevronRight, MdHelp, MdAssignment, MdSchool, MdAnnouncement, MdCircle } from 'react-icons/md';
 import { useCourse } from '../../../context/CourseContext';
+import { notificationApi } from '../../../services/api';
+import { toast } from 'react-toastify';
 
 const Navbar = () => {
     const location = useLocation();
     const [showNotifications, setShowNotifications] = useState(false);
     const notificationRef = useRef(null);
     const { selectedCourse } = useCourse();
+    const hasShownToasts = useRef(false);
 
     // Derive course code from context
     const courseCode = selectedCourse?.code || 'Course';
     const courseTitle = selectedCourse?.title ? `${courseCode}: ${selectedCourse.title}` : courseCode;
+
+    // --- Real Notifications ---
+    const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        fetchNotifications();
+    }, []);
+
+    const fetchNotifications = async () => {
+        try {
+            const res = await notificationApi.getAll();
+            if (res.success) {
+                setNotifications(res.data || []);
+                setUnreadCount(res.unread_count || 0);
+
+                // Show toast for unread notifications on first load
+                if (!hasShownToasts.current && res.unread_count > 0) {
+                    hasShownToasts.current = true;
+                    const unread = (res.data || []).filter(n => !n.is_read);
+                    unread.slice(0, 3).forEach(n => {
+                        toast.info(n.message, { autoClose: 5000 });
+                    });
+                }
+            }
+        } catch (err) {
+            console.error('Notification fetch error:', err);
+        }
+    };
+
+    const handleBellClick = async () => {
+        const opening = !showNotifications;
+        setShowNotifications(opening);
+        if (opening && unreadCount > 0) {
+            try {
+                await notificationApi.markAllRead();
+                setUnreadCount(0);
+                setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            } catch (err) {
+                console.error('Mark read error:', err);
+            }
+        }
+    };
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -24,51 +70,24 @@ const Navbar = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Mock notifications for dropdown
-    const notifications = [
-        {
-            id: 1,
-            type: 'assignment',
-            title: 'New Submission',
-            message: 'Ayesha Khan submitted Assignment 3',
-            time: '10 min ago',
-            read: false,
-            icon: MdAssignment,
-            iconColor: 'bg-blue-100 text-blue-600'
-        },
-        {
-            id: 2,
-            type: 'assignment',
-            title: 'New Submission',
-            message: 'Bilal Ahmed submitted Assignment 3',
-            time: '25 min ago',
-            read: false,
-            icon: MdAssignment,
-            iconColor: 'bg-blue-100 text-blue-600'
-        },
-        {
-            id: 3,
-            type: 'course',
-            title: 'Course Assigned',
-            message: 'You have been assigned CS-302',
-            time: '2 hours ago',
-            read: false,
-            icon: MdSchool,
-            iconColor: 'bg-green-100 text-green-600'
-        },
-        {
-            id: 4,
-            type: 'system',
-            title: 'System Notice',
-            message: 'LMS maintenance tonight',
-            time: 'Yesterday',
-            read: true,
-            icon: MdAnnouncement,
-            iconColor: 'bg-purple-100 text-purple-600'
+    // Icon mapping
+    const getNotificationIcon = (type) => {
+        switch (type) {
+            case 'course_assignment': return { icon: MdSchool, color: 'bg-green-100 text-green-600' };
+            case 'assignment': return { icon: MdAssignment, color: 'bg-blue-100 text-blue-600' };
+            default: return { icon: MdAnnouncement, color: 'bg-purple-100 text-purple-600' };
         }
-    ];
+    };
 
-    const unreadCount = notifications.filter(n => !n.read).length;
+    const timeAgo = (dateStr) => {
+        const now = new Date();
+        const date = new Date(dateStr);
+        const diff = Math.floor((now - date) / 1000);
+        if (diff < 60) return 'Just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return `${Math.floor(diff / 86400)}d ago`;
+    };
 
     const getPageTitle = (pathname) => {
         // We use 'startsWith' or 'includes' so sub-pages still show the correct Parent Title.
@@ -267,7 +286,7 @@ const Navbar = () => {
                     {/* Notifications Dropdown */}
                     <div className="relative" ref={notificationRef}>
                         <button
-                            onClick={() => setShowNotifications(!showNotifications)}
+                            onClick={handleBellClick}
                             className="relative text-gray-500 hover:text-blue-600 flex-shrink-0"
                         >
                             {unreadCount > 0 && (
@@ -292,30 +311,36 @@ const Navbar = () => {
                                     </Link>
                                 </div>
                                 <div className="max-h-80 overflow-y-auto">
-                                    {notifications.slice(0, 4).map((notification) => {
-                                        const IconComponent = notification.icon;
-                                        return (
-                                            <div
-                                                key={notification.id}
-                                                className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0 ${!notification.read ? 'bg-blue-50/50' : ''
-                                                    }`}
-                                            >
-                                                <div className={`w-8 h-8 rounded-full ${notification.iconColor} flex items-center justify-center flex-shrink-0`}>
-                                                    <IconComponent className="w-4 h-4" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <p className="font-medium text-sm text-gray-800 truncate">{notification.title}</p>
-                                                        {!notification.read && (
-                                                            <MdCircle className="w-2 h-2 text-blue-600 flex-shrink-0" />
-                                                        )}
+                                    {notifications.length === 0 ? (
+                                        <div className="px-4 py-8 text-center text-gray-400 text-sm">
+                                            No notifications yet.
+                                        </div>
+                                    ) : (
+                                        notifications.slice(0, 6).map((notification) => {
+                                            const { icon: IconComponent, color: iconColor } = getNotificationIcon(notification.type);
+                                            return (
+                                                <div
+                                                    key={notification.id}
+                                                    className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0 ${!notification.is_read ? 'bg-blue-50/50' : ''
+                                                        }`}
+                                                >
+                                                    <div className={`w-8 h-8 rounded-full ${iconColor} flex items-center justify-center flex-shrink-0`}>
+                                                        <IconComponent className="w-4 h-4" />
                                                     </div>
-                                                    <p className="text-xs text-gray-600 truncate">{notification.message}</p>
-                                                    <p className="text-xs text-gray-400 mt-1">{notification.time}</p>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="font-medium text-sm text-gray-800 truncate">{notification.title}</p>
+                                                            {!notification.is_read && (
+                                                                <MdCircle className="w-2 h-2 text-blue-600 flex-shrink-0" />
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-gray-600 truncate">{notification.message}</p>
+                                                        <p className="text-xs text-gray-400 mt-1">{timeAgo(notification.created_at)}</p>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })
+                                    )}
                                 </div>
                             </div>
                         )}

@@ -266,6 +266,32 @@ export const courseApi = {
     updateSyllabus: async (courseId, data) => {
         const response = await api.put(`/courses/${courseId}/syllabus`, data);
         return response.data;
+    },
+    // All courses list (no pagination, for pickers)
+    getAllList: async () => {
+        const response = await api.get('/courses/all-list');
+        return response.data;
+    },
+    // Global CLO management
+    getAllCLOs: async () => {
+        const response = await api.get('/courses/clos/all');
+        return response.data;
+    },
+    addGlobalCLO: async (data) => {
+        const response = await api.post('/courses/clos/add', data);
+        return response.data;
+    },
+    importCLOs: async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post('/courses/clos/import', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
+    exportCLOs: () => {
+        const token = localStorage.getItem('token');
+        window.open(`http://localhost:3000/api/courses/clos/export?token=${token}`, '_blank');
     }
 };
 
@@ -507,5 +533,18 @@ export const dashboardApi = {
 };
 
 
+// ============================================
+// Notification API
+// ============================================
+export const notificationApi = {
+    getAll: async () => {
+        const response = await api.get('/notifications');
+        return response.data;
+    },
+    markAllRead: async () => {
+        const response = await api.put('/notifications/read-all');
+        return response.data;
+    }
+};
 
 export default api;

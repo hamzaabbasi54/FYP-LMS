@@ -90,7 +90,18 @@ const CourseDetails = () => {
                                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
                                     <MdInfoOutline className="w-4 h-4" /> Prerequisites
                                 </p>
-                                <p className="text-sm font-medium text-slate-800">{course.prerequisites || 'None'}</p>
+                                {course.prerequisite_courses && course.prerequisite_courses.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {course.prerequisite_courses.map(p => (
+                                            <Link key={p.id} to={`/admin-managecourses/${p.id}`}
+                                                className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
+                                                {p.code}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm font-medium text-slate-800">{course.prerequisites || 'None'}</p>
+                                )}
                             </div>
                         </div>
                     </div>
