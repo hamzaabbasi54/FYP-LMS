@@ -13,7 +13,7 @@ const ForgotPassword = () => {
         return /\S+@\S+\.\S+/.test(email);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (!email) {
