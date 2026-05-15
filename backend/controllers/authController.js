@@ -77,6 +77,12 @@ export const signup = async (req, res) => {
                 message: `Department "${department}" not found`
             });
         }
+        if (deptRows.length > 1) {
+            return res.status(400).json({
+                success: false,
+                message: 'Multiple departments found with the same name. Please provide a unique department identifier.'
+            });
+        }
         const departmentId = deptRows[0].id;
         const facultyId = deptRows[0].faculty_id;
 
@@ -111,6 +117,12 @@ export const signup = async (req, res) => {
         });
     } catch (error) {
         console.error('Signup error:', error);
+        if (error.code === 'ER_DUP_ENTRY' || error.errno === 1062) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email already registered'
+            });
+        }
         res.status(500).json({
             success: false,
             message: 'Error during signup'
@@ -159,17 +171,17 @@ export const login = async (req, res) => {
 
         const user = users[0];
 
-        // Check if role matches (if role was specified)
-        if (role && user.role !== role) {
+        // Check password first
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
             return res.status(401).json({
                 success: false,
-                message: `This account is registered as ${user.role}, not ${role}`
+                message: 'Invalid credentials'
             });
         }
 
-        // Check password
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
+        // Check if role matches (if role was specified)
+        if (role && user.role !== role) {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid credentials'

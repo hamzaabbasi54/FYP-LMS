@@ -17,6 +17,10 @@ export const getPendingUsers = async (req, res) => {
             });
         }
 
+        if (!department_id) {
+            return res.status(400).json({ success: false, message: 'Missing approver department context' });
+        }
+
         const [pendingUsers] = await pool.query(
             `SELECT u.id, u.full_name, u.email, u.role, u.phone_number, u.status,
                     u.created_at, d.name as department_name
@@ -55,31 +59,23 @@ export const approveUser = async (req, res) => {
             });
         }
 
-        const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
-
-        if (users.length === 0) {
-            return res.status(404).json({ success: false, message: 'User not found' });
+        if (!approver.department_id) {
+            return res.status(400).json({ success: false, message: 'Missing approver department context' });
         }
 
-        const user = users[0];
-
-        if (user.status !== 'pending') {
-            return res.status(400).json({ success: false, message: 'User is not pending approval' });
-        }
-
-        if (user.role !== 'faculty') {
-            return res.status(403).json({ success: false, message: 'Can only approve faculty users' });
-        }
-
-        // Department scoping: admin can only approve faculty in their own department
-        if (user.department_id !== approver.department_id) {
-            return res.status(403).json({ success: false, message: 'You can only approve faculty in your own department' });
-        }
-
-        await pool.query(
-            'UPDATE users SET status = ?, approved_by = ? WHERE id = ?',
-            ['approved', approver.id, userId]
+        const [result] = await pool.query(
+            `UPDATE users 
+             SET status = 'approved', approved_by = ? 
+             WHERE id = ? AND status = 'pending' AND role = 'faculty' AND department_id = ?`,
+            [approver.id, userId, approver.department_id]
         );
+
+        if (result.affectedRows === 0) {
+            return res.status(400).json({ success: false, message: 'User not found, already processed, or access denied' });
+        }
+
+        const [users] = await pool.query('SELECT id, full_name, email, role FROM users WHERE id = ?', [userId]);
+        const user = users[0];
 
         res.status(200).json({
             success: true,
@@ -109,31 +105,23 @@ export const rejectUser = async (req, res) => {
             return res.status(403).json({ success: false, message: 'Only Department Admin can reject users' });
         }
 
-        const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
-
-        if (users.length === 0) {
-            return res.status(404).json({ success: false, message: 'User not found' });
+        if (!approver.department_id) {
+            return res.status(400).json({ success: false, message: 'Missing approver department context' });
         }
 
-        const user = users[0];
-
-        if (user.status !== 'pending') {
-            return res.status(400).json({ success: false, message: 'User is not pending approval' });
-        }
-
-        if (user.role !== 'faculty') {
-            return res.status(403).json({ success: false, message: 'Can only reject faculty users' });
-        }
-
-        // Department scoping: admin can only reject faculty in their own department
-        if (user.department_id !== approver.department_id) {
-            return res.status(403).json({ success: false, message: 'You can only reject faculty in your own department' });
-        }
-
-        await pool.query(
-            'UPDATE users SET status = ?, rejection_reason = ? WHERE id = ?',
-            ['rejected', reason || '', userId]
+        const [result] = await pool.query(
+            `UPDATE users 
+             SET status = 'rejected', rejection_reason = ? 
+             WHERE id = ? AND status = 'pending' AND role = 'faculty' AND department_id = ?`,
+            [reason || '', userId, approver.department_id]
         );
+
+        if (result.affectedRows === 0) {
+            return res.status(400).json({ success: false, message: 'User not found, already processed, or access denied' });
+        }
+
+        const [users] = await pool.query('SELECT id, full_name, email, role FROM users WHERE id = ?', [userId]);
+        const user = users[0];
 
         res.status(200).json({
             success: true,
@@ -160,6 +148,10 @@ export const getUsersByRole = async (req, res) => {
 
         if (approver.role !== 'deptadmin') {
             return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
+        if (!approver.department_id) {
+            return res.status(400).json({ success: false, message: 'Missing approver department context' });
         }
 
         // Admin can only view faculty members
@@ -198,28 +190,22 @@ export const deleteUser = async (req, res) => {
             return res.status(403).json({ success: false, message: 'Access denied' });
         }
 
-        const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
-
-        if (users.length === 0) {
-            return res.status(404).json({ success: false, message: 'User not found' });
+        if (!approver.department_id) {
+            return res.status(400).json({ success: false, message: 'Missing approver department context' });
         }
 
-        const user = users[0];
+        const [result] = await pool.query(
+            `DELETE FROM users WHERE id = ? AND role = 'faculty' AND department_id = ?`,
+            [userId, approver.department_id]
+        );
 
-        if (user.role !== 'faculty') {
-            return res.status(403).json({ success: false, message: 'Can only delete faculty users' });
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'User not found or access denied' });
         }
-
-        // Department scoping: admin can only delete faculty in their own department
-        if (user.department_id !== approver.department_id) {
-            return res.status(403).json({ success: false, message: 'You can only delete faculty in your own department' });
-        }
-
-        await pool.query('DELETE FROM users WHERE id = ?', [userId]);
 
         res.status(200).json({
             success: true,
-            message: `${user.full_name} has been deleted`
+            message: `User has been deleted`
         });
     } catch (error) {
         console.error('Delete user error:', error);

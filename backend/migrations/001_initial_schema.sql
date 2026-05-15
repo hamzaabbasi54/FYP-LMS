@@ -469,11 +469,11 @@ INSERT INTO departments (name, faculty_id) VALUES
 -- Department Admin (primary admin of the system)
 -- Password: admin123 — replace hash with actual bcrypt hash in production
 INSERT INTO users (full_name, email, password, role, department_id, status, is_active) VALUES
-('Prof. Sarah Khan', 'admin@gmail.com', '$2b$10$YourHashedPasswordHere', 'deptadmin', 1, 'approved', TRUE);
+('Prof. Sarah Khan', 'admin@gmail.com', '$2b$10$17ThtGYxKEgLe4q6ozM.YuC3.qSq.KZu2Xs2pmgkM7zbE4Sd4nIsu', 'deptadmin', 1, 'approved', TRUE);
 
 -- Sample Faculty Member
 INSERT INTO users (full_name, email, password, role, department_id, phone_number, status, approved_by, is_active) VALUES
-('Dr. Emily Carter', 'emily.carter@university.edu', '$2b$10$YourHashedPasswordHere', 'faculty', 1, '+1 555-0101', 'approved', 1, TRUE);
+('Dr. Emily Carter', 'emily.carter@university.edu', '$2b$10$17ThtGYxKEgLe4q6ozM.YuC3.qSq.KZu2Xs2pmgkM7zbE4Sd4nIsu', 'faculty', 1, '+1 555-0101', 'approved', 1, TRUE);
 
 -- Sample Batch
 INSERT INTO batches (name, department_id, start_date, end_date, status, is_active) VALUES

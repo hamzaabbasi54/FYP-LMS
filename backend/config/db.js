@@ -4,6 +4,7 @@
 // ============================================
 
 import mysql from 'mysql2/promise';
+import fs from 'fs';
 
 const requiredEnvVars = ['DB_HOST', 'DB_USER', 'DB_PASS', 'DB_NAME'];
 if (process.env.NODE_ENV === 'production') {
@@ -22,7 +23,6 @@ const pool = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    multipleStatements: true,
     ssl: process.env.DB_SSL === 'true' ? {
         rejectUnauthorized: process.env.NODE_ENV === 'production' ? true : false,
         ca: process.env.DB_CA_CERT ? fs.readFileSync(process.env.DB_CA_CERT) : undefined
@@ -41,5 +41,21 @@ const connectDb = async () => {
     }
 };
 
-export { pool, connectDb };
+// Create migration connection factory
+const createMigrationConnection = async () => {
+    return await mysql.createConnection({
+        host: process.env.DB_HOST || 'localhost',
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASS || '',
+        database: process.env.DB_NAME || 'fyp_lms',
+        port: process.env.DB_PORT || 3306,
+        multipleStatements: true,
+        ssl: process.env.DB_SSL === 'true' ? {
+            rejectUnauthorized: process.env.NODE_ENV === 'production' ? true : false,
+            ca: process.env.DB_CA_CERT ? fs.readFileSync(process.env.DB_CA_CERT) : undefined
+        } : false
+    });
+};
+
+export { pool, connectDb, createMigrationConnection };
 export default pool;

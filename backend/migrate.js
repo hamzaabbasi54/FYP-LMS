@@ -2,7 +2,7 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import pool from './config/db.js';
+import { pool, createMigrationConnection } from './config/db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,7 +11,7 @@ const migrationsDir = path.join(__dirname, 'migrations');
 async function migrate() {
     let conn;
     try {
-        conn = await pool.getConnection();
+        conn = await createMigrationConnection();
         console.log('Checking migration system...');
         
         // 1. Create the tracking table if it doesn't exist
@@ -75,19 +75,27 @@ async function migrate() {
             const filePath = path.join(migrationsDir, file);
             const sql = fs.readFileSync(filePath, 'utf8');
 
-            // Disable foreign key checks during migration execution for safety
-            await conn.query('SET FOREIGN_KEY_CHECKS = 0');
-            
-            // Execute the entire file as a single query using multipleStatements
-            if (sql.trim()) {
-                await conn.query(sql);
-            }
+            await conn.beginTransaction();
+            try {
+                // Disable foreign key checks during migration execution for safety
+                await conn.query('SET FOREIGN_KEY_CHECKS = 0');
+                
+                // Execute the entire file as a single query using multipleStatements
+                if (sql.trim()) {
+                    await conn.query(sql);
+                }
 
-            // Record it as executed
-            await conn.query('INSERT INTO schema_migrations (migration_name) VALUES (?)', [file]);
-            console.log(`✅ Successfully applied: ${file}`);
-            
-            await conn.query('SET FOREIGN_KEY_CHECKS = 1');
+                // Record it as executed
+                await conn.query('INSERT INTO schema_migrations (migration_name) VALUES (?)', [file]);
+                console.log(`✅ Successfully applied: ${file}`);
+                
+                await conn.query('SET FOREIGN_KEY_CHECKS = 1');
+                await conn.commit();
+            } catch (err) {
+                await conn.query('SET FOREIGN_KEY_CHECKS = 1').catch(() => {});
+                await conn.rollback();
+                throw err;
+            }
         }
 
         console.log('\n🎉 All migrations completed successfully!');
@@ -96,13 +104,13 @@ async function migrate() {
         console.error('\n❌ Migration failed:', err);
         if (conn) {
             await conn.query('SET FOREIGN_KEY_CHECKS = 1').catch(() => {});
-            conn.release();
+            conn.end();
         }
         process.exit(1);
     } finally {
         if (conn) {
             await conn.query('SET FOREIGN_KEY_CHECKS = 1').catch(() => {});
-            conn.release();
+            conn.end();
         }
     }
 

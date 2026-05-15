@@ -114,6 +114,7 @@ function App() {
                     }>
                         <Route path="/faculty-dashboard" element={<FacultyDashboard />} />
                         <Route path="/faculty-batch/:batchId" element={<BatchCourses />} />
+                        <Route path="/faculty-mycourses" element={<MyCourses />} />
                         <Route path="/faculty-mycourses/:assignmentId" element={<MyCourses />} />
                         <Route path="/faculty-mycourses/:assignmentId/edit-syllabus" element={<EditSyllabus />} />
                         <Route path="/faculty-mycourses/:assignmentId/attendance" element={<Attendance />} />

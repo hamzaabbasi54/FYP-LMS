@@ -9,5 +9,10 @@ const data = [
 const workbook = XLSX.utils.book_new();
 const sheet = XLSX.utils.json_to_sheet(data);
 XLSX.utils.book_append_sheet(workbook, sheet, 'Courses');
-XLSX.writeFile(workbook, 'sample_courses.xlsx');
-console.log('Sample Excel file created at: sample_courses.xlsx');
+try {
+    XLSX.writeFile(workbook, 'sample_courses.xlsx');
+    console.log('Sample Excel file created at: sample_courses.xlsx');
+} catch (err) {
+    console.error('Error writing sample Excel file:', err);
+    process.exit(1);
+}
