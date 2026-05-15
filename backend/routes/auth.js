@@ -162,20 +162,17 @@ router.post('/create-account', verifyToken, isAdmin, async (req, res) => {
             ]
         );
 
-        // Send welcome email with login credentials (non-blocking)
-        const emailResult = await sendWelcomeEmail({
+        // Fire-and-forget: send welcome email without blocking the response
+        sendWelcomeEmail({
             fullName: fullName.trim(),
             email: email.toLowerCase(),
             password,  // plain-text password (only in memory, never stored)
             role
-        });
+        }).catch(() => {}); // errors already logged inside sendWelcomeEmail
 
         res.status(201).json({
             success: true,
-            message: emailResult.success
-                ? `Account created for ${fullName}. Login credentials sent to ${email.toLowerCase()}.`
-                : `Account created for ${fullName}. Email notification could not be sent.`,
-            emailSent: emailResult.success,
+            message: `Account created for ${fullName}. Login credentials will be sent to ${email.toLowerCase()}.`,
             data: {
                 id: result.insertId,
                 full_name: fullName.trim(),

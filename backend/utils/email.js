@@ -16,6 +16,13 @@ const createTransporter = () => {
     });
 };
 
+// Mask email for safe logging (e.g. h***@gmail.com)
+const maskEmail = (email) => {
+    if (!email || !email.includes('@')) return '***';
+    const [local, domain] = email.split('@');
+    return `${local[0]}***@${domain}`;
+};
+
 /**
  * Send a welcome email to a newly created user with their login credentials.
  * @param {Object} userData - The user's details
@@ -27,7 +34,7 @@ const createTransporter = () => {
 export const sendWelcomeEmail = async ({ fullName, email, password, role }) => {
     // Skip if email credentials are not configured
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        console.warn('⚠️  Email credentials not configured. Skipping welcome email for:', email);
+        console.warn('⚠️  Email credentials not configured. Skipping welcome email for:', maskEmail(email));
         return { success: false, reason: 'Email credentials not configured' };
     }
 
@@ -137,10 +144,10 @@ export const sendWelcomeEmail = async ({ fullName, email, password, role }) => {
         };
 
         const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Welcome email sent to ${email} (Message ID: ${info.messageId})`);
+        console.log(`✅ Welcome email sent to ${maskEmail(email)} (Message ID: ${info.messageId})`);
         return { success: true, messageId: info.messageId };
     } catch (error) {
-        console.error(`❌ Failed to send welcome email to ${email}:`, error.message);
+        console.error(`❌ Failed to send welcome email to ${maskEmail(email)}:`, error.message);
         return { success: false, reason: error.message };
     }
 };
