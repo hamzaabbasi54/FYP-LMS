@@ -12,6 +12,7 @@ import Login from "./pages/login/Login.jsx";
 import Signup from "./pages/login/Signup.jsx";
 import ForgotPassword from "./pages/login/ForgotPassword.jsx";
 import ResetPassword from "./pages/login/ResetPassword.jsx";
+import SetPassword from "./pages/login/SetPassword.jsx";
 
 // Admin (Department Admin) Pages
 import Dashboard from "./pages/admin-pages/Dashboard.jsx";
@@ -67,6 +68,7 @@ function App() {
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/set-password" element={<SetPassword />} />
 
                 {/* Department Admin Protected Routes */}
                 <Route element={<ProtectedRoute allowedRole="deptadmin" />}>

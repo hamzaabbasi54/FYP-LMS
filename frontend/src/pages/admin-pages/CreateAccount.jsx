@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { MdPerson, MdEmail, MdLock, MdBusiness, MdPhone, MdSave, MdCancel, MdCheckCircle, MdArrowDropDown } from 'react-icons/md';
+import { MdPerson, MdEmail, MdBusiness, MdPhone, MdSave, MdCancel, MdCheckCircle, MdArrowDropDown } from 'react-icons/md';
 import { authApi } from '../../services/api';
 
 const CreateAccount = () => {
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
-        password: '',
         role: '',
         department: '',
         faculty: '',
@@ -174,14 +173,7 @@ const CreateAccount = () => {
         }
     };
 
-    const generatePassword = () => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
-        let password = '';
-        for (let i = 0; i < 12; i++) {
-            password += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        setFormData(prev => ({ ...prev, password }));
-    };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -208,7 +200,6 @@ const CreateAccount = () => {
                     setFormData({
                         fullName: '',
                         email: '',
-                        password: '',
                         role: '',
                         department: '',
                         faculty: '',
@@ -252,7 +243,7 @@ const CreateAccount = () => {
                         </div>
                         <div>
                             <h3 className="font-bold text-emerald-800">Account Created Successfully!</h3>
-                            <p className="text-sm text-emerald-600">Credentials have been sent to the user's email.</p>
+                            <p className="text-sm text-emerald-600">An invite email has been sent. The user can set their own password.</p>
                         </div>
                     </div>
                 )}
@@ -322,32 +313,7 @@ const CreateAccount = () => {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">
-                                    Password *
-                                </label>
-                                <div className="flex gap-2">
-                                    <div className="relative flex-1">
-                                        <MdLock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                        <input
-                                            type="text"
-                                            name="password"
-                                            value={formData.password}
-                                            onChange={handleChange}
-                                            required
-                                            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            placeholder="Enter password"
-                                        />
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={generatePassword}
-                                        className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium whitespace-nowrap"
-                                    >
-                                        Generate
-                                    </button>
-                                </div>
-                            </div>
+
                         </div>
                     </div>
 
@@ -508,7 +474,6 @@ const CreateAccount = () => {
                                 setFormData({
                                     fullName: '',
                                     email: '',
-                                    password: '',
                                     role: '',
                                     department: '',
                                     faculty: '',
