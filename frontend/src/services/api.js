@@ -73,6 +73,15 @@ export const authApi = {
         const response = await api.post('/auth/set-password', { token, password });
         return response.data;
     },
+    // Password reset flow
+    forgotPassword: async (email) => {
+        const response = await api.post('/auth/forgot-password', { email });
+        return response.data;
+    },
+    resetPassword: async (token, password) => {
+        const response = await api.post('/auth/reset-password', { token, password });
+        return response.data;
+    },
     getFaculties: async () => {
         const response = await api.get('/auth/faculties');
         return response.data;

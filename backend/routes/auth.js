@@ -9,7 +9,7 @@ import bcrypt from 'bcrypt';
 import { signup, login, getProfile, updateProfile, changePassword } from '../controllers/authController.js';
 import { verifyToken, isAdmin } from '../middleware/auth.js';
 import pool from '../config/db.js';
-import { sendInviteEmail } from '../utils/email.js';
+import { sendInviteEmail, sendPasswordResetEmail } from '../utils/email.js';
 
 const router = express.Router();
 
@@ -434,6 +434,127 @@ router.post('/validate-invite', async (req, res) => {
     } catch (error) {
         console.error('Validate invite error:', error);
         res.status(500).json({ success: false, message: 'Error validating invite' });
+    }
+});
+
+// =====================================================
+// PUBLIC: Forgot Password / Reset Password
+// =====================================================
+
+// POST /api/auth/forgot-password — Request a password reset link
+router.post('/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email is required'
+            });
+        }
+
+        // Always respond with success to prevent email enumeration
+        const successMessage = 'If an account with that email exists, a reset link has been sent.';
+
+        // Check if user exists
+        const [users] = await pool.query(
+            'SELECT id, full_name, email FROM users WHERE email = ?',
+            [email.toLowerCase()]
+        );
+
+        if (users.length === 0) {
+            // User doesn't exist, but we don't reveal that
+            return res.status(200).json({ success: true, message: successMessage });
+        }
+
+        const user = users[0];
+
+        // Generate reset token (1 hour expiry)
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+        const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+        // Store hashed token in DB
+        await pool.query(
+            'UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?',
+            [hashedToken, resetExpires, user.id]
+        );
+
+        // Fire-and-forget: send reset email
+        sendPasswordResetEmail({
+            fullName: user.full_name,
+            email: user.email,
+            resetToken  // raw token for the URL
+        }).catch(() => {});
+
+        res.status(200).json({ success: true, message: successMessage });
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error processing password reset request'
+        });
+    }
+});
+
+// POST /api/auth/reset-password — Reset password using token
+router.post('/reset-password', async (req, res) => {
+    try {
+        const { token, password } = req.body;
+
+        if (!token || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Token and password are required'
+            });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password must be at least 6 characters'
+            });
+        }
+
+        // Hash the incoming token to compare with stored hash
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        // Find user with valid reset token
+        const [users] = await pool.query(
+            `SELECT id, full_name FROM users
+             WHERE reset_token = ? AND reset_expires > NOW()`,
+            [hashedToken]
+        );
+
+        if (users.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired reset link. Please request a new one.'
+            });
+        }
+
+        const user = users[0];
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // Update password and clear reset token
+        await pool.query(
+            'UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?',
+            [hashedPassword, user.id]
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Password reset successfully! You can now log in with your new password.'
+        });
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error resetting password'
+        });
     }
 });
 

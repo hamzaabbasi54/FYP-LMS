@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MdEmail, MdSchool, MdCheckCircle } from 'react-icons/md';
+import { authApi } from '../../services/api';
 
 const ForgotPassword = () => {
     const [email, setEmail] = useState('');
     const [error, setError] = useState('');
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     const validateEmail = (email) => {
         return /\S+@\S+\.\S+/.test(email);
@@ -24,11 +26,16 @@ const ForgotPassword = () => {
             return;
         }
 
-        // TODO: Implement actual password reset logic here
-        console.log('Password reset requested for:', email);
-
-        // Show success message
-        setIsSubmitted(true);
+        // Call the forgot password API
+        setLoading(true);
+        try {
+            await authApi.forgotPassword(email);
+            setIsSubmitted(true);
+        } catch (err) {
+            setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleChange = (e) => {
@@ -129,9 +136,10 @@ const ForgotPassword = () => {
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl"
+                            disabled={loading}
+                            className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
                         >
-                            Send Reset Link
+                            {loading ? 'Sending...' : 'Send Reset Link'}
                         </button>
 
                         {/* Back to Login */}

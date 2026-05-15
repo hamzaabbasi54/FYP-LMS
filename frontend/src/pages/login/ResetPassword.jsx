@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { MdLock, MdSchool, MdVisibility, MdVisibilityOff, MdCheckCircle } from 'react-icons/md';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { MdLock, MdSchool, MdVisibility, MdVisibilityOff, MdCheckCircle, MdError } from 'react-icons/md';
+import { authApi } from '../../services/api';
 
 const ResetPassword = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const token = searchParams.get('token');
+
     const [formData, setFormData] = useState({
         password: '',
         confirmPassword: ''
@@ -11,6 +15,8 @@ const ResetPassword = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [errors, setErrors] = useState({});
+    const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
     const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: '', color: '' });
 
     const calculatePasswordStrength = (password) => {
@@ -56,8 +62,8 @@ const ResetPassword = () => {
 
         if (!formData.password) {
             newErrors.password = 'Password is required';
-        } else if (formData.password.length < 8) {
-            newErrors.password = 'Password must be at least 8 characters';
+        } else if (formData.password.length < 6) {
+            newErrors.password = 'Password must be at least 6 characters';
         }
 
         if (!formData.confirmPassword) {
@@ -70,17 +76,73 @@ const ResetPassword = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (validateForm()) {
-            // TODO: Implement actual password reset logic here
-            console.log('Password reset successful');
+        if (!validateForm()) return;
 
-            // Redirect to login page
-            navigate('/');
+        setLoading(true);
+        try {
+            const data = await authApi.resetPassword(token, formData.password);
+            if (data.success) {
+                setSuccess(true);
+                setTimeout(() => navigate('/'), 3000);
+            } else {
+                setErrors({ password: data.message });
+            }
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'Failed to reset password. The link may have expired.';
+            setErrors({ password: errorMessage });
+        } finally {
+            setLoading(false);
         }
     };
+
+    // No token in URL
+    if (!token) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex items-center justify-center p-4">
+                <div className="w-full max-w-md text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-2xl mb-4">
+                        <MdError className="w-10 h-10 text-red-600" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-gray-800 mb-2">Invalid Reset Link</h1>
+                    <p className="text-gray-600 mb-6">
+                        This password reset link is invalid. Please request a new one from the login page.
+                    </p>
+                    <Link
+                        to="/forgot-password"
+                        className="inline-block bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 px-8 rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg"
+                    >
+                        Request New Link
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    // Success state
+    if (success) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center p-4">
+                <div className="w-full max-w-md text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-2xl mb-4">
+                        <MdCheckCircle className="w-10 h-10 text-green-600" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-gray-800 mb-2">Password Reset Successfully!</h1>
+                    <p className="text-gray-600 mb-6">
+                        Your password has been updated. You will be redirected to the login page shortly.
+                    </p>
+                    <Link
+                        to="/"
+                        className="inline-block bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-8 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg"
+                    >
+                        Login Now
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
@@ -191,8 +253,8 @@ const ResetPassword = () => {
                             <p className="text-xs font-semibold text-gray-700 mb-2">Password must contain:</p>
                             <ul className="text-xs text-gray-600 space-y-1">
                                 <li className="flex items-center">
-                                    <MdCheckCircle className={`w-4 h-4 mr-2 ${formData.password.length >= 8 ? 'text-green-500' : 'text-gray-300'}`} />
-                                    At least 8 characters
+                                    <MdCheckCircle className={`w-4 h-4 mr-2 ${formData.password.length >= 6 ? 'text-green-500' : 'text-gray-300'}`} />
+                                    At least 6 characters
                                 </li>
                                 <li className="flex items-center">
                                     <MdCheckCircle className={`w-4 h-4 mr-2 ${/[A-Z]/.test(formData.password) ? 'text-green-500' : 'text-gray-300'}`} />
@@ -212,9 +274,10 @@ const ResetPassword = () => {
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3 rounded-lg font-semibold hover:from-indigo-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl"
+                            disabled={loading}
+                            className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3 rounded-lg font-semibold hover:from-indigo-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
                         >
-                            Reset Password
+                            {loading ? 'Resetting...' : 'Reset Password'}
                         </button>
 
                         {/* Back to Login */}
