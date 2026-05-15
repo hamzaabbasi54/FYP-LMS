@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { MdLock, MdSchool, MdVisibility, MdVisibilityOff, MdCheckCircle, MdError } from 'react-icons/md';
 import { authApi } from '../../services/api';
 
-const ResetPassword = () => {
+const SetPassword = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const token = searchParams.get('token');
@@ -16,24 +16,50 @@ const ResetPassword = () => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+    const [validating, setValidating] = useState(true);
+    const [tokenValid, setTokenValid] = useState(false);
+    const [userInfo, setUserInfo] = useState(null);
     const [success, setSuccess] = useState(false);
     const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: '', color: '' });
+
+    // Validate the invite token on page load
+    useEffect(() => {
+        const validateToken = async () => {
+            if (!token) {
+                setValidating(false);
+                setTokenValid(false);
+                return;
+            }
+
+            try {
+                const data = await authApi.validateInvite(token);
+                if (data.success) {
+                    setTokenValid(true);
+                    setUserInfo(data.data);
+                } else {
+                    setTokenValid(false);
+                }
+            } catch (error) {
+                setTokenValid(false);
+            } finally {
+                setValidating(false);
+            }
+        };
+
+        validateToken();
+    }, [token]);
 
     const calculatePasswordStrength = (password) => {
         let score = 0;
         if (!password) return { score: 0, label: '', color: '' };
 
-        // Length check
         if (password.length >= 8) score++;
         if (password.length >= 12) score++;
-
-        // Character variety checks
         if (/[a-z]/.test(password)) score++;
         if (/[A-Z]/.test(password)) score++;
         if (/[0-9]/.test(password)) score++;
         if (/[^a-zA-Z0-9]/.test(password)) score++;
 
-        // Determine strength label and color
         if (score <= 2) return { score, label: 'Weak', color: 'bg-red-500' };
         if (score <= 4) return { score, label: 'Medium', color: 'bg-yellow-500' };
         return { score, label: 'Strong', color: 'bg-green-500' };
@@ -41,17 +67,12 @@ const ResetPassword = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        setFormData(prev => ({ ...prev, [name]: value }));
 
-        // Update password strength for password field
         if (name === 'password') {
             setPasswordStrength(calculatePasswordStrength(value));
         }
 
-        // Clear error when user starts typing
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
@@ -83,38 +104,54 @@ const ResetPassword = () => {
 
         setLoading(true);
         try {
-            const data = await authApi.resetPassword(token, formData.password);
+            const data = await authApi.setPassword(token, formData.password);
             if (data.success) {
                 setSuccess(true);
+                // Redirect to login after 3 seconds
                 setTimeout(() => navigate('/'), 3000);
             } else {
                 setErrors({ password: data.message });
             }
         } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Failed to reset password. The link may have expired.';
+            const errorMessage = error.response?.data?.message || 'Failed to set password. Please try again.';
             setErrors({ password: errorMessage });
         } finally {
             setLoading(false);
         }
     };
 
-    // No token in URL
-    if (!token) {
+    // Loading state while validating token
+    if (validating) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center p-4">
+                <div className="text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-green-800 rounded-2xl mb-4 animate-pulse">
+                        <MdSchool className="w-10 h-10 text-white" />
+                    </div>
+                    <p className="text-gray-600 text-lg">Validating your invite link...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Invalid or expired token
+    if (!tokenValid) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex items-center justify-center p-4">
                 <div className="w-full max-w-md text-center">
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-2xl mb-4">
                         <MdError className="w-10 h-10 text-red-600" />
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-800 mb-2">Invalid Reset Link</h1>
+                    <h1 className="text-2xl font-bold text-gray-800 mb-2">Invalid or Expired Link</h1>
                     <p className="text-gray-600 mb-6">
-                        This password reset link is invalid. Please request a new one from the login page.
+                        This invite link is either invalid or has expired.
+                        Please contact your administrator to get a new invite.
                     </p>
                     <Link
-                        to="/forgot-password"
-                        className="inline-block bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 px-8 rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg"
+                        to="/"
+                        className="inline-block bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-8 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg"
                     >
-                        Request New Link
+                        Go to Login
                     </Link>
                 </div>
             </div>
@@ -129,9 +166,9 @@ const ResetPassword = () => {
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-2xl mb-4">
                         <MdCheckCircle className="w-10 h-10 text-green-600" />
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-800 mb-2">Password Reset Successfully!</h1>
+                    <h1 className="text-2xl font-bold text-gray-800 mb-2">Password Set Successfully!</h1>
                     <p className="text-gray-600 mb-6">
-                        Your password has been updated. You will be redirected to the login page shortly.
+                        Your password has been set. You will be redirected to the login page shortly.
                     </p>
                     <Link
                         to="/"
@@ -144,25 +181,35 @@ const ResetPassword = () => {
         );
     }
 
+    // Main form
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 {/* Logo and Header */}
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-green-800 rounded-2xl mb-4">
                         <MdSchool className="w-10 h-10 text-white" />
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Reset Password</h1>
-                    <p className="text-gray-600">Create a new password for your account</p>
+                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Set Your Password</h1>
+                    <p className="text-gray-600">
+                        Welcome, <strong>{userInfo?.fullName}</strong>! Create a password for your account.
+                    </p>
                 </div>
 
-                {/* Reset Password Card */}
+                {/* Form Card */}
                 <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+                    {/* Account Info */}
+                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
+                        <p className="text-sm text-blue-800">
+                            <strong>Email:</strong> {userInfo?.email}
+                        </p>
+                    </div>
+
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* New Password Input */}
+                        {/* New Password */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                New Password
+                                Password
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -173,8 +220,8 @@ const ResetPassword = () => {
                                     name="password"
                                     value={formData.password}
                                     onChange={handleChange}
-                                    placeholder="Enter new password"
-                                    className={`w-full pl-10 pr-12 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200`}
+                                    placeholder="Enter your password"
+                                    className={`w-full pl-10 pr-12 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
                                 />
                                 <button
                                     type="button"
@@ -192,14 +239,13 @@ const ResetPassword = () => {
                                 <p className="mt-1 text-sm text-red-600">{errors.password}</p>
                             )}
 
-                            {/* Password Strength Indicator */}
+                            {/* Password Strength */}
                             {formData.password && (
                                 <div className="mt-2">
                                     <div className="flex items-center justify-between mb-1">
                                         <span className="text-xs text-gray-600">Password strength:</span>
                                         <span className={`text-xs font-semibold ${passwordStrength.label === 'Weak' ? 'text-red-600' :
-                                                passwordStrength.label === 'Medium' ? 'text-yellow-600' :
-                                                    'text-green-600'
+                                                passwordStrength.label === 'Medium' ? 'text-yellow-600' : 'text-green-600'
                                             }`}>
                                             {passwordStrength.label}
                                         </span>
@@ -214,7 +260,7 @@ const ResetPassword = () => {
                             )}
                         </div>
 
-                        {/* Confirm Password Input */}
+                        {/* Confirm Password */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Confirm Password
@@ -228,8 +274,8 @@ const ResetPassword = () => {
                                     name="confirmPassword"
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
-                                    placeholder="Confirm new password"
-                                    className={`w-full pl-10 pr-12 py-3 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200`}
+                                    placeholder="Confirm your password"
+                                    className={`w-full pl-10 pr-12 py-3 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
                                 />
                                 <button
                                     type="button"
@@ -275,18 +321,10 @@ const ResetPassword = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3 rounded-lg font-semibold hover:from-indigo-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
+                            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
                         >
-                            {loading ? 'Resetting...' : 'Reset Password'}
+                            {loading ? 'Setting Password...' : 'Set Password & Continue'}
                         </button>
-
-                        {/* Back to Login */}
-                        <Link
-                            to="/"
-                            className="block text-center text-sm font-semibold text-gray-600 hover:text-gray-800 hover:underline"
-                        >
-                            Back to Login
-                        </Link>
                     </form>
                 </div>
 
@@ -299,4 +337,4 @@ const ResetPassword = () => {
     );
 };
 
-export default ResetPassword;
+export default SetPassword;

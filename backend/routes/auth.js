@@ -4,10 +4,12 @@
 // ============================================
 
 import express from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { signup, login, getProfile, updateProfile, changePassword } from '../controllers/authController.js';
 import { verifyToken, isAdmin } from '../middleware/auth.js';
 import pool from '../config/db.js';
+import { sendInviteEmail, sendPasswordResetEmail } from '../utils/email.js';
 
 const router = express.Router();
 
@@ -96,16 +98,16 @@ router.get('/departments', async (req, res) => {
 // ADMIN-ONLY USER MANAGEMENT ENDPOINTS
 // =====================================================
 
-// POST /api/auth/create-account — Admin creates a pre-approved user
+// POST /api/auth/create-account — Admin creates a user and sends an invite email
 router.post('/create-account', verifyToken, isAdmin, async (req, res) => {
     try {
-        const { fullName, email, password, role, department, faculty, phoneNumber, permissions, isActive } = req.body;
+        const { fullName, email, role, department, faculty, phoneNumber, permissions, isActive } = req.body;
 
-        // Validate required fields
-        if (!fullName || !email || !password || !role) {
+        // Validate required fields (password is no longer needed — user sets it via invite link)
+        if (!fullName || !email || !role) {
             return res.status(400).json({
                 success: false,
-                message: 'Full name, email, password, and role are required'
+                message: 'Full name, email, and role are required'
             });
         }
 
@@ -140,30 +142,40 @@ router.post('/create-account', verifyToken, isAdmin, async (req, res) => {
             }
         }
 
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        // Generate a secure random invite token
+        const inviteToken = crypto.randomBytes(32).toString('hex');
+        const hashedToken = crypto.createHash('sha256').update(inviteToken).digest('hex');
+        const inviteExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-        // Admin-created accounts are pre-approved
+        // Insert user WITHOUT a password — they will set it via the invite link
         const [result] = await pool.query(
-            `INSERT INTO users (full_name, email, password, role, faculty_id, department_id, phone_number, status, is_active, approved_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 'approved', ?, ?)`,
+            `INSERT INTO users (full_name, email, password, role, faculty_id, department_id, phone_number, status, is_active, approved_by, invite_token, invite_expires)
+             VALUES (?, ?, '', ?, ?, ?, ?, 'approved', ?, ?, ?, ?)`,
             [
                 fullName.trim(),
                 email.toLowerCase(),
-                hashedPassword,
                 role,
                 facultyId,
                 departmentId,
                 phoneNumber || '',
                 isActive !== false,
-                req.user.id
+                req.user.id,
+                hashedToken,
+                inviteExpires
             ]
         );
 
+        // Fire-and-forget: send invite email with password-set link
+        sendInviteEmail({
+            fullName: fullName.trim(),
+            email: email.toLowerCase(),
+            role,
+            inviteToken  // raw token (NOT the hashed one) — included in the URL
+        }).catch(() => {}); // errors already logged inside sendInviteEmail
+
         res.status(201).json({
             success: true,
-            message: `Account created for ${fullName}`,
+            message: `Account created for ${fullName}. An invite email will be sent to ${email.toLowerCase()}.`,
             data: {
                 id: result.insertId,
                 full_name: fullName.trim(),
@@ -323,6 +335,226 @@ router.patch('/users/:id/status', verifyToken, isAdmin, async (req, res) => {
     } catch (error) {
         console.error('Toggle status error:', error);
         res.status(500).json({ success: false, message: 'Error toggling user status' });
+    }
+});
+
+// =====================================================
+// PUBLIC: Set password via invite token
+// =====================================================
+
+// POST /api/auth/set-password — User sets their password using invite token
+router.post('/set-password', async (req, res) => {
+    try {
+        const { token, password } = req.body;
+
+        if (!token || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Token and password are required'
+            });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password must be at least 6 characters'
+            });
+        }
+
+        // Hash the incoming token to compare with stored hash
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        // Find user with this token that hasn't expired
+        const [users] = await pool.query(
+            `SELECT id, full_name, email FROM users
+             WHERE invite_token = ? AND invite_expires > NOW()`,
+            [hashedToken]
+        );
+
+        if (users.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired invite link. Please contact your administrator.'
+            });
+        }
+
+        const user = users[0];
+
+        // Hash the new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // Update password and clear the invite token
+        await pool.query(
+            `UPDATE users SET password = ?, invite_token = NULL, invite_expires = NULL WHERE id = ?`,
+            [hashedPassword, user.id]
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Password set successfully! You can now log in.'
+        });
+    } catch (error) {
+        console.error('Set password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error setting password'
+        });
+    }
+});
+
+// POST /api/auth/validate-invite — Check if an invite token is still valid
+router.post('/validate-invite', async (req, res) => {
+    try {
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({ success: false, message: 'Token is required' });
+        }
+
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        const [users] = await pool.query(
+            `SELECT id, full_name, email FROM users
+             WHERE invite_token = ? AND invite_expires > NOW()`,
+            [hashedToken]
+        );
+
+        if (users.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired invite link'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: { fullName: users[0].full_name, email: users[0].email }
+        });
+    } catch (error) {
+        console.error('Validate invite error:', error);
+        res.status(500).json({ success: false, message: 'Error validating invite' });
+    }
+});
+
+// =====================================================
+// PUBLIC: Forgot Password / Reset Password
+// =====================================================
+
+// POST /api/auth/forgot-password — Request a password reset link
+router.post('/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email is required'
+            });
+        }
+
+        // Always respond with success to prevent email enumeration
+        const successMessage = 'If an account with that email exists, a reset link has been sent.';
+
+        // Check if user exists
+        const [users] = await pool.query(
+            'SELECT id, full_name, email FROM users WHERE email = ?',
+            [email.toLowerCase()]
+        );
+
+        if (users.length === 0) {
+            // User doesn't exist, but we don't reveal that
+            return res.status(200).json({ success: true, message: successMessage });
+        }
+
+        const user = users[0];
+
+        // Generate reset token (1 hour expiry)
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+        const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+        // Store hashed token in DB
+        await pool.query(
+            'UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?',
+            [hashedToken, resetExpires, user.id]
+        );
+
+        // Fire-and-forget: send reset email
+        sendPasswordResetEmail({
+            fullName: user.full_name,
+            email: user.email,
+            resetToken  // raw token for the URL
+        }).catch(() => {});
+
+        res.status(200).json({ success: true, message: successMessage });
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error processing password reset request'
+        });
+    }
+});
+
+// POST /api/auth/reset-password — Reset password using token
+router.post('/reset-password', async (req, res) => {
+    try {
+        const { token, password } = req.body;
+
+        if (!token || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Token and password are required'
+            });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password must be at least 6 characters'
+            });
+        }
+
+        // Hash the incoming token to compare with stored hash
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        // Find user with valid reset token
+        const [users] = await pool.query(
+            `SELECT id, full_name FROM users
+             WHERE reset_token = ? AND reset_expires > NOW()`,
+            [hashedToken]
+        );
+
+        if (users.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired reset link. Please request a new one.'
+            });
+        }
+
+        const user = users[0];
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // Update password and clear reset token
+        await pool.query(
+            'UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?',
+            [hashedPassword, user.id]
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Password reset successfully! You can now log in with your new password.'
+        });
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error resetting password'
+        });
     }
 });
 
