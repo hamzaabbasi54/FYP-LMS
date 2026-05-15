@@ -2,8 +2,10 @@ import 'dotenv/config';
 import pool from './config/db.js';
 
 async function migrate() {
-    const conn = await pool.getConnection();
+    let conn;
+    let failed = false;
     try {
+        conn = await pool.getConnection();
         // Make course_id nullable in clos table
         await conn.query(`ALTER TABLE clos MODIFY COLUMN course_id INT DEFAULT NULL`);
         console.log('clos.course_id made nullable');
@@ -33,10 +35,10 @@ async function migrate() {
         }
     } catch (err) {
         console.error('❌ Migration failed:', err);
-        conn.release();
-        process.exit(1);
+        failed = true;
     } finally {
-        conn.release();
+        if (conn) conn.release();
+        if (failed) process.exit(1);
     }
 
     console.log('✅ Migration completed successfully!');

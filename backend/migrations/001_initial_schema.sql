@@ -1,5 +1,5 @@
 -- ============================================
--- File: backend/schema.sql
+-- File: backend/migrations/001_initial_schema.sql
 -- FYP-LMS Database Schema (MySQL)
 -- 16 Tables | Full University LMS
 -- ============================================
@@ -53,7 +53,7 @@ CREATE TABLE departments (
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 3. USERS (superadmin, dean, deptadmin, faculty)
+-- 3. USERS (deptadmin, faculty)
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(100) NOT NULL,
@@ -262,7 +262,7 @@ CREATE TABLE students (
     email VARCHAR(100) NOT NULL UNIQUE,
     phone VARCHAR(20) DEFAULT '',
     batch_id INT NOT NULL,
-    cgpa DECIMAL(3, 2) DEFAULT 0.00,
+    cgpa DECIMAL(5, 2) DEFAULT 0.00,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

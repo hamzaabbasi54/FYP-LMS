@@ -5,6 +5,14 @@
 
 import mysql from 'mysql2/promise';
 
+const requiredEnvVars = ['DB_HOST', 'DB_USER', 'DB_PASS', 'DB_NAME'];
+if (process.env.NODE_ENV === 'production') {
+    const missing = requiredEnvVars.filter(v => !process.env[v]);
+    if (missing.length > 0) {
+        throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+    }
+}
+
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
@@ -14,8 +22,10 @@ const pool = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
+    multipleStatements: true,
     ssl: process.env.DB_SSL === 'true' ? {
-        rejectUnauthorized: false // Required for most cloud providers like Aiven/Railway
+        rejectUnauthorized: process.env.NODE_ENV === 'production' ? true : false,
+        ca: process.env.DB_CA_CERT ? fs.readFileSync(process.env.DB_CA_CERT) : undefined
     } : false
 });
 

@@ -9,8 +9,9 @@ const __dirname = path.dirname(__filename);
 const migrationsDir = path.join(__dirname, 'migrations');
 
 async function migrate() {
-    const conn = await pool.getConnection();
+    let conn;
     try {
+        conn = await pool.getConnection();
         console.log('Checking migration system...');
         
         // 1. Create the tracking table if it doesn't exist
@@ -47,8 +48,9 @@ async function migrate() {
         // table is empty, we assume the initial schema is already applied.
         // This prevents '001_initial_schema.sql' from dropping existing data.
         const [tables] = await conn.query('SHOW TABLES');
-        // 'schema_migrations' is 1 table. If there are more, they have existing data.
-        const hasExistingTables = tables.length > 1; 
+        const tableNames = tables.map(t => Object.values(t)[0]);
+        const criticalTables = ['users', 'departments', 'faculties'];
+        const hasExistingTables = criticalTables.some(t => tableNames.includes(t)); 
         
         if (hasExistingTables && executedNames.length === 0 && files.includes('001_initial_schema.sql')) {
             console.log('Detecting existing database... Marking initial schema as already applied to protect data.');
@@ -72,15 +74,13 @@ async function migrate() {
             console.log(`\n⏳ Executing: ${file}...`);
             const filePath = path.join(migrationsDir, file);
             const sql = fs.readFileSync(filePath, 'utf8');
-            const statements = sql.split(';').filter(stmt => stmt.trim() !== '');
 
             // Disable foreign key checks during migration execution for safety
             await conn.query('SET FOREIGN_KEY_CHECKS = 0');
             
-            for (const stmt of statements) {
-                if (stmt.trim()) {
-                    await conn.query(stmt);
-                }
+            // Execute the entire file as a single query using multipleStatements
+            if (sql.trim()) {
+                await conn.query(sql);
             }
 
             // Record it as executed
@@ -94,12 +94,16 @@ async function migrate() {
 
     } catch (err) {
         console.error('\n❌ Migration failed:', err);
-        await conn.query('SET FOREIGN_KEY_CHECKS = 1');
-        conn.release();
+        if (conn) {
+            await conn.query('SET FOREIGN_KEY_CHECKS = 1').catch(() => {});
+            conn.release();
+        }
         process.exit(1);
     } finally {
-        await conn.query('SET FOREIGN_KEY_CHECKS = 1');
-        conn.release();
+        if (conn) {
+            await conn.query('SET FOREIGN_KEY_CHECKS = 1').catch(() => {});
+            conn.release();
+        }
     }
 
     process.exit(0);

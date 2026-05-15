@@ -2,8 +2,10 @@ import 'dotenv/config';
 import pool from './config/db.js';
 
 async function addNotificationsTable() {
-    const conn = await pool.getConnection();
+    let conn;
+    let failed = false;
     try {
+        conn = await pool.getConnection();
         await conn.query(`
             CREATE TABLE IF NOT EXISTS notifications (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -24,11 +26,11 @@ async function addNotificationsTable() {
             console.log('notifications table already exists');
         } else {
             console.error('❌ Migration failed:', err);
-            conn.release();
-            process.exit(1);
+            failed = true;
         }
     } finally {
-        conn.release();
+        if (conn) conn.release();
+        if (failed) process.exit(1);
     }
 
     console.log('✅ Migration completed successfully!');

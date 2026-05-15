@@ -113,7 +113,7 @@ export const signup = async (req, res) => {
         console.error('Signup error:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Error during signup'
+            message: 'Error during signup'
         });
     }
 };

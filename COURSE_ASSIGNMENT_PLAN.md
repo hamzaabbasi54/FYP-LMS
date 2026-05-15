@@ -4,7 +4,7 @@ This document outlines the detailed steps to implement bulk course assignments, 
 
 ## 1. Database Schema Updates
 **Goal:** Support persistent notifications (red dot and toast on login).
-- **Action**: Add a new `notifications` table to `backend/schema.sql`.
+- **Action**: Create a new migration file under `backend/migrations/` that adds the `notifications` table.
 - **Schema**:
   ```sql
   CREATE TABLE notifications (
@@ -26,7 +26,7 @@ This document outlines the detailed steps to implement bulk course assignments, 
   - `PUT /api/notifications/read-all` (Mark all as read)
 - **Action 2**: Update `backend/routes/courseRoutes.js` (`/assign` endpoint).
   - Modify it to accept an array of `course_ids`.
-  - When assigning, loop through the courses, insert into `course_assignments`, and automatically generate a new record in the `notifications` table for the target `faculty_id`.
+  - When assigning, loop through the courses, and use a single DB transaction (begin transaction → insert into course_assignments → insert into notifications → commit) to ensure atomic writes. Any error should trigger a rollback.
 
 ## 3. Frontend: Bulk Course Assignment (`CourseAssignment.jsx`)
 **Goal:** Assign multiple courses at once.

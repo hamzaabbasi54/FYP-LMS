@@ -2,8 +2,10 @@ import 'dotenv/config';
 import pool from './config/db.js';
 
 async function migrate() {
-    const conn = await pool.getConnection();
+    let conn;
+    let failed = false;
     try {
+        conn = await pool.getConnection();
         await conn.query(`
             CREATE TABLE IF NOT EXISTS course_prerequisites (
                 course_id INT NOT NULL,
@@ -16,10 +18,10 @@ async function migrate() {
         console.log('course_prerequisites table created');
     } catch (err) {
         console.error('❌ Migration failed:', err);
-        conn.release();
-        process.exit(1);
+        failed = true;
     } finally {
-        conn.release();
+        if (conn) conn.release();
+        if (failed) process.exit(1);
     }
 
     console.log('✅ Migration completed successfully!');
