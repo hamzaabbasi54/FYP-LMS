@@ -23,12 +23,16 @@ async function addNotificationsTable() {
         if (err.code === 'ER_TABLE_EXISTS_ERROR') {
             console.log('notifications table already exists');
         } else {
-            console.error('Error:', err.message);
+            console.error('❌ Migration failed:', err);
+            conn.release();
+            process.exit(1);
         }
     } finally {
         conn.release();
-        process.exit(0);
     }
+
+    console.log('✅ Migration completed successfully!');
+    process.exit(0);
 }
 
 addNotificationsTable();

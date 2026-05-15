@@ -32,10 +32,14 @@ async function migrate() {
             console.log(`Migrated ${existing.length} existing CLO-course mappings`);
         }
     } catch (err) {
-        console.error('Error:', err.message);
+        console.error('❌ Migration failed:', err);
+        conn.release();
+        process.exit(1);
     } finally {
         conn.release();
-        process.exit(0);
     }
+
+    console.log('✅ Migration completed successfully!');
+    process.exit(0);
 }
 migrate();
