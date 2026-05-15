@@ -246,7 +246,7 @@ export const courseApi = {
         return response.data;
     },
     removeAssignment: async (assignmentId) => {
-        const response = await api.delete(`/courses/assignments/${assignmentId}`);
+        const response = await api.delete(`/courses/assign/${assignmentId}`);
         return response.data;
     },
     // CLOs

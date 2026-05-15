@@ -234,6 +234,23 @@ router.get('/:id/grades', async (req, res) => {
 router.post('/:id/grades', async (req, res) => {
     const conn = await pool.getConnection();
     try {
+        // Ownership check
+        const [authCheck] = await conn.query(
+            `SELECT ca.faculty_id 
+             FROM assessments a 
+             JOIN course_assignments ca ON a.course_assignment_id = ca.id 
+             WHERE a.id = ?`,
+            [req.params.id]
+        );
+
+        if (authCheck.length === 0) {
+            return res.status(404).json({ success: false, message: 'Assessment not found' });
+        }
+
+        if (req.user.role === 'faculty' && authCheck[0].faculty_id !== req.user.id) {
+            return res.status(403).json({ success: false, message: 'Not authorized to grade this assessment' });
+        }
+
         await conn.beginTransaction();
         const { grades } = req.body;
         if (!grades || !Array.isArray(grades)) {
@@ -275,6 +292,23 @@ router.post('/:id/grades/import', upload.single('file'), async (req, res) => {
 
     const conn = await pool.getConnection();
     try {
+        // Ownership check
+        const [authCheck] = await conn.query(
+            `SELECT ca.faculty_id 
+             FROM assessments a 
+             JOIN course_assignments ca ON a.course_assignment_id = ca.id 
+             WHERE a.id = ?`,
+            [req.params.id]
+        );
+
+        if (authCheck.length === 0) {
+            return res.status(404).json({ success: false, message: 'Assessment not found' });
+        }
+
+        if (req.user.role === 'faculty' && authCheck[0].faculty_id !== req.user.id) {
+            return res.status(403).json({ success: false, message: 'Not authorized to grade this assessment' });
+        }
+
         await conn.beginTransaction();
         const rows = parseExcel(req.file.path);
         let imported = 0, skipped = 0;
