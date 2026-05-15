@@ -8,6 +8,7 @@ import bcrypt from 'bcrypt';
 import { signup, login, getProfile, updateProfile, changePassword } from '../controllers/authController.js';
 import { verifyToken, isAdmin } from '../middleware/auth.js';
 import pool from '../config/db.js';
+import { sendWelcomeEmail } from '../utils/email.js';
 
 const router = express.Router();
 
@@ -161,9 +162,20 @@ router.post('/create-account', verifyToken, isAdmin, async (req, res) => {
             ]
         );
 
+        // Send welcome email with login credentials (non-blocking)
+        const emailResult = await sendWelcomeEmail({
+            fullName: fullName.trim(),
+            email: email.toLowerCase(),
+            password,  // plain-text password (only in memory, never stored)
+            role
+        });
+
         res.status(201).json({
             success: true,
-            message: `Account created for ${fullName}`,
+            message: emailResult.success
+                ? `Account created for ${fullName}. Login credentials sent to ${email.toLowerCase()}.`
+                : `Account created for ${fullName}. Email notification could not be sent.`,
+            emailSent: emailResult.success,
             data: {
                 id: result.insertId,
                 full_name: fullName.trim(),
