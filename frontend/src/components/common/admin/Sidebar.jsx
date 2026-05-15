@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { MdDashboard, MdPeople, MdAssignment, MdBook, MdSchool, MdSettings, MdExpandMore, MdExpandLess, MdBuild, MdLink, MdTrackChanges, MdLogout } from 'react-icons/md';
+import { MdDashboard, MdPeople, MdAssignment, MdBook, MdSchool, MdSettings, MdExpandMore, MdExpandLess, MdBuild, MdLink, MdTrackChanges, MdLogout, MdMenuBook } from 'react-icons/md';
 
 const Sidebar = () => {
     const location = useLocation();
@@ -8,7 +8,7 @@ const Sidebar = () => {
     const [operationsExpanded, setOperationsExpanded] = useState(true);
     const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-    const isOperationsActive = ['/admin-managebatches', '/admin-courseassignment', '/admin-managecourses', '/admin-managefaculty', '/admin-obe', '/admin-external-links']
+    const isOperationsActive = ['/admin-managebatches', '/admin-courseassignment', '/admin-managecourses', '/admin-managefaculty', '/admin-obe', '/admin-external-links', '/admin-curricula']
         .some(path => location.pathname.startsWith(path));
 
     const handleLogout = () => {
@@ -87,6 +87,7 @@ const Sidebar = () => {
                         <NavItem to="/admin-managebatches" icon={MdPeople} label="Batches" indent />
                         <NavItem to="/admin-courseassignment" icon={MdAssignment} label="Assign Courses" indent />
                         <NavItem to="/admin-managecourses" icon={MdBook} label="Courses" indent />
+                        <NavItem to="/admin-curricula" icon={MdMenuBook} label="Curricula" indent />
                         <NavItem to="/admin-managefaculty" icon={MdSchool} label="Faculty" indent />
                         <NavItem to="/admin-obe" icon={MdTrackChanges} label="OBE" indent />
                         <NavItem to="/admin-external-links" icon={MdLink} label="Links" indent />

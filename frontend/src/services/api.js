@@ -534,6 +534,40 @@ export const dashboardApi = {
 
 
 // ============================================
+// Curriculum API
+// ============================================
+export const curriculumApi = {
+    getAll: async (params = {}) => {
+        const response = await api.get('/curricula', { params });
+        return response.data;
+    },
+    getById: async (id) => {
+        const response = await api.get(`/curricula/${id}`);
+        return response.data;
+    },
+    create: async (data) => {
+        const response = await api.post('/curricula', data);
+        return response.data;
+    },
+    update: async (id, data) => {
+        const response = await api.put(`/curricula/${id}`, data);
+        return response.data;
+    },
+    delete: async (id) => {
+        const response = await api.delete(`/curricula/${id}`);
+        return response.data;
+    },
+    addCourses: async (curriculumId, semesterNumber, data) => {
+        const response = await api.post(`/curricula/${curriculumId}/semesters/${semesterNumber}/courses`, data);
+        return response.data;
+    },
+    removeCourse: async (curriculumId, semesterNumber, courseId) => {
+        const response = await api.delete(`/curricula/${curriculumId}/semesters/${semesterNumber}/courses/${courseId}`);
+        return response.data;
+    }
+};
+
+// ============================================
 // Notification API
 // ============================================
 export const notificationApi = {

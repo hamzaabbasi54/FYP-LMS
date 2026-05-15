@@ -12,8 +12,10 @@ const StudentList = () => {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [newStudent, setNewStudent] = useState({
-        name: '', email: '', roll_number: '', contact_number: '', cgpa: ''
+        name: '', email: '', roll_number: '', contact_number: '', cgpa: '',
+        matric_marks: '', fsc_marks: '', background: ''
     });
+    const [showImportModal, setShowImportModal] = useState(false);
 
     useEffect(() => {
         fetchStudents();
@@ -45,19 +47,25 @@ const StudentList = () => {
 
     const handleAddStudent = async (e) => {
         e.preventDefault();
+        const nameParts = newStudent.name.split(' ');
+        const firstName = nameParts[0];
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Doe';
         try {
             const response = await studentApi.create({
-                name: newStudent.name,
+                first_name: firstName,
+                last_name: lastName,
                 email: newStudent.email,
-                roll_number: newStudent.roll_number,
-                contact_number: newStudent.contact_number,
+                phone: newStudent.contact_number,
                 cgpa: parseFloat(newStudent.cgpa) || 0,
+                matric_marks: parseFloat(newStudent.matric_marks) || null,
+                fsc_marks: parseFloat(newStudent.fsc_marks) || null,
+                background: newStudent.background || null,
                 batch_id: parseInt(id)
             });
             if (response.success) {
                 toast.success('Student added successfully!');
                 setShowAddModal(false);
-                setNewStudent({ name: '', email: '', roll_number: '', contact_number: '', cgpa: '' });
+                setNewStudent({ name: '', email: '', roll_number: '', contact_number: '', cgpa: '', matric_marks: '', fsc_marks: '', background: '' });
                 fetchStudents();
             }
         } catch (error) {
@@ -66,7 +74,11 @@ const StudentList = () => {
         }
     };
 
-    const handleImportClick = () => fileInputRef.current?.click();
+    const handleImportClick = () => setShowImportModal(true);
+    const triggerFileInput = () => {
+        setShowImportModal(false);
+        fileInputRef.current?.click();
+    };
 
     const handleFileChange = async (e) => {
         const file = e.target.files?.[0];
@@ -257,11 +269,75 @@ const StudentList = () => {
                                             className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="0.00" />
                                     </div>
                                 </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Matric Marks</label>
+                                        <input type="number" value={newStudent.matric_marks} onChange={(e) => setNewStudent({ ...newStudent, matric_marks: e.target.value })}
+                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="e.g. 850" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">FSc Marks</label>
+                                        <input type="number" value={newStudent.fsc_marks} onChange={(e) => setNewStudent({ ...newStudent, fsc_marks: e.target.value })}
+                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="e.g. 920" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Background</label>
+                                        <select value={newStudent.background} onChange={(e) => setNewStudent({ ...newStudent, background: e.target.value })}
+                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white">
+                                            <option value="">Select...</option>
+                                            <option value="pre-med">Pre-Med</option>
+                                            <option value="pre-engineering">Pre-Engineering</option>
+                                            <option value="ics">ICS</option>
+                                        </select>
+                                    </div>
+                                </div>
                                 <div className="flex gap-3 pt-2">
                                     <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 font-medium">Cancel</button>
                                     <button type="submit" className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:shadow-lg font-medium">Add Student</button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Import Modal */}
+                {showImportModal && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+                            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-emerald-50 to-teal-50">
+                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <MdFileUpload className="w-5 h-5 text-emerald-500" /> Import Students
+                                </h3>
+                                <button onClick={() => setShowImportModal(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg">
+                                    <MdClose className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="p-6">
+                                <h4 className="font-semibold text-slate-800 mb-2">Excel File Format Requirements</h4>
+                                <p className="text-sm text-slate-600 mb-4">Please ensure your Excel file (.xlsx or .csv) contains the following column headers exactly as shown:</p>
+                                
+                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6">
+                                    <ul className="text-sm text-slate-600 space-y-2 font-mono">
+                                        <li><span className="font-bold text-emerald-600">first_name</span> (Required)</li>
+                                        <li><span className="font-bold text-emerald-600">last_name</span> (Required)</li>
+                                        <li><span className="font-bold text-emerald-600">email</span> (Required, Unique)</li>
+                                        <li><span className="text-slate-500">phone</span> (Optional)</li>
+                                        <li><span className="text-slate-500">parent_name</span> (Optional)</li>
+                                        <li><span className="text-slate-500">parent_email</span> (Optional)</li>
+                                        <li><span className="text-slate-500">parent_phone</span> (Optional)</li>
+                                        <li><span className="text-slate-500">matric_marks</span> (Optional, Number)</li>
+                                        <li><span className="text-slate-500">fsc_marks</span> (Optional, Number)</li>
+                                        <li><span className="text-slate-500">background</span> (Optional: 'pre-med', 'pre-engineering', or 'ics')</li>
+                                    </ul>
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <button onClick={() => setShowImportModal(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 font-medium">Cancel</button>
+                                    <button onClick={triggerFileInput} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:shadow-lg font-medium flex items-center justify-center gap-2">
+                                        <MdFileUpload className="w-5 h-5" /> Select File
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}

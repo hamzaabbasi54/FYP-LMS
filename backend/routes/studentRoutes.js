@@ -101,7 +101,7 @@ router.post('/', isAdmin, async (req, res) => {
     const conn = await pool.getConnection();
     try {
         await conn.beginTransaction();
-        const { first_name, last_name, email, phone, batch_id, parent } = req.body;
+        const { first_name, last_name, email, phone, batch_id, parent, matric_marks, fsc_marks, background } = req.body;
 
         if (!first_name || !last_name || !email || !batch_id) {
             return res.status(400).json({ success: false, message: 'first_name, last_name, email, batch_id are required' });
@@ -116,9 +116,9 @@ router.post('/', isAdmin, async (req, res) => {
         const studentIdNumber = `U${year}${nextNum}`;
 
         const [result] = await conn.query(
-            `INSERT INTO students (student_id_number, first_name, last_name, email, phone, batch_id)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [studentIdNumber, first_name, last_name, email.toLowerCase(), phone || '', batch_id]
+            `INSERT INTO students (student_id_number, first_name, last_name, email, phone, batch_id, matric_marks, fsc_marks, background)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [studentIdNumber, first_name, last_name, email.toLowerCase(), phone || '', batch_id, matric_marks || null, fsc_marks || null, background || null]
         );
         const studentId = result.insertId;
 
@@ -150,7 +150,7 @@ router.post('/', isAdmin, async (req, res) => {
 // PUT update student
 router.put('/:id', isAdmin, async (req, res) => {
     try {
-        const { first_name, last_name, email, phone, batch_id, cgpa, is_active } = req.body;
+        const { first_name, last_name, email, phone, batch_id, cgpa, is_active, matric_marks, fsc_marks, background } = req.body;
         const fields = [];
         const values = [];
         if (first_name) { fields.push('first_name = ?'); values.push(first_name); }
@@ -160,6 +160,9 @@ router.put('/:id', isAdmin, async (req, res) => {
         if (batch_id) { fields.push('batch_id = ?'); values.push(batch_id); }
         if (cgpa !== undefined) { fields.push('cgpa = ?'); values.push(cgpa); }
         if (is_active !== undefined) { fields.push('is_active = ?'); values.push(is_active); }
+        if (matric_marks !== undefined) { fields.push('matric_marks = ?'); values.push(matric_marks); }
+        if (fsc_marks !== undefined) { fields.push('fsc_marks = ?'); values.push(fsc_marks); }
+        if (background !== undefined) { fields.push('background = ?'); values.push(background); }
 
         if (fields.length === 0) {
             return res.status(400).json({ success: false, message: 'No fields to update' });
@@ -214,7 +217,7 @@ router.post('/import', isAdmin, upload.single('file'), async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: `Missing required columns: ${missingCols.join(', ')}`,
-                expected_columns: ['first_name', 'last_name', 'email', 'phone', 'parent_name', 'parent_email', 'parent_phone']
+                expected_columns: ['first_name', 'last_name', 'email', 'phone', 'parent_name', 'parent_email', 'parent_phone', 'matric_marks', 'fsc_marks', 'background']
             });
         }
 
@@ -241,9 +244,9 @@ router.post('/import', isAdmin, upload.single('file'), async (req, res) => {
                 const studentBatchId = row.batch_id || targetBatchId;
 
                 const [result] = await conn.query(
-                    `INSERT INTO students (student_id_number, first_name, last_name, email, phone, batch_id)
-                     VALUES (?, ?, ?, ?, ?, ?)`,
-                    [studentIdNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', studentBatchId]
+                    `INSERT INTO students (student_id_number, first_name, last_name, email, phone, batch_id, matric_marks, fsc_marks, background)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [studentIdNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', studentBatchId, row.matric_marks || null, row.fsc_marks || null, row.background || null]
                 );
 
                 // Insert parent if provided
@@ -283,7 +286,8 @@ router.get('/export/excel', isAdmin, async (req, res) => {
     try {
         const { batch_id } = req.query;
         let query = `SELECT s.student_id_number, s.first_name, s.last_name, s.email, s.phone,
-                            s.cgpa, s.is_active, b.name as batch_name, d.name as department_name,
+                            s.cgpa, s.is_active, s.matric_marks, s.fsc_marks, s.background,
+                            b.name as batch_name, d.name as department_name,
                             p.name as parent_name, p.email as parent_email, p.phone as parent_phone,
                             s.created_at
                      FROM students s

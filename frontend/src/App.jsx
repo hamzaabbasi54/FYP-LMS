@@ -34,6 +34,8 @@ import CreateAccount from './pages/admin-pages/CreateAccount.jsx';
 import ManageUsers from './pages/admin-pages/ManageUsers.jsx';
 import OBEReports from './pages/admin-pages/OBEReports.jsx';
 import ExternalLinks from './pages/admin-pages/ExternalLinks.jsx';
+import ManageCurricula from './pages/admin-pages/ManageCurricula.jsx';
+import CurriculumDetails from './pages/admin-pages/CurriculumDetails.jsx';
 
 // Faculty Pages
 import FacultyDashboard from "./pages/faculty-pages/Dashboard.jsx";
@@ -97,6 +99,9 @@ function App() {
 
                         <Route path="/admin-obe" element={<OBEReports />} />
                         <Route path="/admin-external-links" element={<ExternalLinks />} />
+
+                        <Route path="/admin-curricula" element={<ManageCurricula />} />
+                        <Route path="/admin-curricula/:id" element={<CurriculumDetails />} />
                     </Route>
                 </Route>
 

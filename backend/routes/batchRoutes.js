@@ -30,11 +30,13 @@ router.get('/', async (req, res) => {
 
         const [batches] = await pool.query(
             `SELECT b.*, d.name as department_name, f.name as faculty_name,
+                    cur.name as curriculum_name,
                     (SELECT COUNT(*) FROM students s WHERE s.batch_id = b.id) as student_count,
                     (SELECT COUNT(*) FROM semesters s WHERE s.batch_id = b.id) as semester_count
              FROM batches b
              JOIN departments d ON b.department_id = d.id
              JOIN faculties f ON d.faculty_id = f.id
+             LEFT JOIN curricula cur ON b.curriculum_id = cur.id
              ${whereClause}
              ORDER BY b.created_at DESC
              LIMIT ? OFFSET ?`,
@@ -53,10 +55,12 @@ router.get('/:id', async (req, res) => {
     try {
         const [batches] = await pool.query(
             `SELECT b.*, d.name as department_name, f.name as faculty_name,
+                    cur.name as curriculum_name,
                     (SELECT COUNT(*) FROM students s WHERE s.batch_id = b.id) as student_count
              FROM batches b
              JOIN departments d ON b.department_id = d.id
              JOIN faculties f ON d.faculty_id = f.id
+             LEFT JOIN curricula cur ON b.curriculum_id = cur.id
              WHERE b.id = ?`,
             [req.params.id]
         );
@@ -86,15 +90,15 @@ router.post('/', isAdmin, async (req, res) => {
     const conn = await pool.getConnection();
     try {
         await conn.beginTransaction();
-        const { name, department_id, start_date, end_date, is_active, plos } = req.body;
+        const { name, department_id, start_date, end_date, is_active, plos, curriculum_id } = req.body;
 
         if (!name || !department_id || !start_date || !end_date) {
             return res.status(400).json({ success: false, message: 'name, department_id, start_date, end_date are required' });
         }
 
         const [result] = await conn.query(
-            'INSERT INTO batches (name, department_id, start_date, end_date, is_active) VALUES (?, ?, ?, ?, ?)',
-            [name, department_id, start_date, end_date, is_active || false]
+            'INSERT INTO batches (name, department_id, curriculum_id, start_date, end_date, is_active) VALUES (?, ?, ?, ?, ?, ?)',
+            [name, department_id, curriculum_id || null, start_date, end_date, is_active || false]
         );
         const batchId = result.insertId;
 
@@ -116,7 +120,7 @@ router.post('/', isAdmin, async (req, res) => {
 // PUT update batch
 router.put('/:id', isAdmin, async (req, res) => {
     try {
-        const { name, start_date, end_date, status, is_active } = req.body;
+        const { name, start_date, end_date, status, is_active, curriculum_id } = req.body;
         const fields = [];
         const values = [];
         if (name) { fields.push('name = ?'); values.push(name); }
@@ -124,6 +128,7 @@ router.put('/:id', isAdmin, async (req, res) => {
         if (end_date) { fields.push('end_date = ?'); values.push(end_date); }
         if (status) { fields.push('status = ?'); values.push(status); }
         if (is_active !== undefined) { fields.push('is_active = ?'); values.push(is_active); }
+        if (curriculum_id !== undefined) { fields.push('curriculum_id = ?'); values.push(curriculum_id || null); }
 
         if (fields.length === 0) {
             return res.status(400).json({ success: false, message: 'No fields to update' });
