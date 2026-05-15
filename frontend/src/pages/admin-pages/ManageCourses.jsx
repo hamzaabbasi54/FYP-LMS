@@ -1,214 +1,237 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MdAdd, MdMoreVert, MdChevronLeft, MdChevronRight, MdArrowDropDown } from 'react-icons/md';
+import { MdAdd, MdSearch, MdFilterList, MdChevronLeft, MdChevronRight, MdDelete, MdInfoOutline } from 'react-icons/md';
+import { courseApi } from '../../services/api';
+import { toast } from 'react-toastify';
 
 const ManageCourses = () => {
-    // Mock Data to replicate the screenshot
-    const courses = [
-        {
-            id: 1,
-            title: "Introduction to Quantum Physics",
-            code: "PHY-301",
-            credits: "4.0",
-            instructor: "Dr. Emily Carter",
-            status: "Active",
-            color: "bg-indigo-100 text-indigo-600", // Color for the icon box
-            initials: "CS"
-        },
-        {
-            id: 2,
-            title: "Advanced English Literature",
-            code: "ENG-202",
-            credits: "3.0",
-            instructor: "Prof. David Lee",
-            status: "Active",
-            color: "bg-pink-100 text-pink-600",
-            initials: "EN"
-        },
-        {
-            id: 3,
-            title: "Intro to Computer Science",
-            code: "CS-101",
-            credits: "4.0",
-            instructor: "Dr. Sarah Connor",
-            status: "Draft",
-            color: "bg-blue-100 text-blue-600",
-            initials: "CS"
-        },
-        {
-            id: 4,
-            title: "Calculus II",
-            code: "MAT-201",
-            credits: "3.0",
-            instructor: "Prof. Alan Turing",
-            status: "Active",
-            color: "bg-orange-100 text-orange-600",
-            initials: "MA"
-        },
-        {
-            id: 5,
-            title: "Business Ethics",
-            code: "BUS-305",
-            credits: "2.0",
-            instructor: "Unassigned",
-            status: "Inactive",
-            color: "bg-teal-100 text-teal-600",
-            initials: "BA"
-        },
-        {
-            id: 6,
-            title: "Art History 101",
-            code: "ART-101",
-            credits: "3.0",
-            instructor: "Ms. Frida K.",
-            status: "Active",
-            color: "bg-purple-100 text-purple-600",
-            initials: "AR"
-        },
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [courses, setCourses] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [total, setTotal] = useState(0);
+
+    const colorPalette = [
+        "from-indigo-500 to-violet-600",
+        "from-pink-500 to-rose-600",
+        "from-blue-500 to-cyan-600",
+        "from-amber-500 to-orange-600",
+        "from-teal-500 to-emerald-600",
+        "from-purple-500 to-fuchsia-600"
     ];
 
-    // Helper to get status badge styles
-    const getStatusStyle = (status) => {
-        switch (status) {
-            case 'Active': return 'bg-green-100 text-green-700';
-            case 'Draft': return 'bg-yellow-100 text-yellow-700';
-            case 'Inactive': return 'bg-red-100 text-red-700';
-            default: return 'bg-gray-100 text-gray-700';
+    useEffect(() => {
+        fetchCourses();
+    }, [page, searchQuery]);
+
+    const fetchCourses = async () => {
+        try {
+            setLoading(true);
+            const params = { page, limit: 12 };
+            if (searchQuery) params.search = searchQuery;
+            const response = await courseApi.getAll(params);
+            if (response.success) {
+                setCourses(response.data || []);
+                setTotalPages(response.pagination?.totalPages || 1);
+                setTotal(response.pagination?.total || 0);
+            }
+        } catch (error) {
+            console.error('Error fetching courses:', error);
+            toast.error('Failed to load courses');
+        } finally {
+            setLoading(false);
         }
     };
 
+    const handleDelete = async (id) => {
+        if (window.confirm('Are you sure you want to delete this course?')) {
+            try {
+                await courseApi.delete(id);
+                toast.success('Course deleted successfully');
+                fetchCourses();
+            } catch (error) {
+                console.error('Error deleting course:', error);
+                toast.error(error.response?.data?.message || 'Failed to delete course');
+            }
+        }
+    };
+
+    const getStatusStyle = (status) => {
+        switch (status) {
+            case 'Active': return 'bg-emerald-100 text-emerald-700';
+            case 'Draft': return 'bg-amber-100 text-amber-700';
+            case 'Inactive': return 'bg-slate-100 text-slate-600';
+            default: return 'bg-blue-100 text-blue-700';
+        }
+    };
+
+    const filteredCourses = statusFilter === 'all'
+        ? courses
+        : courses.filter(c => (c.status || '').toLowerCase() === statusFilter);
+
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-6">
-
-            {/* --- Top Actions Bar --- */}
-            <div className="flex justify-between items-center">
-                {/* Filter Dropdown */}
-                <div className="relative">
-                    <button className="flex items-center space-x-2 bg-white border border-gray-300 px-4 py-2 rounded-lg text-gray-700 font-medium hover:bg-gray-50">
-                        <span>Status: Active</span>
-                        <MdArrowDropDown className="text-gray-500 w-5 h-5" />
-                    </button>
-                </div>
-
-                {/* Add Button */}
-                <Link
-                    to="/admin-managecourses/admin-addcourses" // Pointing to the page we made earlier
-                    className="flex items-center space-x-2 bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 shadow-sm transition-colors"
-                >
-                    <MdAdd className="w-5 h-5" />
-                    <span>Add New Course</span>
-                </Link>
-            </div>
-
-            {/* --- Stats Cards --- */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 className="text-gray-500 text-sm font-medium mb-1">Total Courses</h3>
-                    <p className="text-3xl font-bold text-gray-800">86</p>
-                    <p className="text-green-600 text-xs font-semibold mt-2 flex items-center">
-                        ↗ +4 this semester
-                    </p>
-                </div>
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 className="text-gray-500 text-sm font-medium mb-1">Draft Courses</h3>
-                    <p className="text-3xl font-bold text-gray-800">12</p>
-                    <p className="text-gray-400 text-xs mt-2">Pending approval</p>
-                </div>
-            </div>
-
-            {/* --- Course List Table --- */}
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <table className="w-full text-left border-collapse">
-                    <thead>
-                    <tr className="bg-white border-b border-gray-100 text-xs uppercase text-gray-400 font-semibold tracking-wider">
-                        <th className="p-6">Course Info</th>
-                        <th className="p-6">Credits</th>
-                        <th className="p-6">Instructor</th>
-                        <th className="p-6">Status</th>
-                        <th className="p-6 text-right"></th>
-                    </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                    {courses.map((course) => (
-                        <tr key={course.id} className="hover:bg-gray-50 transition-colors group">
-
-                            {/* Course Name & Code */}
-                            <td className="p-6">
-                                <div className="flex items-center">
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm mr-4 ${course.color}`}>
-                                        {course.initials}
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-800 text-sm">{course.title}</h4>
-                                        <span className="text-gray-400 text-xs">{course.code}</span>
-                                    </div>
-                                </div>
-                            </td>
-
-                            {/* Credits */}
-                            <td className="p-6">
-                  <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">
-                    {course.credits}
-                  </span>
-                            </td>
-
-                            {/* Instructor */}
-                            <td className="p-6">
-                                <div className="flex items-center">
-                                    {/* Placeholder Avatar - using Dicebear for consistent look */}
-                                    <img
-                                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${course.instructor}`}
-                                        alt="avatar"
-                                        className="w-8 h-8 rounded-full bg-gray-200 mr-3 border border-white shadow-sm"
-                                    />
-                                    <span className={`text-sm font-medium ${course.instructor === 'Unassigned' ? 'text-gray-400 italic' : 'text-gray-700'}`}>
-                      {course.instructor}
-                    </span>
-                                </div>
-                            </td>
-
-                            {/* Status */}
-                            <td className="p-6">
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusStyle(course.status)}`}>
-                    {course.status}
-                  </span>
-                            </td>
-
-                            {/* Action Menu */}
-                            <td className="p-6 text-right">
-                                <button className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100">
-                                    <MdMoreVert className="w-5 h-5" />
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
-                    </tbody>
-                </table>
-
-                {/* --- Pagination Footer --- */}
-                <div className="p-6 border-t border-gray-100 flex items-center justify-between">
-                    <p className="text-sm text-gray-500">
-                        Showing <span className="font-bold text-gray-800">1 to 6</span> of <span className="font-bold text-gray-800">86</span> results
-                    </p>
-
-                    <div className="flex items-center space-x-1">
-                        <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50">
-                            <MdChevronLeft />
-                        </button>
-
-                        <button className="w-8 h-8 flex items-center justify-center rounded border border-blue-600 bg-blue-50 text-blue-600 font-bold text-sm">1</button>
-                        <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm">2</button>
-                        <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm">3</button>
-                        <span className="px-2 text-gray-400 text-sm">...</span>
-                        <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm">10</button>
-
-                        <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50">
-                            <MdChevronRight />
-                        </button>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-8">
+            <div className="max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                    <div>
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="w-2 h-8 bg-gradient-to-b from-indigo-500 to-violet-600 rounded-full"></div>
+                            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                                Course Catalog
+                            </h1>
+                        </div>
+                        <p className="text-slate-500 ml-5">
+                            {loading ? 'Loading...' : `${total} courses found`}
+                        </p>
+                    </div>
+                    <div className="flex gap-3">
+                        <Link
+                            to="/admin-managecourses/clos"
+                            className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all duration-200"
+                        >
+                            CLOs
+                        </Link>
+                        <Link
+                            to="/admin-managecourses/admin-addcourses"
+                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all duration-200"
+                        >
+                            <MdAdd className="w-5 h-5" />
+                            Add Course
+                        </Link>
                     </div>
                 </div>
-            </div>
 
+                {/* Search & Filters */}
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-8">
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <div className="flex-1 relative">
+                            <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="Search by course name or code..."
+                                value={searchQuery}
+                                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                                className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all"
+                            />
+                        </div>
+                        <div className="relative">
+                            <MdFilterList className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                className="pl-10 pr-8 py-3 bg-slate-50 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none min-w-[160px]"
+                            >
+                                <option value="all">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="draft">Draft</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Loading */}
+                {loading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[1, 2, 3, 4, 5, 6].map((i) => (
+                            <div key={i} className="bg-white rounded-2xl p-6 animate-pulse">
+                                <div className="h-4 bg-slate-200 rounded w-1/3 mb-3"></div>
+                                <div className="h-6 bg-slate-200 rounded w-3/4 mb-4"></div>
+                                <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+                            </div>
+                        ))}
+                    </div>
+                ) : filteredCourses.length === 0 ? (
+                    <div className="text-center py-16">
+                        <h3 className="text-lg font-semibold text-slate-600 mb-2">No courses found</h3>
+                        <p className="text-slate-400 mb-6">
+                            {searchQuery ? 'Try a different search term' : 'Add your first course to get started'}
+                        </p>
+                    </div>
+                ) : (
+                    <>
+                        {/* Course Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                            {filteredCourses.map((course, index) => (
+                                <div
+                                    key={course.id}
+                                    className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:shadow-slate-300/50 transition-all duration-300 hover:-translate-y-1"
+                                >
+                                    <div className={`bg-gradient-to-r ${colorPalette[index % colorPalette.length]} p-5`}>
+                                        <div className="flex items-center justify-between">
+                                            <span className="bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-lg">
+                                                {course.code}
+                                            </span>
+                                            <span className="text-white/80 text-sm font-medium">
+                                                {course.credit_hours} Credits
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-5">
+                                        <Link to={`/admin-managecourses/${course.id}`}>
+                                            <h3 className="text-lg font-bold text-slate-800 mb-2 line-clamp-2 hover:text-indigo-600 transition-colors">
+                                                {course.title}
+                                            </h3>
+                                        </Link>
+                                        <p className="text-sm text-slate-500 mb-3">
+                                            {course.department_name || 'No Department'}
+                                        </p>
+
+                                        <div className="flex items-center justify-between">
+                                            <span className={`inline-flex px-3 py-1 rounded-lg text-xs font-semibold ${getStatusStyle(course.status || 'Active')}`}>
+                                                {course.status || 'Active'}
+                                            </span>
+                                            <div className="flex items-center gap-1">
+                                                <Link
+                                                    to={`/admin-managecourses/${course.id}`}
+                                                    className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                    title="View Details"
+                                                >
+                                                    <MdInfoOutline className="w-5 h-5" />
+                                                </Link>
+                                                <button
+                                                    onClick={() => handleDelete(course.id)}
+                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                    title="Delete"
+                                                >
+                                                    <MdDelete className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-2">
+                                <button
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                    className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <MdChevronLeft className="w-5 h-5" />
+                                </button>
+                                <span className="text-sm text-slate-600 px-4">
+                                    Page {page} of {totalPages}
+                                </span>
+                                <button
+                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={page === totalPages}
+                                    className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <MdChevronRight className="w-5 h-5" />
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
         </div>
     );
 };

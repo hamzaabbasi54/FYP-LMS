@@ -1,266 +1,347 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MdArrowBack, MdSearch, MdFileDownload, MdFileUpload, MdPersonAdd, MdClose } from 'react-icons/md';
+import { MdArrowBack, MdSearch, MdFileDownload, MdFileUpload, MdPersonAdd, MdClose, MdEmail } from 'react-icons/md';
+import { studentApi } from '../../services/api';
+import { toast } from 'react-toastify';
 
 const StudentList = () => {
     const { id } = useParams();
     const fileInputRef = useRef(null);
     const [showAddModal, setShowAddModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [students, setStudents] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [newStudent, setNewStudent] = useState({
-        name: '',
-        email: '',
-        studentId: '',
-        contact: '',
-        cgpa: ''
+        name: '', email: '', roll_number: '', contact_number: '', cgpa: '',
+        matric_marks: '', fsc_marks: '', background: ''
     });
+    const [showImportModal, setShowImportModal] = useState(false);
 
-    const handleAddStudent = (e) => {
-        e.preventDefault();
-        // TODO: Implement add student API call
-        console.log('Adding student:', newStudent);
-        alert(`Student "${newStudent.name}" added successfully!`);
-        setShowAddModal(false);
-        setNewStudent({ name: '', email: '', studentId: '', contact: '', cgpa: '' });
-    };
+    useEffect(() => {
+        fetchStudents();
+    }, [id]);
 
-    // Mock Data
-    const students = [
-        { id: 'U2024001', name: 'Alice Johnson', email: 'alice.j@university.edu', contact: '+1 123-456-7890', cgpa: '3.85' },
-        { id: 'U2024002', name: 'Bob Williams', email: 'bob.w@university.edu', contact: '+1 234-567-0981', cgpa: '3.50' },
-        { id: 'U2024003', name: 'Charlie Brown', email: 'charlie.b@university.edu', contact: '+1 865-674-0012', cgpa: '3.02' },
-        { id: 'U2024004', name: 'Diana Miller', email: 'diana.m@university.edu', contact: '+1 456-789-0123', cgpa: '3.71' },
-        { id: 'U2024005', name: 'Ethan Davis', email: 'ethan.d@university.edu', contact: '+1 567-890-1234', cgpa: '2.64' },
-        { id: 'U2024006', name: 'Fiona Garcia', email: 'fiona.g@university.edu', contact: '+1 678-901-2345', cgpa: '3.98' },
-    ];
-
-    const handleImportClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileChange = (e) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            // TODO: Implement Excel file parsing logic here
-            console.log('Selected file:', file.name);
-            alert(`File "${file.name}" selected. Excel import functionality will be implemented.`);
+    const fetchStudents = async () => {
+        try {
+            setLoading(true);
+            const response = await studentApi.getAll({ batch_id: id });
+            if (response.success) {
+                setStudents(response.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching students:', error);
+            toast.error('Failed to load students');
+        } finally {
+            setLoading(false);
         }
-        // Reset the input so the same file can be selected again
-        e.target.value = '';
     };
 
-    // Filter students based on search query
     const filteredStudents = students.filter((student) => {
         const query = searchQuery.toLowerCase();
         return (
-            student.name.toLowerCase().includes(query) ||
-            student.id.toLowerCase().includes(query) ||
-            student.email.toLowerCase().includes(query)
+            (student.name || '').toLowerCase().includes(query) ||
+            (student.roll_number || '').toLowerCase().includes(query) ||
+            (student.email || '').toLowerCase().includes(query)
         );
     });
 
+    const handleAddStudent = async (e) => {
+        e.preventDefault();
+        const nameParts = newStudent.name.split(' ');
+        const firstName = nameParts[0];
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Doe';
+        try {
+            const response = await studentApi.create({
+                first_name: firstName,
+                last_name: lastName,
+                email: newStudent.email,
+                phone: newStudent.contact_number,
+                cgpa: parseFloat(newStudent.cgpa) || 0,
+                matric_marks: parseFloat(newStudent.matric_marks) || null,
+                fsc_marks: parseFloat(newStudent.fsc_marks) || null,
+                background: newStudent.background || null,
+                batch_id: parseInt(id)
+            });
+            if (response.success) {
+                toast.success('Student added successfully!');
+                setShowAddModal(false);
+                setNewStudent({ name: '', email: '', roll_number: '', contact_number: '', cgpa: '', matric_marks: '', fsc_marks: '', background: '' });
+                fetchStudents();
+            }
+        } catch (error) {
+            console.error('Error adding student:', error);
+            toast.error(error.response?.data?.message || 'Failed to add student');
+        }
+    };
+
+    const handleImportClick = () => setShowImportModal(true);
+    const triggerFileInput = () => {
+        setShowImportModal(false);
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            try {
+                const response = await studentApi.import(id, file);
+                if (response.success) {
+                    const imported = response.data?.imported || 0;
+                    const skipped = response.data?.skipped || 0;
+                    
+                    if (skipped > 0) {
+                        const firstError = response.data?.errors?.[0]?.error || 'Unknown error';
+                        toast.warn(`Imported ${imported} students. Skipped ${skipped}. First error: ${firstError}`);
+                    } else {
+                        toast.success(`Imported ${imported} students successfully!`);
+                    }
+                    fetchStudents();
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                toast.error(error.response?.data?.message || 'Failed to import students');
+            }
+        }
+        e.target.value = '';
+    };
+
+    const handleExport = async () => {
+        try {
+            const blob = await studentApi.export(id);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `students_batch_${id}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success('Export downloaded successfully');
+        } catch (error) {
+            console.error('Export error:', error);
+            toast.error('Failed to export students');
+        }
+    };
+
+    const getCgpaColor = (cgpa) => {
+        const value = parseFloat(cgpa);
+        if (value >= 3.5) return 'from-emerald-500 to-teal-600';
+        if (value >= 3.0) return 'from-blue-500 to-indigo-600';
+        if (value >= 2.5) return 'from-amber-500 to-orange-600';
+        return 'from-red-500 to-rose-600';
+    };
+
     return (
-        <div className="p-6 max-w-7xl mx-auto h-full flex flex-col">
-
-            {/* Breadcrumb */}
-            <div className="mb-6 flex items-center space-x-2 text-sm text-gray-500">
-                <Link to={`/admin-managebatches/${id}`} className="hover:text-blue-600 flex items-center">
-                    <MdArrowBack className="mr-1" /> Back to Batch Details
-                </Link>
-                <span>/</span>
-                <span className="text-gray-800 font-semibold">Students</span>
-            </div>
-
-            <div className="flex justify-between items-end mb-6">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Students in Computer Science 2024</h2>
-                    <p className="text-sm text-gray-500 mt-1">A comprehensive list of all students enrolled in this batch.</p>
-                </div>
-            </div>
-
-            {/* Main Table Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden">
-
-                {/* Toolbar */}
-                <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                    {/* Search */}
-                    <div className="relative w-full max-w-md">
-                        <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <input
-                            type="text"
-                            placeholder="Search by name or student ID..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+            <div className="p-8 max-w-7xl mx-auto">
+                <div className="mb-6">
+                    <Link to={`/admin-managebatches/${id}`} className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm">
+                        <MdArrowBack className="w-4 h-4" /> Back to Batch Details
+                    </Link>
                 </div>
 
-                {/* Table */}
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-white border-b border-gray-100 text-xs uppercase text-gray-500 font-bold tracking-wider">
-                                <th className="px-6 py-4">Student Name</th>
-                                <th className="px-6 py-4">Email</th>
-                                <th className="px-6 py-4">Student ID</th>
-                                <th className="px-6 py-4">Contact Number</th>
-                                <th className="px-6 py-4 text-right">CGPA</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {filteredStudents.map((student) => (
-                                <tr key={student.id} className="hover:bg-blue-50/50 transition-colors">
-                                    <td className="px-6 py-4 text-sm font-semibold text-gray-800">{student.name}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{student.email}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500 font-mono">{student.id}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{student.contact}</td>
-                                    <td className="px-6 py-4 text-sm font-bold text-gray-800 text-right">{student.cgpa}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Footer / Pagination */}
-                <div className="p-4 border-t border-gray-100 flex items-center justify-between">
-                    <p className="text-sm text-gray-500">
-                        {searchQuery
-                            ? <>Found <span className="font-bold text-gray-800">{filteredStudents.length}</span> results</>
-                            : <>Showing <span className="font-bold text-gray-800">1 to {students.length}</span> of {students.length} results</>
-                        }
-                    </p>
-
-                    <div className="flex items-center space-x-2">
-                        <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50">Previous</button>
-                        <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-600 hover:bg-gray-50">Next</button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Bottom Actions */}
-            <div className="mt-6 flex justify-end gap-3">
-                {/* Hidden file input */}
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept=".xlsx,.xls,.csv"
-                    className="hidden"
-                />
-
-                {/* Add Student Button */}
-                <button
-                    onClick={() => setShowAddModal(true)}
-                    className="flex items-center bg-purple-600 text-white px-5 py-2.5 rounded-lg hover:bg-purple-700 shadow-sm transition-colors text-sm font-medium"
-                >
-                    <MdPersonAdd className="w-5 h-5 mr-2" /> Add Student
-                </button>
-
-                {/* Import Excel Button */}
-                <button
-                    onClick={handleImportClick}
-                    className="flex items-center bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700 shadow-sm transition-colors text-sm font-medium"
-                >
-                    <MdFileUpload className="w-5 h-5 mr-2" /> Import from Excel
-                </button>
-
-                {/* Download Button */}
-                <button className="flex items-center bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 shadow-sm transition-colors text-sm font-medium">
-                    <MdFileDownload className="w-5 h-5 mr-2" /> Download List
-                </button>
-            </div>
-
-            {/* Add Student Modal */}
-            {showAddModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
-                        <div className="flex items-center justify-between p-4 border-b">
-                            <h3 className="text-lg font-semibold text-gray-800">Add New Student</h3>
-                            <button
-                                onClick={() => setShowAddModal(false)}
-                                className="text-gray-400 hover:text-gray-600"
-                            >
-                                <MdClose className="w-6 h-6" />
-                            </button>
+                <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full"></div>
+                            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Students</h1>
                         </div>
-                        <form onSubmit={handleAddStudent} className="p-4 space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={newStudent.name}
-                                    onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Enter student name"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                <input
-                                    type="email"
-                                    required
-                                    value={newStudent.email}
-                                    onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="student@university.edu"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={newStudent.studentId}
-                                    onChange={(e) => setNewStudent({ ...newStudent, studentId: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="U2024XXX"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
-                                <input
-                                    type="tel"
-                                    value={newStudent.contact}
-                                    onChange={(e) => setNewStudent({ ...newStudent, contact: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="+1 XXX-XXX-XXXX"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">CGPA (optional)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    max="4"
-                                    value={newStudent.cgpa}
-                                    onChange={(e) => setNewStudent({ ...newStudent, cgpa: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="0.00 - 4.00"
-                                />
-                            </div>
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAddModal(false)}
-                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                >
-                                    Add Student
-                                </button>
-                            </div>
-                        </form>
+                        <p className="text-slate-500 ml-5 mt-1">
+                            {loading ? 'Loading...' : `${students.length} students enrolled`}
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx,.xls,.csv" className="hidden" />
+                        <button onClick={() => setShowAddModal(true)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/25 transition-all">
+                            <MdPersonAdd className="w-5 h-5" /> Add
+                        </button>
+                        <button onClick={handleImportClick} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                            <MdFileUpload className="w-5 h-5 text-emerald-500" /> Import
+                        </button>
+                        <button onClick={handleExport} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                            <MdFileDownload className="w-5 h-5 text-blue-500" /> Export
+                        </button>
                     </div>
                 </div>
-            )}
 
+                {/* Search */}
+                <div className="mb-6">
+                    <div className="relative max-w-md">
+                        <MdSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                        <input type="text" placeholder="Search by name, ID, or email..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" />
+                    </div>
+                </div>
+
+                {/* Students Table */}
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b border-slate-100">
+                                    <th className="text-left py-4 px-6 text-xs uppercase text-slate-400 font-semibold tracking-wider">Student</th>
+                                    <th className="text-left py-4 px-6 text-xs uppercase text-slate-400 font-semibold tracking-wider">Roll No.</th>
+                                    <th className="text-left py-4 px-6 text-xs uppercase text-slate-400 font-semibold tracking-wider">Contact</th>
+                                    <th className="text-left py-4 px-6 text-xs uppercase text-slate-400 font-semibold tracking-wider">CGPA</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {loading ? (
+                                    <tr><td colSpan="4" className="py-12 text-center text-slate-400">Loading students...</td></tr>
+                                ) : filteredStudents.length === 0 ? (
+                                    <tr><td colSpan="4" className="py-12 text-center text-slate-400">{searchQuery ? 'No students match your search' : 'No students enrolled yet'}</td></tr>
+                                ) : (
+                                    filteredStudents.map((student) => (
+                                        <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <td className="py-4 px-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
+                                                        <span className="text-slate-600 font-bold text-sm">
+                                                            {(student.name || '').split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-semibold text-slate-800">{student.name}</p>
+                                                        <p className="text-xs text-slate-400">{student.email}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-sm font-mono">{student.roll_number}</span>
+                                            </td>
+                                            <td className="py-4 px-6 text-sm text-slate-500">{student.contact_number || 'N/A'}</td>
+                                            <td className="py-4 px-6">
+                                                {student.cgpa != null ? (
+                                                    <span className={`px-3 py-1 rounded-lg text-white text-sm font-bold bg-gradient-to-r ${getCgpaColor(student.cgpa)}`}>
+                                                        {parseFloat(student.cgpa).toFixed(2)}
+                                                    </span>
+                                                ) : <span className="text-slate-400 text-sm">N/A</span>}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+                        <p className="text-sm text-slate-500">
+                            {searchQuery ? `Found ${filteredStudents.length} results` : `Showing ${students.length} students`}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Add Modal */}
+                {showAddModal && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+                            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+                                <h3 className="text-lg font-bold text-slate-800">Add New Student</h3>
+                                <button onClick={() => setShowAddModal(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg">
+                                    <MdClose className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <form onSubmit={handleAddStudent} className="p-5 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Full Name</label>
+                                    <input type="text" required value={newStudent.name} onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
+                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="Enter name" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+                                    <input type="email" required value={newStudent.email} onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
+                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="student@university.edu" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Roll Number</label>
+                                    <input type="text" required value={newStudent.roll_number} onChange={(e) => setNewStudent({ ...newStudent, roll_number: e.target.value })}
+                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="U2024XXX" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Contact</label>
+                                        <input type="tel" value={newStudent.contact_number} onChange={(e) => setNewStudent({ ...newStudent, contact_number: e.target.value })}
+                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="+1 XXX-XXX" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">CGPA</label>
+                                        <input type="number" step="0.01" min="0" max="4" value={newStudent.cgpa} onChange={(e) => setNewStudent({ ...newStudent, cgpa: e.target.value })}
+                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="0.00" />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Matric Marks</label>
+                                        <input type="number" value={newStudent.matric_marks} onChange={(e) => setNewStudent({ ...newStudent, matric_marks: e.target.value })}
+                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="e.g. 850" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">FSc Marks</label>
+                                        <input type="number" value={newStudent.fsc_marks} onChange={(e) => setNewStudent({ ...newStudent, fsc_marks: e.target.value })}
+                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="e.g. 920" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Background</label>
+                                        <select value={newStudent.background} onChange={(e) => setNewStudent({ ...newStudent, background: e.target.value })}
+                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white">
+                                            <option value="">Select...</option>
+                                            <option value="pre-med">Pre-Med</option>
+                                            <option value="pre-engineering">Pre-Engineering</option>
+                                            <option value="ics">ICS</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="flex gap-3 pt-2">
+                                    <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 font-medium">Cancel</button>
+                                    <button type="submit" className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:shadow-lg font-medium">Add Student</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Import Modal */}
+                {showImportModal && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+                            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-emerald-50 to-teal-50">
+                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <MdFileUpload className="w-5 h-5 text-emerald-500" /> Import Students
+                                </h3>
+                                <button onClick={() => setShowImportModal(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg">
+                                    <MdClose className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="p-6">
+                                <h4 className="font-semibold text-slate-800 mb-2">Excel File Format Requirements</h4>
+                                <p className="text-sm text-slate-600 mb-4">Please ensure your Excel file (.xlsx or .csv) contains the following column headers exactly as shown:</p>
+                                
+                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6">
+                                    <ul className="text-sm text-slate-600 space-y-2 font-mono">
+                                        <li><span className="font-bold text-emerald-600">first_name</span> (Required)</li>
+                                        <li><span className="font-bold text-emerald-600">last_name</span> (Required)</li>
+                                        <li><span className="font-bold text-emerald-600">email</span> (Required, Unique)</li>
+                                        <li><span className="text-slate-500">phone</span> (Optional)</li>
+                                        <li><span className="text-slate-500">parent_name</span> (Optional)</li>
+                                        <li><span className="text-slate-500">parent_email</span> (Optional)</li>
+                                        <li><span className="text-slate-500">parent_phone</span> (Optional)</li>
+                                        <li><span className="text-slate-500">matric_marks</span> (Optional, Number)</li>
+                                        <li><span className="text-slate-500">fsc_marks</span> (Optional, Number)</li>
+                                        <li><span className="text-slate-500">background</span> (Optional: 'pre-med', 'pre-engineering', or 'ics')</li>
+                                    </ul>
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <button onClick={() => setShowImportModal(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 font-medium">Cancel</button>
+                                    <button onClick={triggerFileInput} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:shadow-lg font-medium flex items-center justify-center gap-2">
+                                        <MdFileUpload className="w-5 h-5" /> Select File
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

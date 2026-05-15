@@ -1,35 +1,36 @@
-import User from '../models/User.js';
+// ============================================
+// File: backend/controllers/approvalController.js
+// Approval Controller — 2-Role (deptadmin approves faculty)
+// ============================================
 
-// Get pending users based on the approver's role
+import pool from '../config/db.js';
+
+// Get pending faculty users (admin only)
 export const getPendingUsers = async (req, res) => {
     try {
-        const { role, faculty, department } = req.user;
-        let query = { status: 'pending' };
+        const { role, department_id } = req.user;
 
-        // Super Admin sees pending Deans
-        if (role === 'superadmin') {
-            query.role = 'dean';
-        }
-        // Dean sees pending Department Admins in their faculty
-        else if (role === 'dean') {
-            query.role = 'deptadmin';
-            query.faculty = faculty;
-        }
-        // Department Admin sees pending Faculty in their department
-        else if (role === 'deptadmin') {
-            query.role = 'faculty';
-            query.department = department;
-        }
-        else {
+        if (role !== 'deptadmin') {
             return res.status(403).json({
                 success: false,
                 message: 'You do not have permission to view pending approvals'
             });
         }
 
-        const pendingUsers = await User.find(query)
-            .select('-password')
-            .sort({ createdAt: -1 });
+        if (!department_id) {
+            return res.status(400).json({ success: false, message: 'Missing approver department context' });
+        }
+
+        const [pendingUsers] = await pool.query(
+            `SELECT u.id, u.full_name, u.email, u.role, u.phone_number, u.status,
+                    u.created_at, d.name as department_name
+             FROM users u
+             LEFT JOIN departments d ON u.department_id = d.id
+             WHERE u.status = 'pending' AND u.role = 'faculty'
+             AND u.department_id = ?
+             ORDER BY u.created_at DESC`,
+            [department_id]
+        );
 
         res.status(200).json({
             success: true,
@@ -45,144 +46,128 @@ export const getPendingUsers = async (req, res) => {
     }
 };
 
-// Approve a user
+// Approve a faculty user
 export const approveUser = async (req, res) => {
     try {
         const { userId } = req.params;
         const approver = req.user;
 
-        const user = await User.findById(userId);
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
-        }
-
-        if (user.status !== 'pending') {
-            return res.status(400).json({
-                success: false,
-                message: 'User is not pending approval'
-            });
-        }
-
-        // Verify approver has permission
-        const canApprove = verifyApprovalPermission(approver, user);
-        if (!canApprove) {
+        if (approver.role !== 'deptadmin') {
             return res.status(403).json({
                 success: false,
-                message: 'You do not have permission to approve this user'
+                message: 'Only Department Admin can approve users'
             });
         }
 
-        user.status = 'approved';
-        user.approvedBy = approver.id === 'superadmin' ? null : approver.id;
-        await user.save();
+        if (!approver.department_id) {
+            return res.status(400).json({ success: false, message: 'Missing approver department context' });
+        }
+
+        const [result] = await pool.query(
+            `UPDATE users 
+             SET status = 'approved', approved_by = ? 
+             WHERE id = ? AND status = 'pending' AND role = 'faculty' AND department_id = ?`,
+            [approver.id, userId, approver.department_id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(400).json({ success: false, message: 'User not found, already processed, or access denied' });
+        }
+
+        const [users] = await pool.query('SELECT id, full_name, email, role FROM users WHERE id = ?', [userId]);
+        const user = users[0];
 
         res.status(200).json({
             success: true,
-            message: `${user.fullName} has been approved`,
+            message: `${user.full_name} has been approved`,
             data: {
-                id: user._id,
-                fullName: user.fullName,
+                id: user.id,
+                fullName: user.full_name,
                 email: user.email,
                 role: user.role,
-                status: user.status
+                status: 'approved'
             }
         });
     } catch (error) {
         console.error('Approve user error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error approving user'
-        });
+        res.status(500).json({ success: false, message: 'Error approving user' });
     }
 };
 
-// Reject a user
+// Reject a faculty user
 export const rejectUser = async (req, res) => {
     try {
         const { userId } = req.params;
         const { reason } = req.body;
         const approver = req.user;
 
-        const user = await User.findById(userId);
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
+        if (approver.role !== 'deptadmin') {
+            return res.status(403).json({ success: false, message: 'Only Department Admin can reject users' });
         }
 
-        if (user.status !== 'pending') {
-            return res.status(400).json({
-                success: false,
-                message: 'User is not pending approval'
-            });
+        if (!approver.department_id) {
+            return res.status(400).json({ success: false, message: 'Missing approver department context' });
         }
 
-        // Verify approver has permission
-        const canApprove = verifyApprovalPermission(approver, user);
-        if (!canApprove) {
-            return res.status(403).json({
-                success: false,
-                message: 'You do not have permission to reject this user'
-            });
+        const [result] = await pool.query(
+            `UPDATE users 
+             SET status = 'rejected', rejection_reason = ? 
+             WHERE id = ? AND status = 'pending' AND role = 'faculty' AND department_id = ?`,
+            [reason || '', userId, approver.department_id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(400).json({ success: false, message: 'User not found, already processed, or access denied' });
         }
 
-        user.status = 'rejected';
-        user.rejectionReason = reason || '';
-        await user.save();
+        const [users] = await pool.query('SELECT id, full_name, email, role FROM users WHERE id = ?', [userId]);
+        const user = users[0];
 
         res.status(200).json({
             success: true,
-            message: `${user.fullName} has been rejected`,
+            message: `${user.full_name} has been rejected`,
             data: {
-                id: user._id,
-                fullName: user.fullName,
+                id: user.id,
+                fullName: user.full_name,
                 email: user.email,
                 role: user.role,
-                status: user.status
+                status: 'rejected'
             }
         });
     } catch (error) {
         console.error('Reject user error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error rejecting user'
-        });
+        res.status(500).json({ success: false, message: 'Error rejecting user' });
     }
 };
 
-// Get all users by role (for management)
+// Get all users by role (admin manages faculty list)
 export const getUsersByRole = async (req, res) => {
     try {
         const { role } = req.params;
         const approver = req.user;
 
-        let query = { role };
-
-        // Filter by faculty/department based on approver's permissions
-        if (approver.role === 'dean') {
-            if (role === 'deptadmin' || role === 'faculty') {
-                query.faculty = approver.faculty;
-            }
-        } else if (approver.role === 'deptadmin') {
-            if (role === 'faculty') {
-                query.department = approver.department;
-            } else {
-                return res.status(403).json({
-                    success: false,
-                    message: 'You can only view faculty members'
-                });
-            }
+        if (approver.role !== 'deptadmin') {
+            return res.status(403).json({ success: false, message: 'Access denied' });
         }
 
-        const users = await User.find(query)
-            .select('-password')
-            .sort({ createdAt: -1 });
+        if (!approver.department_id) {
+            return res.status(400).json({ success: false, message: 'Missing approver department context' });
+        }
+
+        // Admin can only view faculty members
+        if (role !== 'faculty') {
+            return res.status(403).json({ success: false, message: 'You can only view faculty members' });
+        }
+
+        const [users] = await pool.query(
+            `SELECT u.id, u.full_name, u.email, u.role, u.phone_number, u.status,
+                    u.is_active, u.created_at, d.name as department_name
+             FROM users u
+             LEFT JOIN departments d ON u.department_id = d.id
+             WHERE u.role = 'faculty' AND u.department_id = ?
+             ORDER BY u.created_at DESC`,
+            [approver.department_id]
+        );
 
         res.status(200).json({
             success: true,
@@ -191,82 +176,39 @@ export const getUsersByRole = async (req, res) => {
         });
     } catch (error) {
         console.error('Get users error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching users'
-        });
+        res.status(500).json({ success: false, message: 'Error fetching users' });
     }
 };
 
-// Delete a user
+// Delete a faculty user
 export const deleteUser = async (req, res) => {
     try {
         const { userId } = req.params;
         const approver = req.user;
 
-        const user = await User.findById(userId);
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
+        if (approver.role !== 'deptadmin') {
+            return res.status(403).json({ success: false, message: 'Access denied' });
         }
 
-        // Verify permission to delete
-        const canDelete = verifyDeletePermission(approver, user);
-        if (!canDelete) {
-            return res.status(403).json({
-                success: false,
-                message: 'You do not have permission to delete this user'
-            });
+        if (!approver.department_id) {
+            return res.status(400).json({ success: false, message: 'Missing approver department context' });
         }
 
-        await User.findByIdAndDelete(userId);
+        const [result] = await pool.query(
+            `DELETE FROM users WHERE id = ? AND role = 'faculty' AND department_id = ?`,
+            [userId, approver.department_id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'User not found or access denied' });
+        }
 
         res.status(200).json({
             success: true,
-            message: `${user.fullName} has been deleted`
+            message: `User has been deleted`
         });
     } catch (error) {
         console.error('Delete user error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error deleting user'
-        });
+        res.status(500).json({ success: false, message: 'Error deleting user' });
     }
 };
-
-// Helper function to verify approval permission
-function verifyApprovalPermission(approver, user) {
-    // Super Admin can approve Deans
-    if (approver.role === 'superadmin' && user.role === 'dean') {
-        return true;
-    }
-    // Dean can approve Department Admins in their faculty
-    if (approver.role === 'dean' && user.role === 'deptadmin' && approver.faculty === user.faculty) {
-        return true;
-    }
-    // Department Admin can approve Faculty in their department
-    if (approver.role === 'deptadmin' && user.role === 'faculty' && approver.department === user.department) {
-        return true;
-    }
-    return false;
-}
-
-// Helper function to verify delete permission
-function verifyDeletePermission(approver, user) {
-    // Super Admin can delete Deans
-    if (approver.role === 'superadmin' && user.role === 'dean') {
-        return true;
-    }
-    // Dean can delete Department Admins in their faculty
-    if (approver.role === 'dean' && user.role === 'deptadmin' && approver.faculty === user.faculty) {
-        return true;
-    }
-    // Department Admin can delete Faculty in their department
-    if (approver.role === 'deptadmin' && user.role === 'faculty' && approver.department === user.department) {
-        return true;
-    }
-    return false;
-}

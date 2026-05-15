@@ -1,0 +1,11 @@
+title,code,department_name,credit_hours,prerequisites,description
+Programming Fundamentals,CS-101,Computer Science,3,None,Introduction to logic and programming.
+Data Structures,CS-201,Computer Science,4,CS-101,Organizing and managing data efficiently.
+Quantum Physics,PHY-301,Physics,3,PHY-101,Study of particles at atomic levels.
+Organic Chemistry,CHM-202,Chemistry,4,CHM-101,Study of carbon-based compounds.
+Linear Algebra,MTH-102,Mathematics,3,None,Vectors and matrices.
+Microbiology,BIO-305,Microbiology,3,BIO-101,Study of microscopic organisms.
+Macroeconomics,ECO-201,Economics,3,None,Study of national economies.
+Psychology 101,PSY-101,Psychology,3,None,Introduction to human mind and behavior.
+Sociology of Pakistan,SOC-205,Sociology,3,None,Study of social structure in Pakistan.
+Environmental Science,ENV-101,Environmental Science,3,None,Basics of environmental systems.

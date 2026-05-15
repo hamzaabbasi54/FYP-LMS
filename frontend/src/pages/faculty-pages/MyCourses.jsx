@@ -1,6 +1,7 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { MdEdit, MdPeople, MdCheckCircle, MdAssignment, MdArrowForward } from 'react-icons/md';
+import { Link, useNavigate } from 'react-router-dom';
+import { MdEdit, MdPeople, MdCheckCircle, MdAssignment, MdArrowForward, MdArrowBack } from 'react-icons/md';
+import { useCourse } from '../../context/CourseContext';
 
 // Component for Course Management Cards
 const ManagementCard = ({ icon: Icon, title, description, buttonText, iconColor, buttonColor, iconBgColor, to = "#" }) => {
@@ -25,20 +26,41 @@ const ManagementCard = ({ icon: Icon, title, description, buttonText, iconColor,
 };
 
 const MyCourses = () => {
-    // Course data
-    const course = {
-        title: "Introduction to Programming",
-        code: "CS-101",
-        schedule: "Mon, Wed 10:00 AM",
-        room: "Room 304",
-        credits: "4 Credits",
-        description: "Fundamental concepts of programming using Python. Control structures, data types, and basic algorithms.",
-        totalStudents: 118,
-        batch: "Batch 2023-2027"
-    };
+    const { selectedCourse } = useCourse();
+    const navigate = useNavigate();
+
+    // If no course is selected, redirect back to dashboard
+    if (!selectedCourse) {
+        return (
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-12 text-center">
+                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No Course Selected</h3>
+                    <p className="text-gray-400 mb-4">Please select a course from the dashboard first.</p>
+                    <button
+                        onClick={() => navigate('/faculty-dashboard')}
+                        className="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                    >
+                        <MdArrowBack className="w-4 h-4 mr-2" />
+                        Go to Dashboard
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    const course = selectedCourse;
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+            {/* Back Button */}
+            <button
+                onClick={() => navigate('/faculty-dashboard')}
+                className="inline-flex items-center text-gray-600 hover:text-gray-800 text-sm font-medium transition-colors"
+            >
+                <MdArrowBack className="w-4 h-4 mr-1" />
+                Back to Dashboard
+            </button>
+
             {/* Course Header Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 {/* Course Title and Badge */}
@@ -56,17 +78,19 @@ const MyCourses = () => {
                     <div className="flex-1">
                         {/* Course Details */}
                         <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
-                            <span>{course.schedule}</span>
+                            <span>{course.batch_name}</span>
                             <span className="text-gray-300">•</span>
-                            <span>{course.room}</span>
+                            <span>{course.semester_name}</span>
                             <span className="text-gray-300">•</span>
-                            <span>{course.credits}</span>
+                            <span>{course.credit_hours} Credits</span>
                         </div>
 
                         {/* Course Description */}
-                        <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-                            {course.description}
-                        </p>
+                        {course.description && (
+                            <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
+                                {course.description}
+                            </p>
+                        )}
                     </div>
 
                     {/* Right Side - Action Buttons and Student Count */}
@@ -74,14 +98,14 @@ const MyCourses = () => {
                         {/* Action Buttons */}
                         <div className="flex flex-col sm:flex-row gap-3">
                             <Link
-                                to="/faculty-mycourses/register-student"
-                                className="flex items-center justify-center bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
+                                to={`/faculty-mycourses/${course.assignment_id}/register-student`}
+                                className="flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
                             >
                                 <MdPeople className="w-4 h-4 mr-2" />
                                 Add Student
                             </Link>
                             <Link
-                                to="/faculty-mycourses/edit-syllabus"
+                                to={`/faculty-mycourses/${course.assignment_id}/edit-syllabus`}
                                 className="flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
                             >
                                 <MdEdit className="w-4 h-4 mr-2" />
@@ -92,7 +116,7 @@ const MyCourses = () => {
                         {/* Student Count */}
                         <div className="flex items-center text-gray-600 text-sm">
                             <MdPeople className="w-5 h-5 mr-2 text-gray-400" />
-                            <span className="font-semibold">{course.totalStudents} Total Students</span>
+                            <span className="font-semibold">{course.student_count} Total Students</span>
                         </div>
                     </div>
                 </div>
@@ -101,7 +125,7 @@ const MyCourses = () => {
             {/* Course Management Section */}
             <div>
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">Course Management</h2>
-                
+
                 {/* Management Cards Grid - Equal height cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     <ManagementCard
@@ -112,6 +136,7 @@ const MyCourses = () => {
                         iconColor="text-blue-600"
                         buttonColor="text-blue-600"
                         iconBgColor="bg-blue-50"
+                        to={`/faculty-mycourses/${course.assignment_id}/students`}
                     />
                     <ManagementCard
                         icon={MdCheckCircle}
@@ -121,7 +146,7 @@ const MyCourses = () => {
                         iconColor="text-green-600"
                         buttonColor="text-green-600"
                         iconBgColor="bg-green-50"
-                        to="/faculty-attendance"
+                        to={`/faculty-mycourses/${course.assignment_id}/attendance`}
                     />
                     <ManagementCard
                         icon={MdAssignment}
@@ -131,7 +156,7 @@ const MyCourses = () => {
                         iconColor="text-purple-600"
                         buttonColor="text-purple-600"
                         iconBgColor="bg-purple-50"
-                        to="/faculty-mycourses/grading"
+                        to={`/faculty-mycourses/${course.assignment_id}/grading`}
                     />
                 </div>
             </div>
@@ -140,4 +165,5 @@ const MyCourses = () => {
 };
 
 export default MyCourses;
+
 

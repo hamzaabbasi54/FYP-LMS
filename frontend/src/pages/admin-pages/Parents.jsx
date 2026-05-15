@@ -1,270 +1,251 @@
-import React, { useRef, useState } from 'react';
-import { MdSearch, MdPeople, MdEmail, MdPhone, MdSchool, MdFileUpload, MdFileDownload, MdPersonAdd, MdClose } from 'react-icons/md';
+import React, { useRef, useState, useEffect } from 'react';
+import { MdSearch, MdPeople, MdEmail, MdPhone, MdSchool, MdFileUpload, MdFileDownload, MdPersonAdd, MdClose, MdChevronLeft, MdChevronRight } from 'react-icons/md';
+import { parentApi } from '../../services/api';
+import { toast } from 'react-toastify';
 
 const Parents = () => {
     const fileInputRef = useRef(null);
     const [showAddModal, setShowAddModal] = useState(false);
+    
+    // Data & Pagination State
+    const [parents, setParents] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [total, setTotal] = useState(0);
+
     const [newParent, setNewParent] = useState({
-        parentName: '',
-        email: '',
-        phone: '',
-        studentName: '',
-        studentId: ''
+        parentName: '', email: '', phone: '', studentName: '', studentId: ''
     });
 
-    // Mock Data - Random parents
-    const parents = [
-        { id: 1, name: 'Robert Johnson', email: 'robert.j@email.com', phone: '+1 234-567-8901', studentName: 'Alice Johnson', studentId: 'U2024001' },
-        { id: 2, name: 'Mary Williams', email: 'mary.w@email.com', phone: '+1 345-678-9012', studentName: 'Bob Williams', studentId: 'U2024002' },
-        { id: 3, name: 'David Brown', email: 'david.b@email.com', phone: '+1 456-789-0123', studentName: 'Charlie Brown', studentId: 'U2024003' },
-        { id: 4, name: 'Sarah Miller', email: 'sarah.m@email.com', phone: '+1 567-890-1234', studentName: 'Diana Miller', studentId: 'U2024004' },
-        { id: 5, name: 'Michael Davis', email: 'michael.d@email.com', phone: '+1 678-901-2345', studentName: 'Ethan Davis', studentId: 'U2024005' },
-        { id: 6, name: 'Jennifer Garcia', email: 'jennifer.g@email.com', phone: '+1 789-012-3456', studentName: 'Fiona Garcia', studentId: 'U2024006' },
-        { id: 7, name: 'James Wilson', email: 'james.w@email.com', phone: '+1 890-123-4567', studentName: 'George Wilson', studentId: 'U2024007' },
-        { id: 8, name: 'Patricia Martinez', email: 'patricia.m@email.com', phone: '+1 901-234-5678', studentName: 'Hannah Martinez', studentId: 'U2024008' },
-    ];
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            fetchParents();
+        }, 500);
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery, page]);
 
-    // Filter parents based on search query
-    const filteredParents = parents.filter((parent) => {
-        const query = searchQuery.toLowerCase();
-        return (
-            parent.name.toLowerCase().includes(query) ||
-            parent.studentName.toLowerCase().includes(query) ||
-            parent.studentId.toLowerCase().includes(query) ||
-            parent.email.toLowerCase().includes(query)
-        );
-    });
-
-    const handleImportClick = () => {
-        fileInputRef.current?.click();
+    const fetchParents = async () => {
+        try {
+            setLoading(true);
+            const params = { page, limit: 12 };
+            if (searchQuery) params.search = searchQuery;
+            
+            const response = await parentApi.getAll(params);
+            if (response.success) {
+                setParents(response.data || []);
+                setTotalPages(response.pagination?.totalPages || 1);
+                setTotal(response.pagination?.total || 0);
+            }
+        } catch (error) {
+            console.error('Error fetching parents:', error);
+            toast.error('Failed to load parents');
+        } finally {
+            setLoading(false);
+        }
     };
+
+    const handleImportClick = () => fileInputRef.current?.click();
 
     const handleFileChange = (e) => {
         const file = e.target.files?.[0];
         if (file) {
-            console.log('Selected file:', file.name);
-            alert(`File "${file.name}" selected. Excel import functionality will be implemented.`);
+            alert(`File "${file.name}" selected. Import functionality coming soon.`);
         }
         e.target.value = '';
     };
 
     const handleAddParent = (e) => {
         e.preventDefault();
-        console.log('Adding parent:', newParent);
         alert(`Parent "${newParent.parentName}" added successfully!`);
         setShowAddModal(false);
         setNewParent({ parentName: '', email: '', phone: '', studentName: '', studentId: '' });
     };
 
     return (
-        <div className="p-6">
-            {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Parents Directory</h1>
-                <p className="text-gray-600">Manage and view parent information for enrolled students</p>
-            </div>
-
-            {/* Search and Stats */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
-                <div className="flex-1 relative">
-                    <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                        type="text"
-                        placeholder="Search by parent name, student name, or student ID..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
-                <div className="bg-blue-50 px-4 py-2.5 rounded-lg flex items-center gap-2">
-                    <MdPeople className="w-5 h-5 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-700">
-                        {searchQuery ? `Found: ${filteredParents.length}` : `Total Parents: ${parents.length}`}
-                    </span>
-                </div>
-            </div>
-
-            {/* Parents Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <table className="w-full">
-                    <thead>
-                        <tr className="bg-gray-50 border-b border-gray-100">
-                            <th className="text-left py-4 px-6 text-xs uppercase text-gray-500 font-bold tracking-wider">Student ID</th>
-                            <th className="text-left py-4 px-6 text-xs uppercase text-gray-500 font-bold tracking-wider">Student Name</th>
-                            <th className="text-left py-4 px-6 text-xs uppercase text-gray-500 font-bold tracking-wider">Parent Name</th>
-                            <th className="text-left py-4 px-6 text-xs uppercase text-gray-500 font-bold tracking-wider">Contact Info</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                        {filteredParents.map((parent) => (
-                            <tr key={parent.id} className="hover:bg-blue-50/50 transition-colors">
-                                <td className="py-4 px-6">
-                                    <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-mono">
-                                        {parent.studentId}
-                                    </span>
-                                </td>
-                                <td className="py-4 px-6">
-                                    <div className="flex items-center">
-                                        <MdSchool className="w-5 h-5 mr-3 text-blue-500" />
-                                        <span className="font-semibold text-gray-800">{parent.studentName}</span>
-                                    </div>
-                                </td>
-                                <td className="py-4 px-6">
-                                    <div className="flex items-center">
-                                        <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                                            <span className="text-purple-700 font-bold text-sm">
-                                                {parent.name.split(' ').map(n => n[0]).join('')}
-                                            </span>
-                                        </div>
-                                        <span className="font-medium text-gray-800">{parent.name}</span>
-                                    </div>
-                                </td>
-                                <td className="py-4 px-6">
-                                    <div className="space-y-1">
-                                        <div className="flex items-center text-sm">
-                                            <MdEmail className="w-4 h-4 mr-2 text-gray-400" />
-                                            <a
-                                                href={`https://mail.google.com/mail/?view=cm&fs=1&to=${parent.email}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-blue-600 hover:text-blue-800 hover:underline"
-                                            >
-                                                {parent.email}
-                                            </a>
-                                        </div>
-                                        <div className="flex items-center text-sm text-gray-600">
-                                            <MdPhone className="w-4 h-4 mr-2 text-gray-400" />
-                                            {parent.phone}
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="mt-6 flex justify-end gap-3">
-                {/* Hidden file input */}
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept=".xlsx,.xls,.csv"
-                    className="hidden"
-                />
-
-                {/* Add Parent Button */}
-                <button
-                    onClick={() => setShowAddModal(true)}
-                    className="flex items-center bg-purple-600 text-white px-5 py-2.5 rounded-lg hover:bg-purple-700 shadow-sm transition-colors text-sm font-medium"
-                >
-                    <MdPersonAdd className="w-5 h-5 mr-2" /> Add Parent
-                </button>
-
-                {/* Import Excel Button */}
-                <button
-                    onClick={handleImportClick}
-                    className="flex items-center bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700 shadow-sm transition-colors text-sm font-medium"
-                >
-                    <MdFileUpload className="w-5 h-5 mr-2" /> Import from Excel
-                </button>
-
-                {/* Download Button */}
-                <button className="flex items-center bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 shadow-sm transition-colors text-sm font-medium">
-                    <MdFileDownload className="w-5 h-5 mr-2" /> Download List
-                </button>
-            </div>
-
-            {/* Add Parent Modal */}
-            {showAddModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
-                        <div className="flex items-center justify-between p-4 border-b">
-                            <h3 className="text-lg font-semibold text-gray-800">Add New Parent</h3>
-                            <button
-                                onClick={() => setShowAddModal(false)}
-                                className="text-gray-400 hover:text-gray-600"
-                            >
-                                <MdClose className="w-6 h-6" />
-                            </button>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+            <div className="p-8 max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-2 h-8 bg-gradient-to-b from-purple-500 to-violet-600 rounded-full"></div>
+                            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                                Parents Directory
+                            </h1>
                         </div>
-                        <form onSubmit={handleAddParent} className="p-4 space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Student Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={newParent.studentName}
-                                    onChange={(e) => setNewParent({ ...newParent, studentName: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Enter student name"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={newParent.studentId}
-                                    onChange={(e) => setNewParent({ ...newParent, studentId: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="U2024XXX"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Parent Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={newParent.parentName}
-                                    onChange={(e) => setNewParent({ ...newParent, parentName: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Enter parent name"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                <input
-                                    type="email"
-                                    required
-                                    value={newParent.email}
-                                    onChange={(e) => setNewParent({ ...newParent, email: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="parent@email.com"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                                <input
-                                    type="tel"
-                                    value={newParent.phone}
-                                    onChange={(e) => setNewParent({ ...newParent, phone: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="+1 XXX-XXX-XXXX"
-                                />
-                            </div>
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAddModal(false)}
-                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                >
-                                    Add Parent
-                                </button>
-                            </div>
-                        </form>
+                        <p className="text-slate-500 ml-5 mt-1">Manage parent information and contacts</p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx,.xls,.csv" className="hidden" />
+
+                        <button onClick={() => setShowAddModal(true)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300">
+                            <MdPersonAdd className="w-5 h-5" /> Add
+                        </button>
+                        <button onClick={handleImportClick} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                            <MdFileUpload className="w-5 h-5 text-emerald-500" /> Import
+                        </button>
+                        <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                            <MdFileDownload className="w-5 h-5 text-blue-500" /> Export
+                        </button>
                     </div>
                 </div>
-            )}
+
+                {/* Search & Stats */}
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                    <div className="flex-1 relative max-w-md">
+                        <MdSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                        <input
+                            type="text"
+                            placeholder="Search by name, student ID, or email..."
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setPage(1); // Reset page on search
+                            }}
+                            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all shadow-sm"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-xl">
+                        <MdPeople className="w-5 h-5 text-purple-500" />
+                        <span className="text-sm font-medium text-purple-700">
+                            Total: {loading ? '...' : total}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Parents Grid */}
+                {loading ? (
+                    <div className="text-center py-12">
+                        <p className="text-slate-400">Loading parents...</p>
+                    </div>
+                ) : parents.length === 0 ? (
+                    <div className="text-center py-12">
+                        <p className="text-slate-400">No parents found matching your search</p>
+                    </div>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
+                            {parents.map((parent) => (
+                                <div key={parent.id} className="bg-white rounded-2xl border border-slate-100 p-5 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300">
+                                    {/* Student Info */}
+                                    <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100">
+                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                                            <MdSchool className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-slate-800">{parent.studentName}</p>
+                                            <p className="text-xs text-slate-400 font-mono">{parent.studentId}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Parent Info */}
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-violet-500 flex items-center justify-center">
+                                            <span className="text-white font-bold text-sm">
+                                                {(parent.name || 'P').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-slate-700 text-sm">{parent.name || 'Unknown'}</p>
+                                            <p className="text-xs text-slate-400">Parent/Guardian</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Contact */}
+                                    <div className="space-y-2">
+                                        <a
+                                            href={`mailto:${parent.email || ''}`}
+                                            className="flex items-center gap-2 text-sm text-slate-500 hover:text-purple-600 transition-colors"
+                                        >
+                                            <MdEmail className="w-4 h-4" />
+                                            <span className="truncate">{parent.email || 'No email provided'}</span>
+                                        </a>
+                                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                                            <MdPhone className="w-4 h-4" />
+                                            <span>{parent.phone || 'No phone provided'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-2">
+                                <button
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                    className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <MdChevronLeft className="w-5 h-5" />
+                                </button>
+                                <span className="text-sm text-slate-600 px-4">
+                                    Page {page} of {totalPages}
+                                </span>
+                                <button
+                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={page === totalPages}
+                                    className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <MdChevronRight className="w-5 h-5" />
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* Add Modal */}
+                {showAddModal && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+                            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-violet-50">
+                                <h3 className="text-lg font-bold text-slate-800">Add New Parent</h3>
+                                <button onClick={() => setShowAddModal(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                                    <MdClose className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <form onSubmit={handleAddParent} className="p-5 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Student Name</label>
+                                    <input type="text" required value={newParent.studentName} onChange={(e) => setNewParent({ ...newParent, studentName: e.target.value })}
+                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="Enter student name" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Student ID</label>
+                                    <input type="text" required value={newParent.studentId} onChange={(e) => setNewParent({ ...newParent, studentId: e.target.value })}
+                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="U2024XXX" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Parent Name</label>
+                                    <input type="text" required value={newParent.parentName} onChange={(e) => setNewParent({ ...newParent, parentName: e.target.value })}
+                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="Enter parent name" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+                                    <input type="email" required value={newParent.email} onChange={(e) => setNewParent({ ...newParent, email: e.target.value })}
+                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="parent@email.com" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Phone</label>
+                                    <input type="tel" value={newParent.phone} onChange={(e) => setNewParent({ ...newParent, phone: e.target.value })}
+                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="+1 XXX-XXX-XXXX" />
+                                </div>
+                                <div className="flex gap-3 pt-2">
+                                    <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium">
+                                        Cancel
+                                    </button>
+                                    <button type="submit" className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-xl hover:shadow-lg transition-all font-medium">
+                                        Add Parent
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

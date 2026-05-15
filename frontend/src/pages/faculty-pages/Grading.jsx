@@ -1,14 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { MdSearch, MdNotifications, MdChevronRight, MdAdd, MdEdit, MdDelete, MdMoreVert, MdNotificationsActive, MdGrade, MdDescription, MdHelpOutline, MdStar, MdDiamond } from 'react-icons/md';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { MdSearch, MdChevronRight, MdAdd, MdEdit, MdDelete, MdMoreVert, MdNotificationsActive, MdGrade, MdDescription, MdHelpOutline, MdStar, MdDiamond } from 'react-icons/md';
+import { useCourse } from '../../context/CourseContext';
+import { assessmentApi, studentApi } from '../../services/api';
 
 const Grading = () => {
     const navigate = useNavigate();
+    const { selectedCourse } = useCourse();
+    const { assignmentId } = useParams();
+    const courseAssignmentId = selectedCourse?.assignment_id || assignmentId;
+
     const [activeTab, setActiveTab] = useState('All');
     const [statusFilter, setStatusFilter] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [showNewAssessmentDropdown, setShowNewAssessmentDropdown] = useState(false);
+    const [assessments, setAssessments] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [totalStudents, setTotalStudents] = useState(0);
+    const [deleting, setDeleting] = useState(null);
     const dropdownRef = useRef(null);
+
+    const courseCode = selectedCourse?.code || 'Course';
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -27,118 +39,156 @@ const Grading = () => {
         };
     }, [showNewAssessmentDropdown]);
 
-    // Mock assessments data
-    const assessments = [
-        {
-            id: 1,
-            name: "Midterm Exam",
-            type: "Midterm",
-            icon: MdDescription,
-            iconColor: "bg-orange-100 text-orange-600",
-            dueDate: "Oct 28, 2023",
-            dueTime: "Closed",
-            weight: "30%",
-            status: "Graded",
-            statusColor: "bg-purple-100 text-purple-700",
-            actions: ["notify", "edit", "more"]
-        },
-        {
-            id: 2,
-            name: "OOP Concepts Essay",
-            type: "Assignment 3",
-            icon: MdDescription,
-            iconColor: "bg-blue-100 text-blue-600",
-            dueDate: "Oct 24, 2023",
-            dueTime: "11:59 PM",
-            weight: "10%",
-            status: "Needs Grading",
-            statusColor: "bg-red-100 text-red-700",
-            actions: ["grade", "edit", "more"]
-        },
-        {
-            id: 3,
-            name: "Control Structures",
-            type: "Quiz 3",
-            icon: MdHelpOutline,
-            iconColor: "bg-purple-100 text-purple-600",
-            dueDate: "Oct 10, 2023",
-            dueTime: "Closed",
-            weight: "5%",
-            status: "Published",
-            statusColor: "bg-green-100 text-green-700",
-            actions: ["edit", "delete", "more"]
-        },
-        {
-            id: 4,
-            name: "Data Structures Intro",
-            type: "Quiz 4",
-            icon: MdHelpOutline,
-            iconColor: "bg-gray-100 text-gray-600",
-            dueDate: "Nov 05, 2023",
-            dueTime: "10:00 AM",
-            weight: "5%",
-            status: "Scheduled",
-            statusColor: "bg-yellow-100 text-yellow-700",
-            actions: ["edit", "more"]
-        },
-        {
-            id: 5,
-            name: "Final Project",
-            type: "Finals",
-            icon: MdStar,
-            iconColor: "bg-blue-100 text-blue-600",
-            dueDate: "Dec 15, 2023",
-            dueTime: "Tentative",
-            weight: "40%",
-            status: "Draft",
-            statusColor: "bg-gray-100 text-gray-700",
-            actions: ["edit", "delete", "more"]
-        }
-    ];
+    // Fetch assessments and student count
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!courseAssignmentId) return;
 
-    const course = {
-        code: "CS-101",
-        totalStudents: 118
+            try {
+                setLoading(true);
+
+                // Fetch assessments (with large limit to get all)
+                const assessmentRes = await assessmentApi.getByCourse(courseAssignmentId, { limit: 100 });
+                const fetchedAssessments = assessmentRes.success !== false ? (assessmentRes.data || []) : [];
+                setAssessments(fetchedAssessments);
+
+                // Fetch enrolled students count
+                try {
+                    const studentRes = await studentApi.getEnrolledStudents(courseAssignmentId);
+                    const students = studentRes.success ? (studentRes.data || []) : [];
+                    setTotalStudents(students.length);
+                } catch (err) {
+                    setTotalStudents(0);
+                }
+            } catch (err) {
+                console.error('Error fetching assessments:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [courseAssignmentId]);
+
+    // Map DB type to display type label
+    const getTypeLabel = (type, index) => {
+        const typeLabels = {
+            quiz: 'Quiz',
+            assignment: 'Assignment',
+            midterm: 'Midterm',
+            final: 'Final',
+            project: 'Project'
+        };
+        return typeLabels[type] || type;
+    };
+
+    // Get icon and color based on type
+    const getTypeStyle = (type) => {
+        switch (type) {
+            case 'midterm':
+                return { icon: MdDescription, iconColor: 'bg-orange-100 text-orange-600' };
+            case 'final':
+                return { icon: MdStar, iconColor: 'bg-blue-100 text-blue-600' };
+            case 'quiz':
+                return { icon: MdHelpOutline, iconColor: 'bg-purple-100 text-purple-600' };
+            case 'assignment':
+                return { icon: MdDescription, iconColor: 'bg-blue-100 text-blue-600' };
+            case 'project':
+                return { icon: MdStar, iconColor: 'bg-green-100 text-green-600' };
+            default:
+                return { icon: MdDescription, iconColor: 'bg-gray-100 text-gray-600' };
+        }
+    };
+
+    // Get status color
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'graded': return 'bg-purple-100 text-purple-700';
+            case 'needs_grading': return 'bg-red-100 text-red-700';
+            case 'published': return 'bg-green-100 text-green-700';
+            case 'scheduled': return 'bg-yellow-100 text-yellow-700';
+            case 'draft': return 'bg-gray-100 text-gray-700';
+            default: return 'bg-gray-100 text-gray-700';
+        }
+    };
+
+    // Format status for display
+    const formatStatus = (status) => {
+        const labels = {
+            graded: 'Graded',
+            needs_grading: 'Needs Grading',
+            published: 'Published',
+            scheduled: 'Scheduled',
+            draft: 'Draft'
+        };
+        return labels[status] || status;
+    };
+
+    // Format date
+    const formatDate = (dateStr) => {
+        if (!dateStr) return { date: 'No date', time: '' };
+        const date = new Date(dateStr);
+        const options = { month: 'short', day: 'numeric', year: 'numeric' };
+        const formattedDate = date.toLocaleDateString('en-US', options);
+        const formattedTime = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        return { date: formattedDate, time: formattedTime };
+    };
+
+    // Delete assessment
+    const handleDelete = async (assessmentId, title) => {
+        if (!window.confirm(`Are you sure you want to delete "${title}"? This will also delete all grades for this assessment.`)) {
+            return;
+        }
+
+        try {
+            setDeleting(assessmentId);
+            await assessmentApi.delete(assessmentId);
+            setAssessments(prev => prev.filter(a => a.id !== assessmentId));
+        } catch (err) {
+            console.error('Error deleting assessment:', err);
+            alert('Failed to delete assessment. Please try again.');
+        } finally {
+            setDeleting(null);
+        }
     };
 
     const tabs = ['All', 'Quizzes', 'Assignments', 'Midterms', 'Finals'];
     const statusOptions = ['All', 'Graded', 'Needs Grading', 'Published', 'Scheduled', 'Draft'];
 
-    // Filter assessments based on active tab and search
+    // Map tab names to DB type values
+    const tabToType = {
+        'Quizzes': 'quiz',
+        'Assignments': 'assignment',
+        'Midterms': 'midterm',
+        'Finals': 'final'
+    };
+
+    // Map status filter to DB status
+    const statusFilterToDb = {
+        'Graded': 'graded',
+        'Needs Grading': 'needs_grading',
+        'Published': 'published',
+        'Scheduled': 'scheduled',
+        'Draft': 'draft'
+    };
+
+    // Filter assessments based on active tab, status, and search
     const filteredAssessments = assessments.filter(assessment => {
-        const matchesTab = activeTab === 'All' || 
-            (activeTab === 'Quizzes' && assessment.type.includes('Quiz')) ||
-            (activeTab === 'Assignments' && assessment.type.includes('Assignment')) ||
-            (activeTab === 'Midterms' && assessment.type.includes('Midterm')) ||
-            (activeTab === 'Finals' && assessment.type.includes('Finals'));
-        
-        const matchesStatus = statusFilter === 'All' || assessment.status === statusFilter;
-        const matchesSearch = assessment.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        const matchesTab = activeTab === 'All' || assessment.type === tabToType[activeTab];
+        const matchesStatus = statusFilter === 'All' || assessment.status === statusFilterToDb[statusFilter];
+        const matchesSearch = assessment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                              assessment.type.toLowerCase().includes(searchQuery.toLowerCase());
         
         return matchesTab && matchesStatus && matchesSearch;
     });
 
-    const totalAssessments = assessments.length;
-    const currentPage = 1;
-    const itemsPerPage = 5;
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedAssessments = filteredAssessments.slice(startIndex, endIndex);
+    const handleNewAssessment = (type) => {
+        setShowNewAssessmentDropdown(false);
+        navigate(`/faculty-mycourses/${courseAssignmentId}/grading/new?type=${type}`);
+    };
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-            {/* Breadcrumbs */}
-            <div className="flex items-center text-sm text-gray-500 mb-4">
-                <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
-                    Courses
-                </Link>
-                <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                <span className="text-gray-400">CS-101</span>
-                <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                <span className="text-gray-700 font-medium">Grading</span>
-            </div>
-
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
                 <div className="flex-1">
@@ -148,11 +198,11 @@ const Grading = () => {
                     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                         <div className="flex items-center gap-2">
                             <MdDiamond className="w-4 h-4 text-blue-600" />
-                            <span className="font-medium">{course.code}</span>
+                            <span className="font-medium">{courseCode}</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <MdGrade className="w-4 h-4 text-gray-400" />
-                            <span>{course.totalStudents} Students</span>
+                            <span>{totalStudents} Students</span>
                         </div>
                     </div>
                 </div>
@@ -171,37 +221,25 @@ const Grading = () => {
                     {showNewAssessmentDropdown && (
                         <div className="absolute top-full right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-50 min-w-[200px] py-2">
                             <button 
-                                onClick={() => {
-                                    setShowNewAssessmentDropdown(false);
-                                    navigate('/faculty-mycourses/grading/new');
-                                }}
+                                onClick={() => handleNewAssessment('quiz')}
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                             >
                                 Quiz
                             </button>
                             <button 
-                                onClick={() => {
-                                    setShowNewAssessmentDropdown(false);
-                                    navigate('/faculty-mycourses/grading/new');
-                                }}
+                                onClick={() => handleNewAssessment('assignment')}
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                             >
                                 Assignment
                             </button>
                             <button 
-                                onClick={() => {
-                                    setShowNewAssessmentDropdown(false);
-                                    navigate('/faculty-mycourses/grading/new');
-                                }}
+                                onClick={() => handleNewAssessment('midterm')}
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                             >
                                 Midterm Exam
                             </button>
                             <button 
-                                onClick={() => {
-                                    setShowNewAssessmentDropdown(false);
-                                    navigate('/faculty-mycourses/grading/new');
-                                }}
+                                onClick={() => handleNewAssessment('final')}
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                             >
                                 Final Exam
@@ -268,134 +306,142 @@ const Grading = () => {
 
             {/* Assessments Table */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    ASSESSMENT NAME
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    DUE DATE
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    WEIGHT
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    STATUS
-                                </th>
-                                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    ACTIONS
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {paginatedAssessments.map((assessment) => {
-                                const Icon = assessment.icon;
-                                return (
-                                    <tr key={assessment.id} className="hover:bg-gray-50 transition-colors">
-                                        {/* Assessment Name */}
-                                        <td className="px-6 py-4">
-                                            <Link 
-                                                to={`/faculty-mycourses/grading/${assessment.id}`}
-                                                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-                                            >
-                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${assessment.iconColor}`}>
-                                                    <Icon className="w-5 h-5" />
-                                                </div>
+                {/* Loading State */}
+                {loading && (
+                    <div className="p-12 text-center">
+                        <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                        <p className="text-gray-500 text-sm">Loading assessments...</p>
+                    </div>
+                )}
+
+                {/* Table */}
+                {!loading && (
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        ASSESSMENT NAME
+                                    </th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        DUE DATE
+                                    </th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        WEIGHT
+                                    </th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        STATUS
+                                    </th>
+                                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        ACTIONS
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {filteredAssessments.map((assessment) => {
+                                    const { icon: Icon, iconColor } = getTypeStyle(assessment.type);
+                                    const { date: dueDate, time: dueTime } = formatDate(assessment.due_date);
+                                    const statusColor = getStatusColor(assessment.status);
+                                    const typeLabel = getTypeLabel(assessment.type);
+
+                                    return (
+                                        <tr key={assessment.id} className="hover:bg-gray-50 transition-colors">
+                                            {/* Assessment Name */}
+                                            <td className="px-6 py-4">
+                                                <Link 
+                                                    to={`/faculty-mycourses/${courseAssignmentId}/grading/${assessment.id}`}
+                                                    className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                                                >
+                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${iconColor}`}>
+                                                        <Icon className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-semibold text-gray-800 text-sm hover:text-blue-600 transition-colors">{assessment.title}</p>
+                                                        <p className="text-gray-500 text-xs">{typeLabel}</p>
+                                                    </div>
+                                                </Link>
+                                            </td>
+
+                                            {/* Due Date */}
+                                            <td className="px-6 py-4">
                                                 <div>
-                                                    <p className="font-semibold text-gray-800 text-sm hover:text-blue-600 transition-colors">{assessment.name}</p>
-                                                    <p className="text-gray-500 text-xs">{assessment.type}</p>
+                                                    <p className="text-sm text-gray-800 font-medium">{dueDate}</p>
+                                                    <p className="text-xs text-gray-500">{dueTime}</p>
                                                 </div>
-                                            </Link>
-                                        </td>
+                                            </td>
 
-                                        {/* Due Date */}
-                                        <td className="px-6 py-4">
-                                            <div>
-                                                <p className="text-sm text-gray-800 font-medium">{assessment.dueDate}</p>
-                                                <p className="text-xs text-gray-500">{assessment.dueTime}</p>
-                                            </div>
-                                        </td>
+                                            {/* Weight */}
+                                            <td className="px-6 py-4">
+                                                <span className="text-sm font-semibold text-gray-800">
+                                                    {assessment.weight ? `${assessment.weight}%` : '-'}
+                                                </span>
+                                            </td>
 
-                                        {/* Weight */}
-                                        <td className="px-6 py-4">
-                                            <span className="text-sm font-semibold text-gray-800">{assessment.weight}</span>
-                                        </td>
+                                            {/* Status */}
+                                            <td className="px-6 py-4">
+                                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${statusColor}`}>
+                                                    {formatStatus(assessment.status)}
+                                                </span>
+                                            </td>
 
-                                        {/* Status */}
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${assessment.statusColor}`}>
-                                                {assessment.status}
-                                            </span>
-                                        </td>
-
-                                        {/* Actions */}
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center justify-end gap-2">
-                                                {assessment.actions.includes('notify') && (
-                                                    <button className="flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium">
-                                                        <MdNotificationsActive className="w-4 h-4 mr-1" />
-                                                        Notify Students
-                                                    </button>
-                                                )}
-                                                {assessment.actions.includes('grade') && (
-                                                    <Link
-                                                        to={`/faculty-mycourses/grading/${assessment.id}`}
-                                                        className="flex items-center px-3 py-1.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-xs font-medium"
+                                            {/* Actions */}
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    {assessment.status === 'graded' && (
+                                                        <button className="flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium">
+                                                            <MdNotificationsActive className="w-4 h-4 mr-1" />
+                                                            Notify Students
+                                                        </button>
+                                                    )}
+                                                    {(assessment.status === 'needs_grading' || assessment.status === 'published') && (
+                                                        <Link
+                                                            to={`/faculty-mycourses/${courseAssignmentId}/grading/${assessment.id}`}
+                                                            className="flex items-center px-3 py-1.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-xs font-medium"
+                                                        >
+                                                            Grade Now
+                                                        </Link>
+                                                    )}
+                                                    <button 
+                                                        onClick={() => navigate(`/faculty-mycourses/${courseAssignmentId}/grading/${assessment.id}`)}
+                                                        className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                     >
-                                                        Grade Now
-                                                    </Link>
-                                                )}
-                                                {assessment.actions.includes('edit') && (
-                                                    <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                                                         <MdEdit className="w-5 h-5" />
                                                     </button>
-                                                )}
-                                                {assessment.actions.includes('delete') && (
-                                                    <button className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                                    <button 
+                                                        onClick={() => handleDelete(assessment.id, assessment.title)}
+                                                        disabled={deleting === assessment.id}
+                                                        className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                                                    >
                                                         <MdDelete className="w-5 h-5" />
                                                     </button>
-                                                )}
-                                                {assessment.actions.includes('more') && (
-                                                    <button className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors">
-                                                        <MdMoreVert className="w-5 h-5" />
-                                                    </button>
-                                                )}
-                                            </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                {filteredAssessments.length === 0 && (
+                                    <tr>
+                                        <td colSpan="5" className="px-6 py-8 text-center text-gray-500 text-sm">
+                                            {assessments.length === 0 ? 'No assessments created yet. Click "New Assessment" to get started.' : 'No assessments match your filters.'}
                                         </td>
                                     </tr>
-                                );
-                            })}
-                            {paginatedAssessments.length === 0 && (
-                                <tr>
-                                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500 text-sm">
-                                        No assessments found.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
 
                 {/* Pagination */}
-                <div className="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                    <p className="text-sm text-gray-500">
-                        Showing <span className="font-semibold text-gray-700">1</span> to <span className="font-semibold text-gray-700">{paginatedAssessments.length}</span> of <span className="font-semibold text-gray-700">{totalAssessments}</span> assessments
-                    </p>
-                    <div className="flex items-center gap-2">
-                        <button className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                            Previous
-                        </button>
-                        <button className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm">
-                            Next
-                        </button>
+                {!loading && filteredAssessments.length > 0 && (
+                    <div className="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                        <p className="text-sm text-gray-500">
+                            Showing <span className="font-semibold text-gray-700">{filteredAssessments.length}</span> of <span className="font-semibold text-gray-700">{assessments.length}</span> assessments
+                        </p>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );
 };
 
 export default Grading;
-

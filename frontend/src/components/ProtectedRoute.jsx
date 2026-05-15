@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 
-const ProtectedRoute = ({ allowedRole }) => {
+const ProtectedRoute = ({ allowedRole, allowedRoles }) => {
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || 'null');
 
@@ -12,7 +12,10 @@ const ProtectedRoute = ({ allowedRole }) => {
     }
 
     // Check if user has the correct role
-    if (allowedRole && user.role !== allowedRole) {
+    // Support both single role (allowedRole) and multiple roles (allowedRoles)
+    const roles = allowedRoles || (allowedRole ? [allowedRole] : null);
+
+    if (roles && !roles.includes(user.role)) {
         // Wrong role, redirect to login page
         return <Navigate to="/" replace />;
     }
@@ -22,3 +25,4 @@ const ProtectedRoute = ({ allowedRole }) => {
 };
 
 export default ProtectedRoute;
+

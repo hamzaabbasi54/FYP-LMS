@@ -1,114 +1,488 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MdArrowBack, MdSearch, MdAdd, MdArrowForward, MdCode, MdLan, MdMemory, MdPsychology } from 'react-icons/md';
+import { MdArrowBack, MdSearch, MdAdd, MdBook, MdClose, MdPerson, MdPersonAdd, MdCheck } from 'react-icons/md';
+import { batchApi, courseApi, approvalApi } from '../../services/api';
+import { toast } from 'react-toastify';
 
 const SemesterCourses = () => {
-    // We get both IDs so we know which Batch AND which Semester we are in
     const { id, semesterId } = useParams();
+    const [semesterData, setSemesterData] = useState(null);
+    const [courses, setCourses] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    
+    // Add-course modal
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [availableCourses, setAvailableCourses] = useState([]);
+    const [modalSearchQuery, setModalSearchQuery] = useState('');
+    const [assigningLoading, setAssigningLoading] = useState(false);
 
-    // Mock Data
-    const semesterInfo = {
-        title: "Fall 2024 Courses",
-        batchName: "Computer Science / Batch of 2025",
-        semesterName: "Semester 5"
+    // Course details modal
+    const [selectedCourse, setSelectedCourse] = useState(null);
+    const [courseDetails, setCourseDetails] = useState(null);
+    const [detailsLoading, setDetailsLoading] = useState(false);
+
+    // Faculty assign modal
+    const [showFacultyModal, setShowFacultyModal] = useState(false);
+    const [facultyList, setFacultyList] = useState([]);
+    const [facultySearch, setFacultySearch] = useState('');
+    const [assigningFaculty, setAssigningFaculty] = useState(false);
+
+    useEffect(() => {
+        fetchSemesterCourses();
+    }, [id, semesterId]);
+
+    const fetchSemesterCourses = async () => {
+        try {
+            setLoading(true);
+            const response = await batchApi.getSemester(id, semesterId);
+            if (response.success) {
+                const semester = response.data;
+                setSemesterData({
+                    title: `${semester.name} Courses`,
+                    batchName: semester.batchName,
+                    semesterName: semester.name
+                });
+                setCourses(semester.courses || []);
+            }
+        } catch (error) {
+            console.error('Error fetching semester courses:', error);
+            toast.error('Failed to load semester courses');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const courses = [
-        {
-            id: 301,
-            code: "CS-301",
-            title: "Data Structures and Algorithms",
-            instructor: "Dr. Alan Turing",
-            icon: MdCode
-        },
-        {
-            id: 302,
-            code: "CS-302",
-            title: "Computer Networks",
-            instructor: "Prof. Ada Lovelace",
-            icon: MdLan
-        },
-        {
-            id: 303,
-            code: "CS-303",
-            title: "Operating Systems",
-            instructor: "Dr. Grace Hopper",
-            icon: MdMemory
-        },
-        {
-            id: 304,
-            code: "CS-304",
-            title: "Artificial Intelligence",
-            instructor: "Prof. John McCarthy",
-            icon: MdPsychology
-        },
-    ];
+    const filteredCourses = courses.filter(c =>
+        (c.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (c.code || '').toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    // --- Add-Course Modal Logic ---
+    const handleOpenAssignModal = async () => {
+        setIsAssignModalOpen(true);
+        try {
+            const response = await courseApi.getAll({ limit: 1000 });
+            if (response.success) {
+                const assignedIds = courses.map(c => c.course_id || c.id);
+                const available = (response.data || []).filter(c => !assignedIds.includes(c.id));
+                setAvailableCourses(available);
+            }
+        } catch (error) {
+            console.error('Error fetching available courses:', error);
+            toast.error('Failed to load available courses');
+        }
+    };
+
+    const handleAssignCourse = async (courseId) => {
+        if (assigningLoading) return;
+        setAssigningLoading(true);
+        try {
+            const response = await courseApi.assign({
+                course_id: courseId,
+                semester_id: parseInt(semesterId),
+                faculty_id: null
+            });
+            if (response.success) {
+                toast.success('Course assigned successfully');
+                setAvailableCourses(prev => prev.filter(c => c.id !== courseId));
+                fetchSemesterCourses();
+            }
+        } catch (error) {
+            console.error('Error assigning course:', error);
+            toast.error(error.response?.data?.message || 'Failed to assign course');
+        } finally {
+            setAssigningLoading(false);
+        }
+    };
+
+    const filteredAvailableCourses = availableCourses.filter(c =>
+        (c.title || '').toLowerCase().includes(modalSearchQuery.toLowerCase()) ||
+        (c.code || '').toLowerCase().includes(modalSearchQuery.toLowerCase())
+    );
+
+    // --- Course Details Modal ---
+    const handleCourseClick = async (course) => {
+        setSelectedCourse(course);
+        setDetailsLoading(true);
+        setCourseDetails(null);
+        try {
+            const courseId = course.course_id || course.id;
+            const response = await courseApi.getById(courseId);
+            if (response.success) {
+                setCourseDetails(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching course details:', error);
+            toast.error('Failed to load course details');
+        } finally {
+            setDetailsLoading(false);
+        }
+    };
+
+    const closeCourseDetails = () => {
+        setSelectedCourse(null);
+        setCourseDetails(null);
+    };
+
+    // --- Faculty Assign Modal ---
+    const handleOpenFacultyModal = async () => {
+        setShowFacultyModal(true);
+        setFacultySearch('');
+        try {
+            const res = await approvalApi.getUsersByRole('faculty');
+            if (res.success) setFacultyList(res.data || []);
+        } catch (error) {
+            console.error('Error fetching faculty:', error);
+            toast.error('Failed to load faculty list');
+        }
+    };
+
+    const handleAssignFaculty = async (facultyId) => {
+        if (assigningFaculty) return;
+        setAssigningFaculty(true);
+        try {
+            const assignmentId = selectedCourse?.assignment_id || selectedCourse?.id;
+            await courseApi.updateAssignmentFaculty(assignmentId, facultyId);
+            const fac = facultyList.find(f => f.id === facultyId);
+            toast.success(`Assigned to ${fac?.full_name || fac?.fullName || 'Faculty'}`);
+            setShowFacultyModal(false);
+            closeCourseDetails();
+            fetchSemesterCourses();
+        } catch (error) {
+            console.error('Error assigning faculty:', error);
+            toast.error('Failed to assign faculty');
+        } finally {
+            setAssigningFaculty(false);
+        }
+    };
+
+    const filteredFaculty = facultyList.filter(f => {
+        const name = (f.full_name || f.fullName || '').toLowerCase();
+        return name.includes(facultySearch.toLowerCase());
+    });
+
+    const getInitials = (name) => {
+        if (!name) return '??';
+        return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    };
 
     return (
-        <div className="p-6 max-w-6xl mx-auto space-y-6">
-
-            {/* --- Breadcrumb --- */}
-            <div className="flex items-center text-sm text-gray-500 mb-2">
-                <Link to={`/admin-managebatches/${id}`} className="hover:text-blue-600 flex items-center">
-                    <MdArrowBack className="mr-1" /> Back
-                </Link>
-                <span className="mx-2">/</span>
-                <span>{semesterInfo.batchName}</span>
-                <span className="mx-2">/</span>
-                <span className="font-semibold text-gray-800">{semesterInfo.semesterName}</span>
-            </div>
-
-            {/* --- Header & Add Button --- */}
-            <div className="flex justify-between items-center">
-                <h2 className="text-3xl font-bold text-gray-900">{semesterInfo.title}</h2>
-
-                <button className="flex items-center bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 shadow-sm transition-colors text-sm font-bold">
-                    <MdAdd className="w-5 h-5 mr-2" /> Add Course
-                </button>
-            </div>
-
-            {/* --- Search Bar --- */}
-            <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-200">
-                <div className="relative">
-                    <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                        type="text"
-                        placeholder="Search by course title, code, or teacher..."
-                        className="w-full pl-10 pr-4 py-3 rounded-lg text-sm focus:outline-none focus:bg-gray-50 transition-colors"
-                    />
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+            <div className="p-8 max-w-6xl mx-auto space-y-6">
+                {/* Breadcrumb */}
+                <div className="flex items-center text-sm text-gray-500 mb-2">
+                    <Link to={`/admin-managebatches/${id}`} className="hover:text-blue-600 flex items-center">
+                        <MdArrowBack className="mr-1" /> Back
+                    </Link>
+                    <span className="mx-2">/</span>
+                    <span>{semesterData?.batchName || 'Batch'}</span>
+                    <span className="mx-2">/</span>
+                    <span className="font-semibold text-gray-800">{semesterData?.semesterName || 'Semester'}</span>
                 </div>
-            </div>
 
-            {/* --- Course List --- */}
-            <div className="space-y-4">
-                {courses.map((course) => (
-                    <div key={course.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row items-center justify-between hover:shadow-md transition-shadow group">
+                {/* Header */}
+                <div className="flex justify-between items-center flex-wrap gap-4">
+                    <div>
+                        <h2 className="text-3xl font-bold text-gray-900">{semesterData?.title || 'Courses'}</h2>
+                        <p className="text-slate-500 mt-1">{loading ? 'Loading...' : `${courses.length} courses in this semester`}</p>
+                    </div>
+                    <button
+                        onClick={handleOpenAssignModal}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all"
+                    >
+                        <MdAdd className="w-5 h-5" />
+                        Assign Course
+                    </button>
+                </div>
 
-                        {/* Left Side: Icon & Info */}
-                        <div className="flex items-center w-full md:w-auto mb-4 md:mb-0">
-                            {/* Icon Box */}
-                            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center mr-5 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                <course.icon className="w-6 h-6" />
+                {/* Search */}
+                <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-200">
+                    <div className="relative">
+                        <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                            type="text"
+                            placeholder="Search by course title or code..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 rounded-lg text-sm focus:outline-none focus:bg-gray-50 transition-colors"
+                        />
+                    </div>
+                </div>
+
+                {/* Course List */}
+                {loading ? (
+                    <div className="space-y-4">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="bg-white p-5 rounded-xl border border-gray-200 animate-pulse">
+                                <div className="h-6 bg-slate-200 rounded w-2/3 mb-2"></div>
+                                <div className="h-4 bg-slate-200 rounded w-1/3"></div>
                             </div>
+                        ))}
+                    </div>
+                ) : filteredCourses.length === 0 ? (
+                    <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
+                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <MdBook className="w-8 h-8 text-slate-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-slate-600 mb-2">No courses in this semester</h3>
+                        <p className="text-slate-400 mb-6">Courses will appear here once assigned.</p>
+                        <button
+                            onClick={handleOpenAssignModal}
+                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
+                        >
+                            <MdAdd className="w-5 h-5 text-blue-600" />
+                            Assign a Course Now
+                        </button>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {filteredCourses.map((course) => (
+                            <div 
+                                key={course.id} 
+                                onClick={() => handleCourseClick(course)}
+                                className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row items-center justify-between hover:shadow-md hover:border-blue-200 transition-all group cursor-pointer"
+                            >
+                                <div className="flex items-center w-full md:w-auto mb-4 md:mb-0">
+                                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center mr-5 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                        <MdBook className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-800">
+                                            <span className="text-gray-500 font-medium mr-2">{course.code}:</span>
+                                            {course.title}
+                                        </h3>
+                                        <p className={`text-sm font-medium mt-0.5 ${course.instructor_name ? 'text-blue-500' : 'text-orange-500'}`}>
+                                            {course.instructor_name || 'Unassigned'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="text-sm text-slate-500">{course.credit_hours} Credits</div>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
-                            <div>
-                                <h3 className="text-lg font-bold text-gray-800">
-                                    <span className="text-gray-500 font-medium mr-2">{course.code}:</span>
-                                    {course.title}
-                                </h3>
-                                <p className="text-sm text-blue-500 font-medium mt-0.5">{course.instructor}</p>
+                {/* ========== Add Course to Semester Modal ========== */}
+                {isAssignModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+                            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-800">Assign Course to Semester</h2>
+                                    <p className="text-sm text-slate-500 mt-1">Select a course from the catalog to add it.</p>
+                                </div>
+                                <button onClick={() => setIsAssignModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                                    <MdClose className="w-6 h-6 text-slate-500" />
+                                </button>
+                            </div>
+                            <div className="p-4 border-b border-slate-100 bg-slate-50">
+                                <div className="relative">
+                                    <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search available courses..."
+                                        value={modalSearchQuery}
+                                        onChange={(e) => setModalSearchQuery(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4">
+                                {filteredAvailableCourses.length === 0 ? (
+                                    <div className="text-center py-12">
+                                        <p className="text-slate-400">No available courses found.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {filteredAvailableCourses.map(course => (
+                                            <div key={course.id} className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all group">
+                                                <div>
+                                                    <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-bold mb-1">
+                                                        {course.code}
+                                                    </span>
+                                                    <h4 className="font-bold text-slate-800 text-sm line-clamp-1" title={course.title}>
+                                                        {course.title}
+                                                    </h4>
+                                                    <p className="text-xs text-slate-500 mt-0.5">{course.credit_hours} Credits</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleAssignCourse(course.id)}
+                                                    disabled={assigningLoading}
+                                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors disabled:opacity-50 flex-shrink-0"
+                                                    title="Assign this course"
+                                                >
+                                                    <MdAdd className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
+                                <button onClick={() => setIsAssignModalOpen(false)} className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors">
+                                    Done
+                                </button>
                             </div>
                         </div>
-
-                        {/* Right Side: Button */}
-                        <button className="w-full md:w-auto flex items-center justify-center bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
-                            View Details <MdArrowForward className="ml-2 w-4 h-4" />
-                        </button>
-
                     </div>
-                ))}
-            </div>
+                )}
 
+                {/* ========== Course Details Modal ========== */}
+                {selectedCourse && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+                            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-blue-600 to-indigo-600">
+                                <div>
+                                    <h2 className="text-xl font-bold text-white">{selectedCourse.code}: {selectedCourse.title}</h2>
+                                    <p className="text-sm text-blue-100 mt-1">{selectedCourse.credit_hours} Credit Hours</p>
+                                </div>
+                                <button onClick={closeCourseDetails} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                                    <MdClose className="w-6 h-6 text-white" />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-6">
+                                {detailsLoading ? (
+                                    <div className="space-y-4 animate-pulse">
+                                        <div className="h-4 bg-slate-200 rounded w-full"></div>
+                                        <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+                                        <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+                                    </div>
+                                ) : courseDetails ? (
+                                    <div className="space-y-5">
+                                        {/* Faculty Status */}
+                                        <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                                            <MdPerson className="w-6 h-6 text-slate-500" />
+                                            <div className="flex-1">
+                                                <p className="text-xs text-slate-500 font-medium">Assigned Faculty</p>
+                                                <p className={`font-semibold ${selectedCourse.instructor_name ? 'text-blue-600' : 'text-orange-500'}`}>
+                                                    {selectedCourse.instructor_name || 'Unassigned'}
+                                                </p>
+                                            </div>
+                                            {!selectedCourse.instructor_name && (
+                                                <button
+                                                    onClick={handleOpenFacultyModal}
+                                                    className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-medium rounded-lg hover:shadow-md transition-all"
+                                                >
+                                                    <MdPersonAdd className="w-4 h-4" />
+                                                    Assign Faculty
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Description */}
+                                        {courseDetails.description && (
+                                            <div>
+                                                <h4 className="text-sm font-semibold text-slate-700 mb-1">Description</h4>
+                                                <p className="text-sm text-slate-600 leading-relaxed">{courseDetails.description}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Prerequisites */}
+                                        <div>
+                                            <h4 className="text-sm font-semibold text-slate-700 mb-1">Prerequisites</h4>
+                                            {courseDetails.prerequisite_courses && courseDetails.prerequisite_courses.length > 0 ? (
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {courseDetails.prerequisite_courses.map(p => (
+                                                        <span key={p.id} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-200">
+                                                            {p.code}: {p.title}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-slate-600">{courseDetails.prerequisites || 'None'}</p>
+                                            )}
+                                        </div>
+
+                                        {/* Department */}
+                                        <div>
+                                            <h4 className="text-sm font-semibold text-slate-700 mb-1">Department</h4>
+                                            <p className="text-sm text-slate-600">{courseDetails.department_name}</p>
+                                        </div>
+
+                                        {/* CLOs */}
+                                        {courseDetails.clos && courseDetails.clos.length > 0 && (
+                                            <div>
+                                                <h4 className="text-sm font-semibold text-slate-700 mb-2">Course Learning Outcomes ({courseDetails.clos.length})</h4>
+                                                <div className="space-y-2">
+                                                    {courseDetails.clos.map((clo, i) => (
+                                                        <div key={clo.id || i} className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                                            <p className="text-sm font-medium text-blue-800">CLO {clo.clo_number}: {clo.title}</p>
+                                                            {clo.description && <p className="text-xs text-blue-600 mt-1">{clo.description}</p>}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <p className="text-slate-400 text-center py-8">No details available.</p>
+                                )}
+                            </div>
+                            <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
+                                <button onClick={closeCourseDetails} className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors">
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ========== Faculty Assignment Modal ========== */}
+                {showFacultyModal && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+                            <div className="flex items-center justify-between p-5 border-b border-slate-200">
+                                <div>
+                                    <h2 className="text-lg font-bold text-slate-800">Assign Faculty</h2>
+                                    <p className="text-xs text-slate-500 mt-0.5">Select a faculty member for {selectedCourse?.code}</p>
+                                </div>
+                                <button onClick={() => setShowFacultyModal(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                                    <MdClose className="w-5 h-5 text-slate-500" />
+                                </button>
+                            </div>
+                            <div className="p-4 border-b border-slate-100 bg-slate-50">
+                                <div className="relative">
+                                    <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search faculty..."
+                                        value={facultySearch}
+                                        onChange={(e) => setFacultySearch(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-sm"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                                {filteredFaculty.length === 0 ? (
+                                    <p className="text-center py-8 text-slate-400 text-sm">No faculty found.</p>
+                                ) : (
+                                    filteredFaculty.map(fac => {
+                                        const name = fac.full_name || fac.fullName || 'Unknown';
+                                        return (
+                                            <button
+                                                key={fac.id}
+                                                onClick={() => handleAssignFaculty(fac.id)}
+                                                disabled={assigningFaculty}
+                                                className="w-full flex items-center gap-3 p-4 rounded-xl bg-white border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 transition-all text-left disabled:opacity-50"
+                                            >
+                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center flex-shrink-0">
+                                                    <span className="text-white text-xs font-bold">{getInitials(name)}</span>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="font-medium text-slate-800 text-sm">{name}</p>
+                                                    <p className="text-xs text-slate-400">{fac.department || 'Faculty'}</p>
+                                                </div>
+                                                <MdCheck className="w-5 h-5 text-emerald-500 opacity-0 group-hover:opacity-100" />
+                                            </button>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

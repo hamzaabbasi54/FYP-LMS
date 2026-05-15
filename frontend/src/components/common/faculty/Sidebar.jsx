@@ -1,20 +1,35 @@
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { MdDashboard, MdBook, MdSchedule, MdPeople, MdGrade, MdMessage, MdAnnouncement, MdLogout, MdSchool } from 'react-icons/md';
+import { MdDashboard, MdBook, MdSchedule, MdPeople, MdGrade, MdMessage, MdNotifications, MdLogout, MdSchool } from 'react-icons/md';
+import { useCourse } from '../../../context/CourseContext';
 
 const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const { selectedCourse } = useCourse();
 
+    // Get logged-in user data from localStorage
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const facultyName = user.faculty || 'Faculty';
+    const professorName = user.fullName || 'Professor';
+    const professorInitials = professorName
+        .split(' ')
+        .filter(n => n.length > 0)
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+
+    // Handle logout
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('selectedFacultyCourse');
         navigate('/');
     };
 
     // The 'to' prop tells React Router where to redirect
-    const NavItem = ({ icon: Icon, label, to, badge, matchPaths, excludePaths }) => {
+    const NavItem = ({ icon: Icon, label, to, badge, matchPaths, excludePaths, disabled }) => {
         // Check if current path matches any of the matchPaths (for nested routes)
         const isActiveRoute = matchPaths
             ? matchPaths.some(path => location.pathname.includes(path))
@@ -25,6 +40,19 @@ const Sidebar = () => {
             ? excludePaths.some(path => location.pathname.includes(path))
             : false;
 
+        const baseClasses = "flex items-center justify-between w-full p-2 sm:p-3 rounded-lg text-left transition-colors duration-200 mb-1";
+
+        if (disabled) {
+            return (
+                <div className={`${baseClasses} text-gray-400 cursor-not-allowed opacity-50`}>
+                    <div className="flex items-center min-w-0">
+                        <Icon className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-4 flex-shrink-0 text-gray-400" />
+                        <span className="font-medium text-sm sm:text-base truncate">{label}</span>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <NavLink
                 to={to}
@@ -32,10 +60,10 @@ const Sidebar = () => {
                     // Don't highlight if path is excluded
                     const active = !isExcluded && (isActive || isActiveRoute);
                     return `
-                        flex items-center justify-between w-full p-2 sm:p-3 rounded-lg text-left transition-colors duration-200 mb-1
+                        ${baseClasses}
                         ${active
-                            ? 'bg-blue-700 text-white'       // Style when active (lighter blue on dark)
-                            : 'text-blue-100 hover:bg-blue-800' // Style when inactive
+                            ? 'bg-blue-600 text-white shadow-md'       // Active: Blue bg, white text
+                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' // Inactive: Gray text, light gray hover
                         }
                     `;
                 }}
@@ -46,7 +74,7 @@ const Sidebar = () => {
                     return (
                         <>
                             <div className="flex items-center min-w-0">
-                                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-4 flex-shrink-0 ${active ? 'text-white' : 'text-blue-200'}`} />
+                                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-4 flex-shrink-0 ${active ? 'text-white' : 'text-gray-500'}`} />
                                 <span className="font-medium text-sm sm:text-base truncate">{label}</span>
                             </div>
                             {badge && (
@@ -62,15 +90,15 @@ const Sidebar = () => {
     };
 
     return (
-        <div className="flex flex-col w-full h-full px-3 sm:px-4 py-6 sm:py-8 bg-blue-900 border-r">
+        <div className="flex flex-col w-full h-full px-3 sm:px-4 py-6 sm:py-8 bg-white border-r border-gray-200">
             {/* Header */}
             <div className="flex items-center mb-6 sm:mb-8 px-2">
-                <div className="bg-white p-2 rounded-lg mr-2 sm:mr-3 flex-shrink-0">
-                    <MdSchool className="w-5 h-5 sm:w-6 sm:h-6 text-blue-900" />
+                <div className="bg-blue-600 p-2 rounded-lg mr-2 sm:mr-3 flex-shrink-0">
+                    <MdSchool className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div className="min-w-0">
-                    <h2 className="text-base sm:text-lg font-bold text-white leading-tight truncate">Eng. Faculty LMS</h2>
-                    <p className="text-xs text-blue-200 font-semibold">Faculty Panel</p>
+                    <h2 className="text-base sm:text-lg font-bold text-gray-800 leading-tight truncate">{facultyName} LMS</h2>
+                    <p className="text-xs text-gray-500 font-semibold">Faculty Panel</p>
                 </div>
             </div>
 
@@ -79,30 +107,33 @@ const Sidebar = () => {
                 {/* The 'to' prop is the destination URL */}
                 <NavItem to="/faculty-dashboard" icon={MdDashboard} label="Dashboard" />
                 <NavItem
-                    to="/faculty-mycourses"
+                    to={selectedCourse ? `/faculty-mycourses/${selectedCourse.assignment_id}` : '/faculty-dashboard'}
                     icon={MdBook}
                     label="My Courses"
-                    matchPaths={['/faculty-mycourses/edit-syllabus', '/faculty-mycourses/register-student']}
-                    excludePaths={['/faculty-mycourses/grading']}
+                    matchPaths={['/faculty-mycourses']}
+                    excludePaths={['/faculty-mycourses/grading', '/grading']}
+                    disabled={!selectedCourse}
                 />
-                <NavItem to="/faculty-schedule" icon={MdSchedule} label="Schedule" />
+                <NavItem to="/faculty-schedule" icon={MdSchedule} label="Schedule" disabled={!selectedCourse} />
                 <NavItem
                     to="/faculty-attendance"
                     icon={MdPeople}
                     label="Attendance"
                     matchPaths={['/faculty-attendance/monthly-report']}
+                    disabled={!selectedCourse}
                 />
                 <NavItem
-                    to="/faculty-mycourses/grading"
+                    to={selectedCourse ? `/faculty-mycourses/${selectedCourse.assignment_id}/grading` : '/faculty-dashboard'}
                     icon={MdGrade}
                     label="Grades"
-                    matchPaths={['/faculty-mycourses/grading']}
+                    matchPaths={['/grading']}
+                    disabled={!selectedCourse}
                 />
 
                 {/* Communication Section */}
                 <div className="mt-4 sm:mt-6 mb-4">
-                    <div className="border-t border-blue-700 mb-3 sm:mb-4"></div>
-                    <h3 className="text-xs font-semibold text-blue-300 uppercase tracking-wider px-2 sm:px-3 mb-2">
+                    <div className="border-t border-gray-200 mb-3 sm:mb-4"></div>
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-2 sm:px-3 mb-2">
                         COMMUNICATION
                     </h3>
                     <NavItem
@@ -111,26 +142,24 @@ const Sidebar = () => {
                         label="Messages"
                         badge={3}
                     />
-                    <NavItem to="/faculty-announcements" icon={MdAnnouncement} label="Announcements" />
+                    <NavItem to="/faculty-notifications" icon={MdNotifications} label="Notifications" />
                 </div>
             </nav>
 
             {/* User Profile Section at Bottom */}
-            <div className="mt-auto pt-4 border-t border-blue-700">
+            <div className="mt-auto pt-4 border-t border-gray-200">
                 <div className="flex items-center px-2 mb-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
-                        <span className="text-blue-900 font-bold text-xs sm:text-sm">
-                            {user.fullName ? user.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
-                        </span>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
+                        <span className="text-blue-600 font-bold text-xs sm:text-sm">{professorInitials}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-white font-semibold text-xs sm:text-sm truncate">{user.fullName || 'Faculty'}</p>
-                        <p className="text-blue-200 text-xs truncate">{user.department || 'Department'}</p>
+                        <p className="text-gray-800 font-semibold text-xs sm:text-sm truncate">{professorName}</p>
+                        <p className="text-gray-500 text-xs truncate capitalize">{user.role || 'Faculty'}</p>
                     </div>
-                    <button
+                    <button 
                         onClick={handleLogout}
-                        className="text-blue-200 hover:text-white transition-colors flex-shrink-0 ml-2"
-                        title="Sign Out"
+                        className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 ml-2"
+                        title="Logout"
                     >
                         <MdLogout className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
@@ -141,4 +170,3 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
-
