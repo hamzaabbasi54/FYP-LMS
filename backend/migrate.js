@@ -94,11 +94,15 @@ async function migrate() {
 
     } catch (err) {
         console.error('\n❌ Migration failed:', err);
+        await conn.query('SET FOREIGN_KEY_CHECKS = 1');
+        conn.release();
+        process.exit(1);
     } finally {
         await conn.query('SET FOREIGN_KEY_CHECKS = 1');
         conn.release();
-        process.exit(0);
     }
+
+    process.exit(0);
 }
 
 migrate();

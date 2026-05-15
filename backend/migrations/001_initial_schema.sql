@@ -537,9 +537,9 @@ INSERT INTO parents (student_id, name, email, phone) VALUES
 
 -- Sample Course Assignments (course + semester + faculty)
 INSERT INTO course_assignments (course_id, semester_id, faculty_id) VALUES
-(1, 1, 4),   -- PHY-301 in Semester 1, taught by Dr. Emily Carter
-(2, 1, 4),   -- PHY-101 in Semester 1, taught by Dr. Emily Carter
-(3, 2, 4);   -- PHY-201 in Semester 2, taught by Dr. Emily Carter
+(1, 1, 2),   -- PHY-301 in Semester 1, taught by Dr. Emily Carter
+(2, 1, 2),   -- PHY-101 in Semester 1, taught by Dr. Emily Carter
+(3, 2, 2);   -- PHY-201 in Semester 2, taught by Dr. Emily Carter
 
 -- Sample Enrollments
 INSERT INTO enrollments (student_id, course_assignment_id) VALUES
@@ -563,12 +563,12 @@ INSERT INTO assessment_clo_mapping (assessment_id, clo_id) VALUES
 
 -- Sample Grades
 INSERT INTO grades (assessment_id, student_id, score, remarks, graded_by, graded_at) VALUES
-(1, 1, 92.50, 'Excellent work', 4, '2023-10-30 14:00:00'),
-(1, 2, 78.00, 'Good effort', 4, '2023-10-30 14:30:00'),
-(1, 3, 65.00, 'Needs improvement', 4, '2023-10-30 15:00:00'),
-(1, 4, 88.50, 'Very good', 4, '2023-10-30 15:30:00'),
-(1, 5, 55.00, 'Below average', 4, '2023-10-30 16:00:00'),
-(1, 6, 97.00, 'Outstanding', 4, '2023-10-30 16:30:00');
+(1, 1, 92.50, 'Excellent work', 2, '2023-10-30 14:00:00'),
+(1, 2, 78.00, 'Good effort', 2, '2023-10-30 14:30:00'),
+(1, 3, 65.00, 'Needs improvement', 2, '2023-10-30 15:00:00'),
+(1, 4, 88.50, 'Very good', 2, '2023-10-30 15:30:00'),
+(1, 5, 55.00, 'Below average', 2, '2023-10-30 16:00:00'),
+(1, 6, 97.00, 'Outstanding', 2, '2023-10-30 16:30:00');
 
 -- Sample Attendance
 INSERT INTO attendance (course_assignment_id, student_id, date, status, remarks) VALUES

@@ -23,7 +23,9 @@ export const getPendingUsers = async (req, res) => {
              FROM users u
              LEFT JOIN departments d ON u.department_id = d.id
              WHERE u.status = 'pending' AND u.role = 'faculty'
-             ORDER BY u.created_at DESC`
+             AND u.department_id = ?
+             ORDER BY u.created_at DESC`,
+            [department_id]
         );
 
         res.status(200).json({
@@ -67,6 +69,11 @@ export const approveUser = async (req, res) => {
 
         if (user.role !== 'faculty') {
             return res.status(403).json({ success: false, message: 'Can only approve faculty users' });
+        }
+
+        // Department scoping: admin can only approve faculty in their own department
+        if (user.department_id !== approver.department_id) {
+            return res.status(403).json({ success: false, message: 'You can only approve faculty in your own department' });
         }
 
         await pool.query(
@@ -118,6 +125,11 @@ export const rejectUser = async (req, res) => {
             return res.status(403).json({ success: false, message: 'Can only reject faculty users' });
         }
 
+        // Department scoping: admin can only reject faculty in their own department
+        if (user.department_id !== approver.department_id) {
+            return res.status(403).json({ success: false, message: 'You can only reject faculty in your own department' });
+        }
+
         await pool.query(
             'UPDATE users SET status = ?, rejection_reason = ? WHERE id = ?',
             ['rejected', reason || '', userId]
@@ -160,8 +172,9 @@ export const getUsersByRole = async (req, res) => {
                     u.is_active, u.created_at, d.name as department_name
              FROM users u
              LEFT JOIN departments d ON u.department_id = d.id
-             WHERE u.role = 'faculty'
-             ORDER BY u.created_at DESC`
+             WHERE u.role = 'faculty' AND u.department_id = ?
+             ORDER BY u.created_at DESC`,
+            [approver.department_id]
         );
 
         res.status(200).json({
@@ -195,6 +208,11 @@ export const deleteUser = async (req, res) => {
 
         if (user.role !== 'faculty') {
             return res.status(403).json({ success: false, message: 'Can only delete faculty users' });
+        }
+
+        // Department scoping: admin can only delete faculty in their own department
+        if (user.department_id !== approver.department_id) {
+            return res.status(403).json({ success: false, message: 'You can only delete faculty in your own department' });
         }
 
         await pool.query('DELETE FROM users WHERE id = ?', [userId]);
