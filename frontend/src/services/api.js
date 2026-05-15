@@ -220,9 +220,16 @@ export const courseApi = {
         });
         return response.data;
     },
-    export: () => {
-        const token = localStorage.getItem('token');
-        window.open(`http://localhost:3000/api/courses/export?token=${token}`, '_blank');
+    export: async () => {
+        const response = await api.get('/courses/export', { responseType: 'blob' });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'courses_export.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
     },
     // Course Assignments
     assign: async (data) => {
@@ -289,9 +296,16 @@ export const courseApi = {
         });
         return response.data;
     },
-    exportCLOs: () => {
-        const token = localStorage.getItem('token');
-        window.open(`http://localhost:3000/api/courses/clos/export?token=${token}`, '_blank');
+    exportCLOs: async () => {
+        const response = await api.get('/courses/clos/export', { responseType: 'blob' });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'clos_export.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
     }
 };
 
