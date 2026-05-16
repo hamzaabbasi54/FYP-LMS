@@ -250,7 +250,12 @@ router.post('/import', isAdmin, upload.single('file'), async (req, res) => {
 
                 const [result] = await conn.query(
                     `INSERT INTO students (student_id_number, first_name, last_name, email, phone, batch_id, matric_marks, fsc_marks, background)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE 
+                        first_name = VALUES(first_name), 
+                        last_name = VALUES(last_name), 
+                        phone = VALUES(phone), 
+                        batch_id = VALUES(batch_id)`,
                     [studentIdNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', studentBatchId, row.matric_marks || null, row.fsc_marks || null, row.background || null]
                 );
 
