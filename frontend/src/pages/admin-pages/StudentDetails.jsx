@@ -50,7 +50,11 @@ const StudentDetails = () => {
         try {
             const res = await batchApi.getAll({ limit: 100 });
             if (res.success) setBatches(res.data || []);
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error(e);
+            toast.error('Failed to load batches');
+            setBatches([]);
+        }
     };
 
     const handleSave = async () => {

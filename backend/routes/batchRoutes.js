@@ -121,7 +121,6 @@ router.post('/', isAdmin, async (req, res) => {
 router.put('/:id', isAdmin, async (req, res) => {
     const conn = await pool.getConnection();
     try {
-        await conn.beginTransaction();
         const { name, start_date, end_date, status, is_active, curriculum_id } = req.body;
         const fields = [];
         const values = [];
@@ -135,6 +134,8 @@ router.put('/:id', isAdmin, async (req, res) => {
         if (fields.length === 0) {
             return res.status(400).json({ success: false, message: 'No fields to update' });
         }
+
+        await conn.beginTransaction();
         values.push(req.params.id);
         const [result] = await conn.query(`UPDATE batches SET ${fields.join(', ')} WHERE id = ?`, values);
         if (result.affectedRows === 0) {
@@ -207,7 +208,8 @@ router.get('/:id/curriculum-courses', async (req, res) => {
         // Build semester structure
         const semesters = [];
         for (let i = 1; i <= totalSemesters; i++) {
-            const [courses] = await pool.query(
+            // Try fetching batch-specific overrides first
+            let [courses] = await pool.query(
                 `SELECT bsc.id as entry_id, c.id as course_id, c.title, c.code, 
                         c.credit_hours, c.description, bsc.type, d.name as department_name
                  FROM batch_semester_courses bsc
@@ -217,6 +219,23 @@ router.get('/:id/curriculum-courses', async (req, res) => {
                  ORDER BY bsc.type, c.code`,
                 [req.params.id, i]
             );
+
+            // FALLBACK: If no batch-specific courses exist but batch has a curriculum,
+            // fetch from the master curriculum blueprint
+            if (courses.length === 0 && batch[0].curriculum_id) {
+                [courses] = await pool.query(
+                    `SELECT NULL as entry_id, c.id as course_id, c.title, c.code, 
+                            c.credit_hours, c.description, csc.type, d.name as department_name
+                     FROM curriculum_semester_courses csc
+                     JOIN curriculum_semesters cs ON csc.curriculum_semester_id = cs.id
+                     JOIN courses c ON csc.course_id = c.id
+                     JOIN departments d ON c.department_id = d.id
+                     WHERE cs.curriculum_id = ? AND cs.semester_number = ?
+                     ORDER BY csc.type, c.code`,
+                    [batch[0].curriculum_id, i]
+                );
+            }
+
             semesters.push({
                 semester_number: i,
                 name: `Semester ${i}`,
@@ -243,16 +262,25 @@ router.get('/:id/curriculum-courses', async (req, res) => {
 router.post('/:id/semesters/:semNum/courses', isAdmin, async (req, res) => {
     const conn = await pool.getConnection();
     try {
-        await conn.beginTransaction();
         const { course_id, course_ids, type } = req.body;
         const courseType = type || 'core';
         const batchId = req.params.id;
         const semNum = parseInt(req.params.semNum);
 
+        // Validation
+        if (isNaN(semNum) || semNum < 1 || semNum > 8) {
+            return res.status(400).json({ success: false, message: 'Invalid semester number. Must be 1-8.' });
+        }
+        if (!['core', 'elective'].includes(courseType)) {
+            return res.status(400).json({ success: false, message: 'Invalid course type. Must be "core" or "elective".' });
+        }
+
         const ids = course_ids && Array.isArray(course_ids) ? course_ids : (course_id ? [course_id] : []);
         if (ids.length === 0) {
             return res.status(400).json({ success: false, message: 'course_id or course_ids array is required' });
         }
+
+        await conn.beginTransaction();
 
         const added = [];
         const errors = [];
@@ -276,7 +304,8 @@ router.post('/:id/semesters/:semNum/courses', isAdmin, async (req, res) => {
                 );
                 added.push(cId);
             } catch (err) {
-                errors.push({ course_id: cId, error: err.message });
+                console.error(`Error adding course ${cId} to batch ${batchId}:`, err);
+                errors.push({ course_id: cId, error: 'Failed to process course entry' });
             }
         }
 

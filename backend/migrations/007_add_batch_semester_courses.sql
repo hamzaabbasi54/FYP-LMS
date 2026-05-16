@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS batch_semester_courses (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     UNIQUE KEY uq_bsc_entry (batch_id, semester_number, course_id),
+    UNIQUE KEY uq_bsc_batch_course (batch_id, course_id),
     INDEX idx_bsc_batch (batch_id),
     INDEX idx_bsc_course (course_id),
 

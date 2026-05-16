@@ -252,18 +252,24 @@ router.post('/import', isAdmin, upload.single('file'), async (req, res) => {
                     `INSERT INTO students (student_id_number, first_name, last_name, email, phone, batch_id, matric_marks, fsc_marks, background)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                      ON DUPLICATE KEY UPDATE 
+                        id = LAST_INSERT_ID(id),
                         first_name = VALUES(first_name), 
                         last_name = VALUES(last_name), 
                         phone = VALUES(phone), 
-                        batch_id = VALUES(batch_id)`,
+                        batch_id = VALUES(batch_id),
+                        matric_marks = VALUES(matric_marks),
+                        fsc_marks = VALUES(fsc_marks),
+                        background = VALUES(background)`,
                     [studentIdNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', studentBatchId, row.matric_marks || null, row.fsc_marks || null, row.background || null]
                 );
 
+                const studentId = result.insertId;
+
                 // Insert parent if provided
-                if (row.parent_name) {
+                if (row.parent_name && studentId) {
                     await conn.query(
-                        'INSERT INTO parents (student_id, name, email, phone) VALUES (?, ?, ?, ?)',
-                        [result.insertId, row.parent_name, row.parent_email || null, row.parent_phone || null]
+                        'INSERT INTO parents (student_id, name, email, phone) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email), phone = VALUES(phone)',
+                        [studentId, row.parent_name, row.parent_email || null, row.parent_phone || null]
                     );
                 }
 
