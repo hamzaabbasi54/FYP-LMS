@@ -30,6 +30,7 @@ import AddFaculty from './pages/admin-pages/AddFaculty.jsx';
 import AddBatch from './pages/admin-pages/AddBatch.jsx';
 import BatchDetails from "./pages/admin-pages/BatchDetails.jsx";
 import StudentsList from './pages/admin-pages/StudentsList.jsx';
+import StudentDetails from './pages/admin-pages/StudentDetails.jsx';
 import SemesterCourses from "./pages/admin-pages/SemesterCourses.jsx";
 import CreateAccount from './pages/admin-pages/CreateAccount.jsx';
 import ManageUsers from './pages/admin-pages/ManageUsers.jsx';
@@ -85,6 +86,7 @@ function App() {
                         <Route path="/admin-managebatches/addbatch" element={<AddBatch />} />
                         <Route path="/admin-managebatches/:id" element={<BatchDetails />} />
                         <Route path="/admin-managebatches/:id/students" element={<StudentsList />} />
+                        <Route path="/admin-managebatches/:id/students/:studentId" element={<StudentDetails />} />
                         <Route path="/admin-managebatches/:id/semester/:semesterId" element={<SemesterCourses />} />
 
                         <Route path="/admin-managefaculty" element={<ManageFaculty />} />

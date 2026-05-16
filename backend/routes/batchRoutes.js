@@ -117,8 +117,9 @@ router.post('/', isAdmin, async (req, res) => {
     }
 });
 
-// PUT update batch
+// PUT update batch (with curriculum copy-on-assign)
 router.put('/:id', isAdmin, async (req, res) => {
+    const conn = await pool.getConnection();
     try {
         const { name, start_date, end_date, status, is_active, curriculum_id } = req.body;
         const fields = [];
@@ -133,15 +134,41 @@ router.put('/:id', isAdmin, async (req, res) => {
         if (fields.length === 0) {
             return res.status(400).json({ success: false, message: 'No fields to update' });
         }
+
+        await conn.beginTransaction();
         values.push(req.params.id);
-        const [result] = await pool.query(`UPDATE batches SET ${fields.join(', ')} WHERE id = ?`, values);
+        const [result] = await conn.query(`UPDATE batches SET ${fields.join(', ')} WHERE id = ?`, values);
         if (result.affectedRows === 0) {
+            await conn.rollback();
             return res.status(404).json({ success: false, message: 'Batch not found' });
         }
+
+        // If curriculum_id changed, copy curriculum courses to batch_semester_courses
+        if (curriculum_id !== undefined) {
+            // Clear old batch courses
+            await conn.query('DELETE FROM batch_semester_courses WHERE batch_id = ?', [req.params.id]);
+
+            if (curriculum_id) {
+                // Copy all courses from curriculum into batch_semester_courses
+                await conn.query(
+                    `INSERT INTO batch_semester_courses (batch_id, semester_number, course_id, type)
+                     SELECT ?, cs.semester_number, csc.course_id, csc.type
+                     FROM curriculum_semester_courses csc
+                     JOIN curriculum_semesters cs ON csc.curriculum_semester_id = cs.id
+                     WHERE cs.curriculum_id = ?`,
+                    [req.params.id, curriculum_id]
+                );
+            }
+        }
+
+        await conn.commit();
         res.json({ success: true, message: 'Batch updated' });
     } catch (error) {
+        await conn.rollback();
         console.error('Update batch error:', error);
         res.status(500).json({ success: false, message: 'Error updating batch' });
+    } finally {
+        conn.release();
     }
 });
 
@@ -156,6 +183,162 @@ router.delete('/:id', isAdmin, async (req, res) => {
     } catch (error) {
         console.error('Delete batch error:', error);
         res.status(500).json({ success: false, message: 'Error deleting batch' });
+    }
+});
+
+// ===================== BATCH CURRICULUM COURSES =====================
+
+// GET batch courses (grouped by semester) — reads from batch_semester_courses
+router.get('/:id/curriculum-courses', async (req, res) => {
+    try {
+        const [batch] = await pool.query(
+            `SELECT b.*, cur.name as curriculum_name, cur.total_semesters
+             FROM batches b
+             LEFT JOIN curricula cur ON b.curriculum_id = cur.id
+             WHERE b.id = ?`,
+            [req.params.id]
+        );
+
+        if (batch.length === 0) {
+            return res.status(404).json({ success: false, message: 'Batch not found' });
+        }
+
+        const totalSemesters = batch[0].total_semesters || 8;
+
+        // Build semester structure
+        const semesters = [];
+        for (let i = 1; i <= totalSemesters; i++) {
+            // Try fetching batch-specific overrides first
+            let [courses] = await pool.query(
+                `SELECT bsc.id as entry_id, c.id as course_id, c.title, c.code, 
+                        c.credit_hours, c.description, bsc.type, d.name as department_name
+                 FROM batch_semester_courses bsc
+                 JOIN courses c ON bsc.course_id = c.id
+                 JOIN departments d ON c.department_id = d.id
+                 WHERE bsc.batch_id = ? AND bsc.semester_number = ?
+                 ORDER BY bsc.type, c.code`,
+                [req.params.id, i]
+            );
+
+            // FALLBACK: If no batch-specific courses exist but batch has a curriculum,
+            // fetch from the master curriculum blueprint
+            if (courses.length === 0 && batch[0].curriculum_id) {
+                [courses] = await pool.query(
+                    `SELECT NULL as entry_id, c.id as course_id, c.title, c.code, 
+                            c.credit_hours, c.description, csc.type, d.name as department_name
+                     FROM curriculum_semester_courses csc
+                     JOIN curriculum_semesters cs ON csc.curriculum_semester_id = cs.id
+                     JOIN courses c ON csc.course_id = c.id
+                     JOIN departments d ON c.department_id = d.id
+                     WHERE cs.curriculum_id = ? AND cs.semester_number = ?
+                     ORDER BY csc.type, c.code`,
+                    [batch[0].curriculum_id, i]
+                );
+            }
+
+            semesters.push({
+                semester_number: i,
+                name: `Semester ${i}`,
+                courses
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                curriculum_id: batch[0].curriculum_id,
+                curriculum_name: batch[0].curriculum_name,
+                total_semesters: totalSemesters,
+                semesters
+            }
+        });
+    } catch (error) {
+        console.error('Get batch curriculum courses error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching batch courses' });
+    }
+});
+
+// POST add course(s) to a batch semester
+router.post('/:id/semesters/:semNum/courses', isAdmin, async (req, res) => {
+    const conn = await pool.getConnection();
+    try {
+        const { course_id, course_ids, type } = req.body;
+        const courseType = type || 'core';
+        const batchId = req.params.id;
+        const semNum = parseInt(req.params.semNum);
+
+        // Validation
+        if (isNaN(semNum) || semNum < 1 || semNum > 8) {
+            return res.status(400).json({ success: false, message: 'Invalid semester number. Must be 1-8.' });
+        }
+        if (!['core', 'elective'].includes(courseType)) {
+            return res.status(400).json({ success: false, message: 'Invalid course type. Must be "core" or "elective".' });
+        }
+
+        const ids = course_ids && Array.isArray(course_ids) ? course_ids : (course_id ? [course_id] : []);
+        if (ids.length === 0) {
+            return res.status(400).json({ success: false, message: 'course_id or course_ids array is required' });
+        }
+
+        await conn.beginTransaction();
+
+        const added = [];
+        const errors = [];
+
+        for (const cId of ids) {
+            try {
+                // Check if course already exists in ANY semester of this batch
+                const [existing] = await conn.query(
+                    'SELECT id, semester_number FROM batch_semester_courses WHERE batch_id = ? AND course_id = ?',
+                    [batchId, cId]
+                );
+
+                if (existing.length > 0) {
+                    errors.push({ course_id: cId, error: `Already in Semester ${existing[0].semester_number}` });
+                    continue;
+                }
+
+                await conn.query(
+                    'INSERT INTO batch_semester_courses (batch_id, semester_number, course_id, type) VALUES (?, ?, ?, ?)',
+                    [batchId, semNum, cId, courseType]
+                );
+                added.push(cId);
+            } catch (err) {
+                console.error(`Error adding course ${cId} to batch ${batchId}:`, err);
+                errors.push({ course_id: cId, error: 'Failed to process course entry' });
+            }
+        }
+
+        await conn.commit();
+        res.status(201).json({
+            success: true,
+            message: `${added.length} course(s) added to semester ${semNum}`,
+            data: { added, errors }
+        });
+    } catch (error) {
+        await conn.rollback();
+        console.error('Add batch course error:', error);
+        res.status(500).json({ success: false, message: 'Error adding courses' });
+    } finally {
+        conn.release();
+    }
+});
+
+// DELETE remove a course from a batch semester
+router.delete('/:id/semesters/:semNum/courses/:courseId', isAdmin, async (req, res) => {
+    try {
+        const [result] = await pool.query(
+            'DELETE FROM batch_semester_courses WHERE batch_id = ? AND semester_number = ? AND course_id = ?',
+            [req.params.id, req.params.semNum, req.params.courseId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'Course not in this semester' });
+        }
+        res.json({ success: true, message: 'Course removed from batch semester' });
+    } catch (error) {
+        console.error('Remove batch course error:', error);
+        res.status(500).json({ success: false, message: 'Error removing course' });
     }
 });
 
@@ -265,3 +448,4 @@ router.delete('/:batchId/semesters/:semId', isAdmin, async (req, res) => {
 });
 
 export default router;
+

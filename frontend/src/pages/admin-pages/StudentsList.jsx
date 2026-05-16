@@ -1,11 +1,12 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MdArrowBack, MdSearch, MdFileDownload, MdFileUpload, MdPersonAdd, MdClose, MdEmail } from 'react-icons/md';
 import { studentApi } from '../../services/api';
 import { toast } from 'react-toastify';
 
 const StudentList = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const fileInputRef = useRef(null);
     const [showAddModal, setShowAddModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -38,8 +39,10 @@ const StudentList = () => {
 
     const filteredStudents = students.filter((student) => {
         const query = searchQuery.toLowerCase();
+        const fullName = `${student.first_name || ''} ${student.last_name || ''}`.toLowerCase();
         return (
-            (student.name || '').toLowerCase().includes(query) ||
+            fullName.includes(query) ||
+            (student.student_id_number || '').toLowerCase().includes(query) ||
             (student.roll_number || '').toLowerCase().includes(query) ||
             (student.email || '').toLowerCase().includes(query)
         );
@@ -193,24 +196,24 @@ const StudentList = () => {
                                     <tr><td colSpan="4" className="py-12 text-center text-slate-400">{searchQuery ? 'No students match your search' : 'No students enrolled yet'}</td></tr>
                                 ) : (
                                     filteredStudents.map((student) => (
-                                        <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
+                                        <tr key={student.id} onClick={() => navigate(`/admin-managebatches/${id}/students/${student.id}`)} className="hover:bg-slate-50/50 transition-colors cursor-pointer">
                                             <td className="py-4 px-6">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
                                                         <span className="text-slate-600 font-bold text-sm">
-                                                            {(student.name || '').split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                                            {(student.first_name || '?')[0]}{(student.last_name || '?')[0]}
                                                         </span>
                                                     </div>
                                                     <div>
-                                                        <p className="font-semibold text-slate-800">{student.name}</p>
+                                                        <p className="font-semibold text-slate-800">{student.first_name} {student.last_name}</p>
                                                         <p className="text-xs text-slate-400">{student.email}</p>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="py-4 px-6">
-                                                <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-sm font-mono">{student.roll_number}</span>
+                                                <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-sm font-mono">{student.student_id_number || student.roll_number || 'N/A'}</span>
                                             </td>
-                                            <td className="py-4 px-6 text-sm text-slate-500">{student.contact_number || 'N/A'}</td>
+                                            <td className="py-4 px-6 text-sm text-slate-500">{student.phone || student.contact_number || 'N/A'}</td>
                                             <td className="py-4 px-6">
                                                 {student.cgpa != null ? (
                                                     <span className={`px-3 py-1 rounded-lg text-white text-sm font-bold bg-gradient-to-r ${getCgpaColor(student.cgpa)}`}>

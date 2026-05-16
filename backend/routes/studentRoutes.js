@@ -41,12 +41,14 @@ router.get('/', async (req, res) => {
 
         // Get paginated data
         const [students] = await pool.query(
-            `SELECT s.*, b.name as batch_name, d.name as department_name
+            `SELECT s.*, CONCAT(s.first_name, ' ', s.last_name) as name,
+                    s.student_id_number as roll_number, s.phone as contact_number,
+                    b.name as batch_name, d.name as department_name
              FROM students s
-             JOIN batches b ON s.batch_id = b.id
-             JOIN departments d ON b.department_id = d.id
+             LEFT JOIN batches b ON s.batch_id = b.id
+             LEFT JOIN departments d ON b.department_id = d.id
              ${whereClause}
-             ORDER BY s.student_id_number
+             ORDER BY s.created_at DESC
              LIMIT ? OFFSET ?`,
             [...params, limit, offset]
         );
@@ -62,10 +64,12 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const [students] = await pool.query(
-            `SELECT s.*, b.name as batch_name, d.name as department_name
+            `SELECT s.*, CONCAT(s.first_name, ' ', s.last_name) as name,
+                    s.student_id_number as roll_number, s.phone as contact_number,
+                    b.name as batch_name, d.name as department_name
              FROM students s
-             JOIN batches b ON s.batch_id = b.id
-             JOIN departments d ON b.department_id = d.id
+             LEFT JOIN batches b ON s.batch_id = b.id
+             LEFT JOIN departments d ON b.department_id = d.id
              WHERE s.id = ?`,
             [req.params.id]
         );
@@ -150,14 +154,15 @@ router.post('/', isAdmin, async (req, res) => {
 // PUT update student
 router.put('/:id', isAdmin, async (req, res) => {
     try {
-        const { first_name, last_name, email, phone, batch_id, cgpa, is_active, matric_marks, fsc_marks, background } = req.body;
+        const { first_name, last_name, email, phone, batch_id, cgpa, is_active, matric_marks, fsc_marks, background, student_id_number } = req.body;
         const fields = [];
         const values = [];
         if (first_name) { fields.push('first_name = ?'); values.push(first_name); }
         if (last_name) { fields.push('last_name = ?'); values.push(last_name); }
         if (email) { fields.push('email = ?'); values.push(email.toLowerCase()); }
         if (phone !== undefined) { fields.push('phone = ?'); values.push(phone); }
-        if (batch_id) { fields.push('batch_id = ?'); values.push(batch_id); }
+        if (student_id_number !== undefined) { fields.push('student_id_number = ?'); values.push(student_id_number); }
+        if (batch_id !== undefined) { fields.push('batch_id = ?'); values.push(batch_id || null); }
         if (cgpa !== undefined) { fields.push('cgpa = ?'); values.push(cgpa); }
         if (is_active !== undefined) { fields.push('is_active = ?'); values.push(is_active); }
         if (matric_marks !== undefined) { fields.push('matric_marks = ?'); values.push(matric_marks); }
@@ -245,15 +250,26 @@ router.post('/import', isAdmin, upload.single('file'), async (req, res) => {
 
                 const [result] = await conn.query(
                     `INSERT INTO students (student_id_number, first_name, last_name, email, phone, batch_id, matric_marks, fsc_marks, background)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE 
+                        id = LAST_INSERT_ID(id),
+                        first_name = VALUES(first_name), 
+                        last_name = VALUES(last_name), 
+                        phone = VALUES(phone), 
+                        batch_id = VALUES(batch_id),
+                        matric_marks = VALUES(matric_marks),
+                        fsc_marks = VALUES(fsc_marks),
+                        background = VALUES(background)`,
                     [studentIdNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', studentBatchId, row.matric_marks || null, row.fsc_marks || null, row.background || null]
                 );
 
+                const studentId = result.insertId;
+
                 // Insert parent if provided
-                if (row.parent_name) {
+                if (row.parent_name && studentId) {
                     await conn.query(
-                        'INSERT INTO parents (student_id, name, email, phone) VALUES (?, ?, ?, ?)',
-                        [result.insertId, row.parent_name, row.parent_email || null, row.parent_phone || null]
+                        'INSERT INTO parents (student_id, name, email, phone) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email), phone = VALUES(phone)',
+                        [studentId, row.parent_name, row.parent_email || null, row.parent_phone || null]
                     );
                 }
 

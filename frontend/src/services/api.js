@@ -203,6 +203,19 @@ export const batchApi = {
     deletePLO: async (batchId, ploId) => {
         const response = await api.delete(`/batches/${batchId}/plos/${ploId}`);
         return response.data;
+    },
+    // Batch Curriculum Courses (copy-on-assign pattern)
+    getCurriculumCourses: async (batchId) => {
+        const response = await api.get(`/batches/${batchId}/curriculum-courses`);
+        return response.data;
+    },
+    addBatchCourse: async (batchId, semesterNumber, data) => {
+        const response = await api.post(`/batches/${batchId}/semesters/${semesterNumber}/courses`, data);
+        return response.data;
+    },
+    removeBatchCourse: async (batchId, semesterNumber, courseId) => {
+        const response = await api.delete(`/batches/${batchId}/semesters/${semesterNumber}/courses/${courseId}`);
+        return response.data;
     }
 };
 
