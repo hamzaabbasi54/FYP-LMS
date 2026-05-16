@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MdArrowBack, MdPeople, MdAccessTime, MdArrowForward, MdMenuBook, MdAdd, MdDelete, MdClose, MdSearch, MdCheckCircle, MdSchool, MdLibraryBooks } from 'react-icons/md';
+import { MdArrowBack, MdPeople, MdAccessTime, MdArrowForward, MdMenuBook, MdAdd, MdDelete, MdClose, MdSearch, MdCheckCircle, MdSchool, MdLibraryBooks, MdInfo } from 'react-icons/md';
 import { batchApi, curriculumApi, courseApi } from '../../services/api';
 import { toast } from 'react-toastify';
 
@@ -9,7 +9,7 @@ const BatchDetails = () => {
     const [batchData, setBatchData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [curricula, setCurricula] = useState([]);
-    const [curriculumData, setCurriculumData] = useState(null);
+    const [batchCourseData, setBatchCourseData] = useState(null);
     const [activeSemester, setActiveSemester] = useState(1);
     const [assigningCurriculum, setAssigningCurriculum] = useState(false);
 
@@ -37,8 +37,8 @@ const BatchDetails = () => {
             const res = await batchApi.getById(id);
             if (res.success) {
                 setBatchData(res.data);
-                if (res.data.curriculum_id) fetchCurriculumData(res.data.curriculum_id);
-                else setCurriculumData(null);
+                if (res.data.curriculum_id) fetchBatchCourses();
+                else setBatchCourseData(null);
             }
         } catch (e) { toast.error('Failed to load batch'); }
         finally { setLoading(false); }
@@ -51,10 +51,11 @@ const BatchDetails = () => {
         } catch (e) { console.error(e); }
     };
 
-    const fetchCurriculumData = async (cId) => {
+    // Fetch batch-specific courses (from batch_semester_courses table)
+    const fetchBatchCourses = async () => {
         try {
-            const res = await curriculumApi.getById(cId);
-            if (res.success) setCurriculumData(res.data);
+            const res = await batchApi.getCurriculumCourses(id);
+            if (res.success) setBatchCourseData(res.data);
         } catch (e) { console.error(e); }
     };
 
@@ -62,12 +63,12 @@ const BatchDetails = () => {
         setAssigningCurriculum(true);
         try {
             await batchApi.update(id, { curriculum_id: val || null });
-            toast.success(val ? 'Curriculum assigned' : 'Curriculum removed');
+            toast.success(val ? 'Curriculum assigned — courses copied to batch' : 'Curriculum removed');
             const res = await batchApi.getById(id);
             if (res.success) {
                 setBatchData(res.data);
-                if (res.data.curriculum_id) fetchCurriculumData(res.data.curriculum_id);
-                else setCurriculumData(null);
+                if (res.data.curriculum_id) fetchBatchCourses();
+                else setBatchCourseData(null);
             }
             setActiveSemester(1);
         } catch (e) { toast.error('Failed to update curriculum'); }
@@ -83,39 +84,41 @@ const BatchDetails = () => {
         setShowAddCourse(true);
     };
 
+    // Add courses to THIS BATCH's semester (not the curriculum)
     const handleAddCourses = async () => {
-        if (!selectedCourses.length || !curriculumData) return;
+        if (!selectedCourses.length) return;
         setAddingCourses(true);
         try {
-            const res = await curriculumApi.addCourses(curriculumData.id, activeSemester, {
+            const res = await batchApi.addBatchCourse(id, activeSemester, {
                 course_ids: selectedCourses, type: courseType
             });
             if (res.success) {
                 const a = res.data?.added?.length || 0;
-                if (a > 0) toast.success(`${a} course(s) added`);
+                if (a > 0) toast.success(`${a} course(s) added to batch`);
                 res.data?.errors?.forEach(e => toast.warn(`${e.error}`));
             }
             setShowAddCourse(false);
-            fetchCurriculumData(curriculumData.id);
+            fetchBatchCourses();
         } catch (e) { toast.error('Failed to add courses'); }
         finally { setAddingCourses(false); }
     };
 
+    // Remove course from THIS BATCH's semester (not the curriculum)
     const handleRemoveCourse = async (courseId) => {
-        if (!window.confirm('Remove this course?') || !curriculumData) return;
+        if (!window.confirm('Remove this course from this batch?')) return;
         setRemovingCourseId(courseId);
         try {
-            await curriculumApi.removeCourse(curriculumData.id, activeSemester, courseId);
-            toast.success('Course removed');
-            fetchCurriculumData(curriculumData.id);
+            await batchApi.removeBatchCourse(id, activeSemester, courseId);
+            toast.success('Course removed from batch');
+            fetchBatchCourses();
         } catch (e) { toast.error('Failed to remove'); }
         finally { setRemovingCourseId(null); }
     };
 
     const getExistingCourseIds = () => {
-        if (!curriculumData?.semesters) return new Set();
+        if (!batchCourseData?.semesters) return new Set();
         const ids = new Set();
-        curriculumData.semesters.forEach(s => s.courses?.forEach(c => ids.add(c.course_id)));
+        batchCourseData.semesters.forEach(s => s.courses?.forEach(c => ids.add(c.course_id)));
         return ids;
     };
 
@@ -147,7 +150,7 @@ const BatchDetails = () => {
         </div>
     );
 
-    const activeSemData = curriculumData?.semesters?.find(s => s.semester_number === activeSemester);
+    const activeSemData = batchCourseData?.semesters?.find(s => s.semester_number === activeSemester);
     const coreCourses = activeSemData?.courses?.filter(c => c.type === 'core') || [];
     const electiveCourses = activeSemData?.courses?.filter(c => c.type === 'elective') || [];
 
@@ -219,22 +222,33 @@ const BatchDetails = () => {
                         </div>
                         {batchData.curriculum_id && (
                             <Link to={`/admin-curricula/${batchData.curriculum_id}`} className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-xl font-medium text-sm hover:shadow-lg transition-all whitespace-nowrap">
-                                <MdMenuBook className="w-4 h-4" /> Edit Blueprint
+                                <MdMenuBook className="w-4 h-4" /> View Blueprint
                             </Link>
                         )}
                     </div>
+
+                    {/* Info banner: explain that edits here don't affect the curriculum */}
+                    {batchData.curriculum_id && (
+                        <div className="mt-4 flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl p-4">
+                            <MdInfo className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                            <p className="text-sm text-blue-700">
+                                Courses below are a copy from <strong>{batchCourseData?.curriculum_name || 'the curriculum'}</strong>. 
+                                Adding or removing courses here only affects this batch — the original curriculum is not changed.
+                            </p>
+                        </div>
+                    )}
                 </div>
 
-                {/* Semester Tabs + Courses (only shown when curriculum is assigned) */}
-                {curriculumData && (
+                {/* Semester Tabs + Courses (reads from batch_semester_courses) */}
+                {batchCourseData && (
                     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                         {/* Semester Tabs */}
                         <div className="flex overflow-x-auto border-b border-slate-100">
-                            {curriculumData.semesters?.map((sem) => {
+                            {batchCourseData.semesters?.map((sem) => {
                                 const isActive = sem.semester_number === activeSemester;
                                 const count = sem.courses?.length || 0;
                                 return (
-                                    <button key={sem.id} onClick={() => setActiveSemester(sem.semester_number)}
+                                    <button key={sem.semester_number} onClick={() => setActiveSemester(sem.semester_number)}
                                         className={`flex-shrink-0 px-6 py-4 text-sm font-medium transition-all relative ${isActive ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}>
                                         <span className="flex items-center gap-2">
                                             Sem {sem.semester_number}
