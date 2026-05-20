@@ -397,6 +397,10 @@ export const assessmentApi = {
     delete: async (id) => {
         const response = await api.delete(`/assessments/${id}`);
         return response.data;
+    },
+    getCLOsForCourse: async (courseId) => {
+        const response = await api.get(`/courses/${courseId}/clos-for-assessment`);
+        return response.data;
     }
 };
 
@@ -418,6 +422,20 @@ export const gradeApi = {
         });
         return response.data;
     },
+    downloadTemplate: async (assessmentId) => {
+        const response = await api.get(`/assessments/${assessmentId}/grades/template`, {
+            responseType: 'blob'
+        });
+        // Trigger download
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `grading_template_${assessmentId}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    },
     importGrades: async (assessmentId, file) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -427,6 +445,7 @@ export const gradeApi = {
         return response.data;
     }
 };
+
 
 // ============================================
 // Attendance API

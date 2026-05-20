@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { MdSearch, MdChevronRight, MdSave } from 'react-icons/md';
+import { MdSearch, MdChevronRight, MdSave, MdDownload, MdUploadFile } from 'react-icons/md';
 import { useCourse } from '../../context/CourseContext';
 import { assessmentApi, gradeApi, studentApi } from '../../services/api';
 
@@ -21,6 +21,10 @@ const GradeAssignment = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState(null);
+    const [downloading, setDownloading] = useState(false);
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const fileInputRef = useRef(null);
 
     // Avatar color options
     const avatarColors = [
@@ -207,7 +211,6 @@ const GradeAssignment = () => {
 
     // Handle cancel
     const handleCancel = () => {
-        // Reset scores to original values
         setScores({ ...originalScores });
         const originalRemarks = {};
         students.forEach(s => {
@@ -216,6 +219,57 @@ const GradeAssignment = () => {
         setRemarks(originalRemarks);
         setUnsavedChanges({});
         setSaveMessage(null);
+    };
+
+    // Handle template download
+    const handleDownloadTemplate = async () => {
+        try {
+            setDownloading(true);
+            await gradeApi.downloadTemplate(gradeAssignmentId);
+        } catch (err) {
+            console.error('Download template error:', err);
+            setSaveMessage({ type: 'error', text: 'Failed to download template. Make sure students are enrolled.' });
+        } finally {
+            setDownloading(false);
+        }
+    };
+
+    // Handle import grades from Excel
+    const handleImportFile = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+            setImporting(true);
+            setImportResult(null);
+            const result = await gradeApi.importGrades(gradeAssignmentId, file);
+            setImportResult(result);
+            // Refresh data after import
+            if (result.success && result.data?.imported > 0) {
+                const gradesRes = await gradeApi.getByAssessment(gradeAssignmentId, { limit: 500 });
+                const existingGrades = gradesRes.data || [];
+                const gradeMap = {};
+                existingGrades.forEach(g => {
+                    gradeMap[g.student_id] = { score: g.score, remarks: g.remarks || '' };
+                });
+                const newScores = {};
+                const newRemarks = {};
+                students.forEach(s => {
+                    const grade = gradeMap[s.id];
+                    newScores[s.id] = grade?.score ?? '';
+                    newRemarks[s.id] = grade?.remarks || '';
+                });
+                setScores(newScores);
+                setRemarks(newRemarks);
+                setOriginalScores({ ...newScores });
+                setUnsavedChanges({});
+            }
+        } catch (err) {
+            console.error('Import error:', err);
+            setImportResult({ success: false, message: 'Failed to import grades. Please check the file format.' });
+        } finally {
+            setImporting(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
     };
 
     // Filter students based on search
@@ -336,6 +390,58 @@ const GradeAssignment = () => {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Template Download & Import Section */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-1">Excel Grading</h3>
+                        <p className="text-sm text-gray-500">Download a template, fill in scores, and import back.</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleDownloadTemplate}
+                            disabled={downloading}
+                            className="flex items-center px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-sm transition-colors font-medium text-sm disabled:opacity-50"
+                        >
+                            <MdDownload className="w-5 h-5 mr-2" />
+                            {downloading ? 'Downloading...' : 'Get Template'}
+                        </button>
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={importing}
+                            className="flex items-center px-4 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 shadow-sm transition-colors font-medium text-sm disabled:opacity-50"
+                        >
+                            <MdUploadFile className="w-5 h-5 mr-2" />
+                            {importing ? 'Importing...' : 'Import Grades'}
+                        </button>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleImportFile}
+                            accept=".xlsx,.xls"
+                            className="hidden"
+                        />
+                    </div>
+                </div>
+                {importResult && (
+                    <div className={`mt-4 px-4 py-3 rounded-lg text-sm font-medium ${
+                        importResult.success
+                            ? 'bg-green-50 text-green-700 border border-green-200'
+                            : 'bg-red-50 text-red-700 border border-red-200'
+                    }`}>
+                        <p>{importResult.message}</p>
+                        {importResult.data && (
+                            <p className="mt-1 text-xs">
+                                {importResult.data.imported} imported, {importResult.data.skipped} skipped
+                                {importResult.data.errors?.length > 0 && (
+                                    <span> — Errors: {importResult.data.errors.map(e => `Row ${e.row}: ${e.error}`).join('; ')}</span>
+                                )}
+                            </p>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Student Submissions Table */}
