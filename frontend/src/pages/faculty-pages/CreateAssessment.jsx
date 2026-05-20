@@ -11,7 +11,8 @@ const CreateAssessment = () => {
     const [searchParams] = useSearchParams();
     const courseAssignmentId = selectedCourse?.assignment_id || assignmentId;
     const courseCode = selectedCourse?.code || 'Course';
-    const courseId = selectedCourse?.course_id;
+    const courseIdFromContext = selectedCourse?.course_id;
+    const [effectiveCourseId, setEffectiveCourseId] = useState(courseIdFromContext);
 
     const isEditMode = !!gradeAssignmentId;
 
@@ -37,18 +38,23 @@ const CreateAssessment = () => {
     const [error, setError] = useState(null);
 
     // Fetch CLOs for this course
+    // Keep effectiveCourseId in sync with context changes
+    useEffect(() => {
+        if (courseIdFromContext) setEffectiveCourseId(courseIdFromContext);
+    }, [courseIdFromContext]);
+
     useEffect(() => {
         const fetchCLOs = async () => {
-            if (!courseId) return;
+            if (!effectiveCourseId) return;
             try {
-                const res = await assessmentApi.getCLOsForCourse(courseId);
+                const res = await assessmentApi.getCLOsForCourse(effectiveCourseId);
                 if (res.success) setAvailableCLOs(res.data || []);
             } catch (err) {
                 console.error('Error fetching CLOs:', err);
             }
         };
         fetchCLOs();
-    }, [courseId]);
+    }, [effectiveCourseId]);
 
     // Fetch existing assessment data when editing
     useEffect(() => {
@@ -83,7 +89,11 @@ const CreateAssessment = () => {
                             weightage: q.weightage ? String(q.weightage) : '',
                             clo_id: q.clo_id ? String(q.clo_id) : ''
                         })));
+                    } else {
+                        setQuestions([]);
                     }
+                    // Backfill courseId from fetched assessment for CLO loading
+                    if (a.course_id) setEffectiveCourseId(a.course_id);
                 }
             } catch (err) {
                 console.error('Error fetching assessment for edit:', err);
@@ -119,8 +129,9 @@ const CreateAssessment = () => {
     };
 
     // Calculate totals for validation
+    // Use the same normalization as submit payload (fallback to 10 for marks)
     const calculatedMaxScore = questions.length > 0
-        ? questions.reduce((sum, q) => sum + (parseFloat(q.max_marks) || 0), 0)
+        ? questions.reduce((sum, q) => sum + (parseFloat(q.max_marks) || 10), 0)
         : 0;
 
     const calculatedWeightage = questions.length > 0

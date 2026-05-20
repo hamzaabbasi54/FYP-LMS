@@ -30,6 +30,9 @@ CREATE TABLE IF NOT EXISTS assessment_questions (
         ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 2b. Add composite unique index so (assessment_id, id) can be referenced by FK
+ALTER TABLE assessment_questions ADD UNIQUE INDEX uq_aq_assessment_id (assessment_id, id);
+
 -- 3. Create question_grades table
 CREATE TABLE IF NOT EXISTS question_grades (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -44,6 +47,7 @@ CREATE TABLE IF NOT EXISTS question_grades (
     INDEX idx_qg_assessment (assessment_id),
     INDEX idx_qg_student (student_id),
     INDEX idx_qg_question (question_id),
+    INDEX idx_qg_assessment_question (assessment_id, question_id),
 
     CONSTRAINT fk_qg_assessment
         FOREIGN KEY (assessment_id) REFERENCES assessments(id)
@@ -51,7 +55,7 @@ CREATE TABLE IF NOT EXISTS question_grades (
     CONSTRAINT fk_qg_student
         FOREIGN KEY (student_id) REFERENCES students(id)
         ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT fk_qg_question
-        FOREIGN KEY (question_id) REFERENCES assessment_questions(id)
+    CONSTRAINT fk_qg_assessment_question
+        FOREIGN KEY (assessment_id, question_id) REFERENCES assessment_questions(assessment_id, id)
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

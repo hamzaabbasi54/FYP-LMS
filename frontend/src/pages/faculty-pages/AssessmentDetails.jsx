@@ -19,9 +19,11 @@ const AssessmentDetails = () => {
         const fetchAssessment = async () => {
             try {
                 setLoading(true);
+                setError(null);
                 const res = await assessmentApi.getById(gradeAssignmentId);
                 if (res.success) {
                     setAssessment(res.data);
+                    setError(null);
                 } else {
                     setError('Assessment not found');
                 }
@@ -138,7 +140,7 @@ const AssessmentDetails = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {assessment.due_date && assessment.status === 'scheduled' ? (
+                    {assessment.status === 'scheduled' ? (
                         <span
                             className="flex items-center px-4 py-2.5 bg-gray-300 text-gray-500 rounded-lg shadow-sm font-medium text-sm cursor-not-allowed"
                             title="Cannot grade a scheduled assignment before its due date"

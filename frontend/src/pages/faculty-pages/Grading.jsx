@@ -387,7 +387,7 @@ const Grading = () => {
                                             {/* Actions */}
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    {assessment.due_date && assessment.status === 'scheduled' ? (
+                                                    {assessment.status === 'scheduled' ? (
                                                         <span
                                                             className="flex items-center px-3 py-1.5 bg-gray-300 text-gray-500 rounded-lg text-xs font-medium cursor-not-allowed"
                                                             title="Cannot grade a scheduled assignment before its due date"

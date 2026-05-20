@@ -261,6 +261,11 @@ const GradeAssignment = () => {
                 setScores(newScores);
                 setRemarks(newRemarks);
                 setOriginalScores({ ...newScores });
+                setStudents(prev => prev.map(s => ({
+                    ...s,
+                    score: newScores[s.id] !== '' ? parseFloat(newScores[s.id]) : null,
+                    remarks: newRemarks[s.id] || ''
+                })));
                 setUnsavedChanges({});
             }
         } catch (err) {

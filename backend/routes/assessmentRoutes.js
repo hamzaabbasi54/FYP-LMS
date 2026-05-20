@@ -225,16 +225,15 @@ router.put('/:id', async (req, res) => {
             }
         }
 
-        if (mapped_clos && Array.isArray(mapped_clos)) {
-            await conn.query('DELETE FROM assessment_clo_mapping WHERE assessment_id = ?', [req.params.id]);
-            if (mapped_clos.length > 0) {
-                const mappingValues = mapped_clos.map(cloId => [req.params.id, cloId]);
-                await conn.query('INSERT INTO assessment_clo_mapping (assessment_id, clo_id) VALUES ?', [mappingValues]);
-            }
-        }
-
-        // Update questions (delete and re-insert)
+        // Update questions (delete and re-insert) — reject if grades exist
         if (questions && Array.isArray(questions)) {
+            const [[{ gradeCount }]] = await conn.query(
+                'SELECT COUNT(*) as gradeCount FROM question_grades WHERE assessment_id = ?', [req.params.id]
+            );
+            if (gradeCount > 0) {
+                await conn.rollback();
+                return res.status(400).json({ success: false, message: 'Cannot modify questions: grades already exist for this assessment. Delete grades first.' });
+            }
             await conn.query('DELETE FROM assessment_questions WHERE assessment_id = ?', [req.params.id]);
             if (questions.length > 0) {
                 for (let i = 0; i < questions.length; i++) {
@@ -245,6 +244,22 @@ router.put('/:id', async (req, res) => {
                         [req.params.id, i + 1, q.description || null, q.max_marks || 10, q.weightage || null, q.clo_id || null]
                     );
                 }
+            }
+        }
+
+        // Recompute CLO mappings from both mapped_clos and question clo_ids
+        const allCloIds = new Set();
+        if (mapped_clos && Array.isArray(mapped_clos)) {
+            mapped_clos.forEach(id => { if (id) allCloIds.add(parseInt(id)); });
+        }
+        if (questions && Array.isArray(questions)) {
+            questions.forEach(q => { if (q.clo_id) allCloIds.add(parseInt(q.clo_id)); });
+        }
+        if (mapped_clos || (questions && questions.some(q => q.clo_id))) {
+            await conn.query('DELETE FROM assessment_clo_mapping WHERE assessment_id = ?', [req.params.id]);
+            if (allCloIds.size > 0) {
+                const mappingValues = [...allCloIds].map(cloId => [req.params.id, cloId]);
+                await conn.query('INSERT INTO assessment_clo_mapping (assessment_id, clo_id) VALUES ?', [mappingValues]);
             }
         }
 
@@ -356,9 +371,9 @@ router.post('/:id/grades', async (req, res) => {
 // GET download grading template for an assessment (with questions as columns)
 router.get('/:id/grades/template', async (req, res) => {
     try {
-        // Get assessment info
+        // Get assessment info with faculty ownership
         const [assessments] = await pool.query(
-            `SELECT a.*, ca.course_id FROM assessments a
+            `SELECT a.*, ca.course_id, ca.faculty_id FROM assessments a
              JOIN course_assignments ca ON a.course_assignment_id = ca.id
              WHERE a.id = ?`, [req.params.id]
         );
@@ -366,6 +381,11 @@ router.get('/:id/grades/template', async (req, res) => {
             return res.status(404).json({ success: false, message: 'Assessment not found' });
         }
         const assessment = assessments[0];
+
+        // Authorization check
+        if (req.user.role === 'faculty' && assessment.faculty_id !== req.user.id) {
+            return res.status(403).json({ success: false, message: 'Not authorized to access this template' });
+        }
 
         // Get questions
         const [questions] = await pool.query(
@@ -450,6 +470,14 @@ router.post('/:id/grades/import', upload.single('file'), async (req, res) => {
             return res.status(403).json({ success: false, message: 'Not authorized to grade this assessment' });
         }
 
+        // Get assessment details for validation
+        const [assessmentRows] = await conn.query(
+            `SELECT a.*, ca.course_assignment_id as ca_id FROM assessments a
+             JOIN course_assignments ca ON a.course_assignment_id = ca.id
+             WHERE a.id = ?`, [req.params.id]
+        );
+        const assessment = assessmentRows.length > 0 ? assessmentRows[0] : null;
+
         // Get questions for this assessment
         const [questions] = await conn.query(
             `SELECT * FROM assessment_questions WHERE assessment_id = ? ORDER BY question_number`,
@@ -473,11 +501,14 @@ router.post('/:id/grades/import', upload.single('file'), async (req, res) => {
                 }
 
                 const [students] = await conn.query(
-                    'SELECT id FROM students WHERE student_id_number = ?', [regNum]
+                    `SELECT s.id FROM students s
+                     JOIN enrollments e ON s.id = e.student_id
+                     WHERE s.student_id_number = ? AND e.course_assignment_id = ?`,
+                    [regNum, assessment.course_assignment_id]
                 );
                 if (students.length === 0) {
                     skipped++;
-                    errors.push({ row: i + 2, student: regNum, error: 'Student not found' });
+                    errors.push({ row: i + 2, student: regNum, error: 'Student not found or not enrolled' });
                     continue;
                 }
                 const studentId = students[0].id;
@@ -493,6 +524,11 @@ router.post('/:id/grades/import', upload.single('file'), async (req, res) => {
                         if (colKey !== undefined && row[colKey] !== '' && row[colKey] !== undefined) {
                             const qScore = parseFloat(row[colKey]);
                             if (!isNaN(qScore)) {
+                                // Validate score range
+                                if (qScore < 0 || qScore > parseFloat(q.max_marks)) {
+                                    errors.push({ row: i + 2, student: regNum, error: `Q${q.question_number} score ${qScore} out of range (0-${q.max_marks})` });
+                                    continue;
+                                }
                                 hasQuestionScores = true;
                                 totalScore += qScore;
 
@@ -511,7 +547,15 @@ router.post('/:id/grades/import', upload.single('file'), async (req, res) => {
                     const scoreKey = Object.keys(row).find(k => k.startsWith('Total Score') || k === 'score' || k === 'Score');
                     if (scoreKey && row[scoreKey] !== '' && row[scoreKey] !== undefined) {
                         totalScore = parseFloat(row[scoreKey]);
-                        if (!isNaN(totalScore)) hasQuestionScores = true;
+                        if (!isNaN(totalScore)) {
+                            // Validate against assessment max_score
+                            if (totalScore < 0 || (assessment && totalScore > parseFloat(assessment.max_score))) {
+                                errors.push({ row: i + 2, student: regNum, error: `Total score ${totalScore} out of range (0-${assessment?.max_score})` });
+                                totalScore = 0;
+                            } else {
+                                hasQuestionScores = true;
+                            }
+                        }
                     }
                 }
 
