@@ -54,6 +54,7 @@ import Messages from "./pages/faculty-pages/Messages.jsx";
 import Notifications from "./pages/faculty-pages/Notifications.jsx";
 import Schedule from "./pages/faculty-pages/Schedule.jsx";
 import ManageStudents from "./pages/faculty-pages/ManageStudents.jsx";
+import AssessmentDetails from "./pages/faculty-pages/AssessmentDetails.jsx";
 import { CourseProvider } from "./context/CourseContext.jsx";
 
 
@@ -128,6 +129,8 @@ function App() {
                         <Route path="/faculty-mycourses/:assignmentId/register-student" element={<RegisterStudent />} />
                         <Route path="/faculty-mycourses/:assignmentId/grading" element={<Grading />} />
                         <Route path="/faculty-mycourses/:assignmentId/grading/:gradeAssignmentId" element={<GradeAssignment />} />
+                        <Route path="/faculty-mycourses/:assignmentId/grading/:gradeAssignmentId/details" element={<AssessmentDetails />} />
+                        <Route path="/faculty-mycourses/:assignmentId/grading/:gradeAssignmentId/edit" element={<CreateAssessment />} />
                         <Route path="/faculty-mycourses/:assignmentId/grading/new" element={<CreateAssessment />} />
                         <Route path="/faculty-mycourses/:assignmentId/students" element={<ManageStudents />} />
                         <Route path="/faculty-messages" element={<Messages />} />

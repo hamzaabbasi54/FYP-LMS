@@ -357,8 +357,48 @@ router.get('/assignments', isAdmin, async (req, res) => {
     }
 });
 
+// GET CLOs for a specific course (for assessment question CLO dropdown)
+router.get('/:id/clos-for-assessment', async (req, res) => {
+    try {
+        const [clos] = await pool.query(
+            `SELECT c.id, c.clo_number, c.title, c.description
+             FROM clos c
+             WHERE c.course_id = ?
+             ORDER BY c.clo_number`,
+            [req.params.id]
+        );
+
+        // Also get CLOs mapped via the junction table (course_clo_mapping)
+        const [mappedClos] = await pool.query(
+            `SELECT c.id, c.clo_number, c.title, c.description
+             FROM course_clo_mapping ccm
+             JOIN clos c ON ccm.clo_id = c.id
+             WHERE ccm.course_id = ?
+             ORDER BY c.clo_number`,
+            [req.params.id]
+        );
+
+        // Merge and deduplicate
+        const allClos = [...clos, ...mappedClos];
+        const uniqueClos = [];
+        const seen = new Set();
+        allClos.forEach(clo => {
+            if (!seen.has(clo.id)) {
+                seen.add(clo.id);
+                uniqueClos.push(clo);
+            }
+        });
+
+        res.json({ success: true, data: uniqueClos });
+    } catch (error) {
+        console.error('Get CLOs for assessment error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching CLOs' });
+    }
+});
+
 // GET single course with CLOs and syllabus
 router.get('/:id', async (req, res) => {
+
     try {
         const [courses] = await pool.query(
             `SELECT c.*, d.name as department_name

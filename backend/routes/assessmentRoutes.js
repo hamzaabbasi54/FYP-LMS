@@ -55,9 +55,18 @@ router.get('/course/:courseAssignmentId', async (req, res) => {
                 cloMap[m.assessment_id].push({ id: m.id, clo_number: m.clo_number, title: m.title });
             });
 
+            // Fetch question counts
+            const [qCounts] = await pool.query(
+                `SELECT assessment_id, COUNT(*) as question_count FROM assessment_questions WHERE assessment_id IN (?) GROUP BY assessment_id`,
+                [assessmentIds]
+            );
+            const qMap = {};
+            qCounts.forEach(q => { qMap[q.assessment_id] = q.question_count; });
+
             // Attach to assessments
             assessments.forEach(a => {
                 a.mapped_clos = cloMap[a.id] || [];
+                a.question_count = qMap[a.id] || 0;
             });
         }
 
@@ -68,11 +77,11 @@ router.get('/course/:courseAssignmentId', async (req, res) => {
     }
 });
 
-// GET single assessment with grade summary
+// GET single assessment with grade summary and questions
 router.get('/:id', async (req, res) => {
     try {
         const [assessments] = await pool.query(
-            `SELECT a.*, c.title as course_title, c.code as course_code
+            `SELECT a.*, c.title as course_title, c.code as course_code, ca.course_id
              FROM assessments a
              JOIN course_assignments ca ON a.course_assignment_id = ca.id
              JOIN courses c ON ca.course_id = c.id
@@ -98,7 +107,17 @@ router.get('/:id', async (req, res) => {
             [req.params.id]
         );
 
-        res.json({ success: true, data: { ...assessments[0], grade_stats: stats[0], mapped_clos: mappings } });
+        // Fetch questions with CLO info
+        const [questions] = await pool.query(
+            `SELECT aq.*, c.title as clo_title, c.clo_number as clo_number
+             FROM assessment_questions aq
+             LEFT JOIN clos c ON aq.clo_id = c.id
+             WHERE aq.assessment_id = ?
+             ORDER BY aq.question_number`,
+            [req.params.id]
+        );
+
+        res.json({ success: true, data: { ...assessments[0], grade_stats: stats[0], mapped_clos: mappings, questions } });
     } catch (error) {
         console.error('Get assessment error:', error);
         res.status(500).json({ success: false, message: 'Error fetching assessment' });
@@ -110,23 +129,52 @@ router.post('/', async (req, res) => {
     const conn = await pool.getConnection();
     try {
         await conn.beginTransaction();
-        const { course_assignment_id, type, title, description, due_date, release_grades_on, max_score, weight, duration_minutes, status, mapped_clos } = req.body;
+        const { course_assignment_id, type, title, description, due_date, conducted_date, release_grades_on, max_score, weight, duration_minutes, status, mapped_clos, questions } = req.body;
         if (!course_assignment_id || !type || !title) {
             return res.status(400).json({ success: false, message: 'course_assignment_id, type, and title are required' });
         }
+
+        // Auto-calculate max_score from questions if provided
+        let finalMaxScore = max_score || 100;
+        if (questions && Array.isArray(questions) && questions.length > 0) {
+            const sumMarks = questions.reduce((sum, q) => sum + (parseFloat(q.max_marks) || 0), 0);
+            if (sumMarks > 0) finalMaxScore = sumMarks;
+        }
         
         const [result] = await conn.query(
-            `INSERT INTO assessments (course_assignment_id, type, title, description, due_date, release_grades_on, max_score, weight, duration_minutes, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [course_assignment_id, type, title, description || null, due_date || null, release_grades_on || null,
-             max_score || 100, weight || null, duration_minutes || null, status || 'draft']
+            `INSERT INTO assessments (course_assignment_id, type, title, description, due_date, conducted_date, release_grades_on, max_score, weight, duration_minutes, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [course_assignment_id, type, title, description || null, due_date || null, conducted_date || null, release_grades_on || null,
+             finalMaxScore, weight || null, duration_minutes || null, status || 'draft']
         );
         
         const assessmentId = result.insertId;
 
+        // Insert CLO mappings (assessment-level)
         if (mapped_clos && Array.isArray(mapped_clos) && mapped_clos.length > 0) {
             const mappingValues = mapped_clos.map(cloId => [assessmentId, cloId]);
             await conn.query('INSERT INTO assessment_clo_mapping (assessment_id, clo_id) VALUES ?', [mappingValues]);
+        }
+
+        // Insert questions
+        if (questions && Array.isArray(questions) && questions.length > 0) {
+            for (let i = 0; i < questions.length; i++) {
+                const q = questions[i];
+                await conn.query(
+                    `INSERT INTO assessment_questions (assessment_id, question_number, description, max_marks, weightage, clo_id)
+                     VALUES (?, ?, ?, ?, ?, ?)`,
+                    [assessmentId, i + 1, q.description || null, q.max_marks || 10, q.weightage || null, q.clo_id || null]
+                );
+            }
+
+            // Auto-collect unique CLOs from questions and add to assessment_clo_mapping
+            const questionCloIds = [...new Set(questions.filter(q => q.clo_id).map(q => q.clo_id))];
+            const existingClos = (mapped_clos || []).map(id => parseInt(id));
+            const newClos = questionCloIds.filter(id => !existingClos.includes(parseInt(id)));
+            if (newClos.length > 0) {
+                const newMappingValues = newClos.map(cloId => [assessmentId, cloId]);
+                await conn.query('INSERT IGNORE INTO assessment_clo_mapping (assessment_id, clo_id) VALUES ?', [newMappingValues]);
+            }
         }
 
         await conn.commit();
@@ -145,18 +193,28 @@ router.put('/:id', async (req, res) => {
     const conn = await pool.getConnection();
     try {
         await conn.beginTransaction();
-        const { type, title, description, due_date, release_grades_on, max_score, weight, duration_minutes, status, mapped_clos } = req.body;
+        const { type, title, description, due_date, conducted_date, release_grades_on, max_score, weight, duration_minutes, status, mapped_clos, questions } = req.body;
         const fields = [];
         const values = [];
         if (type) { fields.push('type = ?'); values.push(type); }
         if (title) { fields.push('title = ?'); values.push(title); }
         if (description !== undefined) { fields.push('description = ?'); values.push(description); }
         if (due_date !== undefined) { fields.push('due_date = ?'); values.push(due_date); }
+        if (conducted_date !== undefined) { fields.push('conducted_date = ?'); values.push(conducted_date); }
         if (release_grades_on !== undefined) { fields.push('release_grades_on = ?'); values.push(release_grades_on); }
         if (max_score) { fields.push('max_score = ?'); values.push(max_score); }
         if (weight !== undefined) { fields.push('weight = ?'); values.push(weight); }
         if (duration_minutes !== undefined) { fields.push('duration_minutes = ?'); values.push(duration_minutes); }
         if (status) { fields.push('status = ?'); values.push(status); }
+
+        // Auto-calculate max_score from questions if provided
+        if (questions && Array.isArray(questions) && questions.length > 0) {
+            const sumMarks = questions.reduce((sum, q) => sum + (parseFloat(q.max_marks) || 0), 0);
+            if (sumMarks > 0) {
+                fields.push('max_score = ?');
+                values.push(sumMarks);
+            }
+        }
         
         if (fields.length > 0) {
             values.push(req.params.id);
@@ -167,10 +225,40 @@ router.put('/:id', async (req, res) => {
             }
         }
 
+        // Update questions (delete and re-insert) — reject if grades exist
+        if (questions && Array.isArray(questions)) {
+            const [[{ gradeCount }]] = await conn.query(
+                'SELECT COUNT(*) as gradeCount FROM question_grades WHERE assessment_id = ?', [req.params.id]
+            );
+            if (gradeCount > 0) {
+                await conn.rollback();
+                return res.status(400).json({ success: false, message: 'Cannot modify questions: grades already exist for this assessment. Delete grades first.' });
+            }
+            await conn.query('DELETE FROM assessment_questions WHERE assessment_id = ?', [req.params.id]);
+            if (questions.length > 0) {
+                for (let i = 0; i < questions.length; i++) {
+                    const q = questions[i];
+                    await conn.query(
+                        `INSERT INTO assessment_questions (assessment_id, question_number, description, max_marks, weightage, clo_id)
+                         VALUES (?, ?, ?, ?, ?, ?)`,
+                        [req.params.id, i + 1, q.description || null, q.max_marks || 10, q.weightage || null, q.clo_id || null]
+                    );
+                }
+            }
+        }
+
+        // Recompute CLO mappings from both mapped_clos and question clo_ids
+        const allCloIds = new Set();
         if (mapped_clos && Array.isArray(mapped_clos)) {
+            mapped_clos.forEach(id => { if (id) allCloIds.add(parseInt(id)); });
+        }
+        if (questions && Array.isArray(questions)) {
+            questions.forEach(q => { if (q.clo_id) allCloIds.add(parseInt(q.clo_id)); });
+        }
+        if (mapped_clos || (questions && questions.some(q => q.clo_id))) {
             await conn.query('DELETE FROM assessment_clo_mapping WHERE assessment_id = ?', [req.params.id]);
-            if (mapped_clos.length > 0) {
-                const mappingValues = mapped_clos.map(cloId => [req.params.id, cloId]);
+            if (allCloIds.size > 0) {
+                const mappingValues = [...allCloIds].map(cloId => [req.params.id, cloId]);
                 await conn.query('INSERT INTO assessment_clo_mapping (assessment_id, clo_id) VALUES ?', [mappingValues]);
             }
         }
@@ -278,15 +366,88 @@ router.post('/:id/grades', async (req, res) => {
     }
 });
 
-// ===================== GRADES EXCEL IMPORT =====================
+// ===================== GRADES EXCEL TEMPLATE =====================
 
-// POST import grades from Excel
+// GET download grading template for an assessment (with questions as columns)
+router.get('/:id/grades/template', async (req, res) => {
+    try {
+        // Get assessment info with faculty ownership
+        const [assessments] = await pool.query(
+            `SELECT a.*, ca.course_id, ca.faculty_id FROM assessments a
+             JOIN course_assignments ca ON a.course_assignment_id = ca.id
+             WHERE a.id = ?`, [req.params.id]
+        );
+        if (assessments.length === 0) {
+            return res.status(404).json({ success: false, message: 'Assessment not found' });
+        }
+        const assessment = assessments[0];
+
+        // Authorization check
+        if (req.user.role === 'faculty' && assessment.faculty_id !== req.user.id) {
+            return res.status(403).json({ success: false, message: 'Not authorized to access this template' });
+        }
+
+        // Get questions
+        const [questions] = await pool.query(
+            `SELECT * FROM assessment_questions WHERE assessment_id = ? ORDER BY question_number`,
+            [req.params.id]
+        );
+
+        // Get enrolled students
+        const [students] = await pool.query(
+            `SELECT s.id, s.student_id_number, s.first_name, s.last_name
+             FROM students s
+             JOIN enrollments e ON s.id = e.student_id
+             WHERE e.course_assignment_id = ?
+             ORDER BY s.last_name, s.first_name`,
+            [assessment.course_assignment_id]
+        );
+
+        if (students.length === 0) {
+            return res.status(404).json({ success: false, message: 'No students enrolled' });
+        }
+
+        // Build template rows
+        const templateRows = students.map(s => {
+            const row = {
+                'Registration Number': s.student_id_number,
+                'Student Name': `${s.first_name} ${s.last_name}`
+            };
+
+            if (questions.length > 0) {
+                // One column per question
+                questions.forEach(q => {
+                    row[`Q${q.question_number} (Max: ${q.max_marks})`] = '';
+                });
+            } else {
+                // No questions defined, just a total score column
+                row[`Total Score (Max: ${assessment.max_score})`] = '';
+            }
+
+            row['Remarks'] = '';
+            return row;
+        });
+
+        const typeLabel = assessment.type.charAt(0).toUpperCase() + assessment.type.slice(1);
+        const buffer = generateExcel(templateRows, `${typeLabel} Grades`);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename=${assessment.type}_${assessment.id}_template.xlsx`);
+        res.send(buffer);
+    } catch (error) {
+        console.error('Download template error:', error);
+        res.status(500).json({ success: false, message: 'Error generating template' });
+    }
+});
+
+// ===================== GRADES EXCEL IMPORT (QUESTION-LEVEL) =====================
+
+// POST import grades from Excel (supports question-level columns)
 router.post('/:id/grades/import', upload.single('file'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({
             success: false,
             message: 'Excel file required.',
-            expected_columns: ['student_id_number', 'score', 'remarks']
+            expected_columns: ['Registration Number', 'Student Name', 'Q1', 'Q2', '...', 'Remarks']
         });
     }
 
@@ -309,6 +470,20 @@ router.post('/:id/grades/import', upload.single('file'), async (req, res) => {
             return res.status(403).json({ success: false, message: 'Not authorized to grade this assessment' });
         }
 
+        // Get assessment details for validation
+        const [assessmentRows] = await conn.query(
+            `SELECT a.*, ca.course_assignment_id as ca_id FROM assessments a
+             JOIN course_assignments ca ON a.course_assignment_id = ca.id
+             WHERE a.id = ?`, [req.params.id]
+        );
+        const assessment = assessmentRows.length > 0 ? assessmentRows[0] : null;
+
+        // Get questions for this assessment
+        const [questions] = await conn.query(
+            `SELECT * FROM assessment_questions WHERE assessment_id = ? ORDER BY question_number`,
+            [req.params.id]
+        );
+
         await conn.beginTransaction();
         const rows = parseExcel(req.file.path);
         let imported = 0, skipped = 0;
@@ -317,22 +492,87 @@ router.post('/:id/grades/import', upload.single('file'), async (req, res) => {
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             try {
-                const [students] = await conn.query(
-                    'SELECT id FROM students WHERE student_id_number = ?', [row.student_id_number]
-                );
-                if (students.length === 0) {
+                // Find the registration number column (try multiple possible names)
+                const regNum = row['Registration Number'] || row['student_id_number'] || row['Reg No'] || row['registration_number'];
+                if (!regNum) {
                     skipped++;
-                    errors.push({ row: i + 2, student: row.student_id_number, error: 'Student not found' });
+                    errors.push({ row: i + 2, error: 'Missing registration number' });
                     continue;
                 }
 
-                await conn.query(
-                    `INSERT INTO grades (assessment_id, student_id, score, remarks, graded_by, graded_at)
-                     VALUES (?, ?, ?, ?, ?, NOW())
-                     ON DUPLICATE KEY UPDATE score = VALUES(score), remarks = VALUES(remarks), graded_by = VALUES(graded_by), graded_at = NOW()`,
-                    [req.params.id, students[0].id, row.score, row.remarks || null, req.user.id]
+                const [students] = await conn.query(
+                    `SELECT s.id FROM students s
+                     JOIN enrollments e ON s.id = e.student_id
+                     WHERE s.student_id_number = ? AND e.course_assignment_id = ?`,
+                    [regNum, assessment.course_assignment_id]
                 );
-                imported++;
+                if (students.length === 0) {
+                    skipped++;
+                    errors.push({ row: i + 2, student: regNum, error: 'Student not found or not enrolled' });
+                    continue;
+                }
+                const studentId = students[0].id;
+
+                let totalScore = 0;
+                let hasQuestionScores = false;
+
+                if (questions.length > 0) {
+                    // Process question-level scores
+                    for (const q of questions) {
+                        // Try to find the column for this question
+                        const colKey = Object.keys(row).find(k => k.startsWith(`Q${q.question_number}`));
+                        if (colKey !== undefined && row[colKey] !== '' && row[colKey] !== undefined) {
+                            const qScore = parseFloat(row[colKey]);
+                            if (!isNaN(qScore)) {
+                                // Validate score range
+                                if (qScore < 0 || qScore > parseFloat(q.max_marks)) {
+                                    errors.push({ row: i + 2, student: regNum, error: `Q${q.question_number} score ${qScore} out of range (0-${q.max_marks})` });
+                                    continue;
+                                }
+                                hasQuestionScores = true;
+                                totalScore += qScore;
+
+                                // Upsert question grade
+                                await conn.query(
+                                    `INSERT INTO question_grades (assessment_id, student_id, question_id, score)
+                                     VALUES (?, ?, ?, ?)
+                                     ON DUPLICATE KEY UPDATE score = VALUES(score)`,
+                                    [req.params.id, studentId, q.id, qScore]
+                                );
+                            }
+                        }
+                    }
+                } else {
+                    // No questions — look for total score column
+                    const scoreKey = Object.keys(row).find(k => k.startsWith('Total Score') || k === 'score' || k === 'Score');
+                    if (scoreKey && row[scoreKey] !== '' && row[scoreKey] !== undefined) {
+                        totalScore = parseFloat(row[scoreKey]);
+                        if (!isNaN(totalScore)) {
+                            // Validate against assessment max_score
+                            if (totalScore < 0 || (assessment && totalScore > parseFloat(assessment.max_score))) {
+                                errors.push({ row: i + 2, student: regNum, error: `Total score ${totalScore} out of range (0-${assessment?.max_score})` });
+                                totalScore = 0;
+                            } else {
+                                hasQuestionScores = true;
+                            }
+                        }
+                    }
+                }
+
+                // Upsert total grade
+                if (hasQuestionScores) {
+                    const remarks = row['Remarks'] || row['remarks'] || null;
+                    await conn.query(
+                        `INSERT INTO grades (assessment_id, student_id, score, remarks, graded_by, graded_at)
+                         VALUES (?, ?, ?, ?, ?, NOW())
+                         ON DUPLICATE KEY UPDATE score = VALUES(score), remarks = VALUES(remarks), graded_by = VALUES(graded_by), graded_at = NOW()`,
+                        [req.params.id, studentId, totalScore, remarks, req.user.id]
+                    );
+                    imported++;
+                } else {
+                    skipped++;
+                    errors.push({ row: i + 2, student: regNum, error: 'No scores found' });
+                }
             } catch (err) {
                 skipped++;
                 errors.push({ row: i + 2, error: err.message });

@@ -216,7 +216,7 @@ const Navbar = () => {
                                 Grades
                             </Link>
                             <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <span className="text-gray-700 font-medium">OOP Concepts Essay</span>
+                            <span className="text-gray-700 font-medium">Assessment Details</span>
                         </div>
                     ) : isGradingPage ? (
                         // Breadcrumbs for Grading page

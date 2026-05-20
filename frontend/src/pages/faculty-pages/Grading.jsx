@@ -349,7 +349,7 @@ const Grading = () => {
                                             {/* Assessment Name */}
                                             <td className="px-6 py-4">
                                                 <Link 
-                                                    to={`/faculty-mycourses/${courseAssignmentId}/grading/${assessment.id}`}
+                                                    to={`/faculty-mycourses/${courseAssignmentId}/grading/${assessment.id}/details`}
                                                     className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                                                 >
                                                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${iconColor}`}>
@@ -387,23 +387,25 @@ const Grading = () => {
                                             {/* Actions */}
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    {assessment.status === 'graded' && (
-                                                        <button className="flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium">
-                                                            <MdNotificationsActive className="w-4 h-4 mr-1" />
-                                                            Notify Students
-                                                        </button>
-                                                    )}
-                                                    {(assessment.status === 'needs_grading' || assessment.status === 'published') && (
+                                                    {assessment.status === 'scheduled' ? (
+                                                        <span
+                                                            className="flex items-center px-3 py-1.5 bg-gray-300 text-gray-500 rounded-lg text-xs font-medium cursor-not-allowed"
+                                                            title="Cannot grade a scheduled assignment before its due date"
+                                                        >
+                                                            Grade Now
+                                                        </span>
+                                                    ) : (
                                                         <Link
                                                             to={`/faculty-mycourses/${courseAssignmentId}/grading/${assessment.id}`}
-                                                            className="flex items-center px-3 py-1.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-xs font-medium"
+                                                            className="flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
                                                         >
                                                             Grade Now
                                                         </Link>
                                                     )}
-                                                    <button 
-                                                        onClick={() => navigate(`/faculty-mycourses/${courseAssignmentId}/grading/${assessment.id}`)}
+                                                    <button
+                                                        onClick={() => navigate(`/faculty-mycourses/${courseAssignmentId}/grading/${assessment.id}/edit`)}
                                                         className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        title="Edit assessment"
                                                     >
                                                         <MdEdit className="w-5 h-5" />
                                                     </button>
