@@ -15,10 +15,8 @@ const GradeAssignment = () => {
     const [assessment, setAssessment] = useState(null);
     const [students, setStudents] = useState([]);
     const [scores, setScores] = useState({});
-    const [questionScores, setQuestionScores] = useState({});
     const [remarks, setRemarks] = useState({});
     const [originalScores, setOriginalScores] = useState({});
-    const [originalQuestionScores, setOriginalQuestionScores] = useState({});
     const [unsavedChanges, setUnsavedChanges] = useState({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -83,7 +81,7 @@ const GradeAssignment = () => {
                 // Build grade lookup: { studentId: { score, remarks } }
                 const gradeMap = {};
                 existingGrades.forEach(g => {
-                    gradeMap[g.student_id] = { score: g.score, remarks: g.remarks || '', question_scores: g.question_scores || {} };
+                    gradeMap[g.student_id] = { score: g.score, remarks: g.remarks || '' };
                 });
 
                 // Merge students with grades
@@ -99,8 +97,7 @@ const GradeAssignment = () => {
                         initials,
                         avatarColor: getAvatarColor(fullName),
                         score: grade?.score ?? null,
-                        remarks: grade?.remarks || '',
-                        question_scores: grade?.question_scores || {}
+                        remarks: grade?.remarks || ''
                     };
                 });
 
@@ -108,18 +105,14 @@ const GradeAssignment = () => {
 
                 // Initialize scores
                 const initialScores = {};
-                const initialQuestionScores = {};
                 const initialRemarks = {};
                 mergedStudents.forEach(s => {
                     initialScores[s.id] = s.score !== null ? s.score : '';
-                    initialQuestionScores[s.id] = s.question_scores || {};
                     initialRemarks[s.id] = s.remarks || '';
                 });
                 setScores(initialScores);
-                setQuestionScores(initialQuestionScores);
                 setRemarks(initialRemarks);
                 setOriginalScores({ ...initialScores });
-                setOriginalQuestionScores(JSON.parse(JSON.stringify(initialQuestionScores)));
 
             } catch (err) {
                 console.error('Error fetching grading data:', err);
@@ -156,41 +149,6 @@ const GradeAssignment = () => {
         setSaveMessage(null);
     };
 
-    // Handle question score change
-    const handleQuestionScoreChange = (studentId, questionNum, value) => {
-        const numValue = value === '' ? '' : parseFloat(value);
-        
-        setQuestionScores(prev => {
-            const studentQ = { ...prev[studentId] };
-            studentQ[`q${questionNum}`] = numValue;
-            
-            // Auto sum total score
-            let sum = 0;
-            let hasAny = false;
-            Object.values(studentQ).forEach(v => {
-                if (v !== '' && v !== null && v !== undefined) {
-                    sum += parseFloat(v);
-                    hasAny = true;
-                }
-            });
-
-            // Update total score silently
-            setScores(sPrev => ({
-                ...sPrev,
-                [studentId]: hasAny ? sum : ''
-            }));
-
-            return { ...prev, [studentId]: studentQ };
-        });
-
-        setUnsavedChanges(prev => ({
-            ...prev,
-            [studentId]: true
-        }));
-        
-        setSaveMessage(null);
-    };
-
     // Handle remarks change
     const handleRemarksChange = (studentId, value) => {
         setRemarks(prev => ({
@@ -219,8 +177,7 @@ const GradeAssignment = () => {
                 .map(s => ({
                     student_id: s.id,
                     score: parseFloat(scores[s.id]),
-                    remarks: remarks[s.id] || null,
-                    question_scores: questionScores[s.id] || {}
+                    remarks: remarks[s.id] || null
                 }));
 
             if (gradesPayload.length === 0) {
@@ -236,14 +193,12 @@ const GradeAssignment = () => {
                 setUnsavedChanges({});
                 // Update original scores
                 setOriginalScores({ ...scores });
-                setOriginalQuestionScores(JSON.parse(JSON.stringify(questionScores)));
                 // Update students with new scores
                 setStudents(prev =>
                     prev.map(student => ({
                         ...student,
                         score: scores[student.id] !== '' ? parseFloat(scores[student.id]) : null,
-                        remarks: remarks[student.id] || '',
-                        question_scores: questionScores[student.id] || {}
+                        remarks: remarks[student.id] || ''
                     }))
                 );
             } else {
@@ -260,7 +215,6 @@ const GradeAssignment = () => {
     // Handle cancel
     const handleCancel = () => {
         setScores({ ...originalScores });
-        setQuestionScores(JSON.parse(JSON.stringify(originalQuestionScores)));
         const originalRemarks = {};
         students.forEach(s => {
             originalRemarks[s.id] = s.remarks || '';
@@ -319,31 +273,27 @@ const GradeAssignment = () => {
             setPreviewData(null);
             setSelectedFile(null);
             
+            // Refresh data after import
             if (result.success && result.data?.imported > 0) {
                 const gradesRes = await gradeApi.getByAssessment(gradeAssignmentId, { limit: 500 });
                 const existingGrades = gradesRes.data || [];
                 const gradeMap = {};
                 existingGrades.forEach(g => {
-                    gradeMap[g.student_id] = { score: g.score, remarks: g.remarks || '', question_scores: g.question_scores || {} };
+                    gradeMap[g.student_id] = { score: g.score, remarks: g.remarks || '' };
                 });
                 const newScores = {};
-                const newQuestionScores = {};
                 const newRemarks = {};
                 students.forEach(s => {
                     const grade = gradeMap[s.id];
                     newScores[s.id] = grade?.score ?? '';
-                    newQuestionScores[s.id] = grade?.question_scores || {};
                     newRemarks[s.id] = grade?.remarks || '';
                 });
                 setScores(newScores);
-                setQuestionScores(newQuestionScores);
                 setRemarks(newRemarks);
                 setOriginalScores({ ...newScores });
-                setOriginalQuestionScores(JSON.parse(JSON.stringify(newQuestionScores)));
                 setStudents(prev => prev.map(s => ({
                     ...s,
                     score: newScores[s.id] !== '' ? parseFloat(newScores[s.id]) : null,
-                    question_scores: newQuestionScores[s.id] || {},
                     remarks: newRemarks[s.id] || ''
                 })));
                 setUnsavedChanges({});
@@ -554,19 +504,11 @@ const GradeAssignment = () => {
                     <table className="w-full">
                         <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider sticky left-0 bg-gray-50 z-10">
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                     STUDENT
                                 </th>
-                                {assessment.questions && assessment.questions.length > 0 ? (
-                                    assessment.questions.map(q => (
-                                        <th key={q.id} className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px]">
-                                            Q{q.question_number} <span className="text-gray-400 font-normal">({q.max_marks})</span>
-                                            {q.clo_title && <div className="text-[10px] text-blue-500 mt-1">{q.clo_title}</div>}
-                                        </th>
-                                    ))
-                                ) : null}
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    {assessment.questions && assessment.questions.length > 0 ? 'TOTAL SCORE' : 'SCORE'}
+                                    SCORE
                                 </th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                     REMARKS
@@ -589,25 +531,7 @@ const GradeAssignment = () => {
                                         </div>
                                     </td>
 
-                                    {/* Question Inputs (if any) */}
-                                    {assessment.questions && assessment.questions.length > 0 ? (
-                                        assessment.questions.map(q => (
-                                            <td key={q.id} className="px-6 py-4">
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    max={q.max_marks}
-                                                    step="0.5"
-                                                    value={questionScores[student.id]?.[`q${q.question_number}`] !== undefined ? questionScores[student.id][`q${q.question_number}`] : ''}
-                                                    onChange={(e) => handleQuestionScoreChange(student.id, q.question_number, e.target.value)}
-                                                    className={`w-16 px-2 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'}`}
-                                                    placeholder="0"
-                                                />
-                                            </td>
-                                        ))
-                                    ) : null}
-
-                                    {/* Total Score Input */}
+                                    {/* Score Input */}
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-2">
                                             <input
@@ -617,12 +541,8 @@ const GradeAssignment = () => {
                                                 step="0.5"
                                                 value={scores[student.id] !== undefined ? scores[student.id] : ''}
                                                 onChange={(e) => handleScoreChange(student.id, e.target.value)}
-                                                disabled={assessment.questions && assessment.questions.length > 0}
-                                                className={`w-20 px-3 py-2 border rounded-lg text-sm focus:outline-none ${
-                                                    assessment.questions && assessment.questions.length > 0 
-                                                        ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed font-semibold'
-                                                        : `focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'}`
-                                                }`}
+                                                className={`w-20 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'
+                                                    }`}
                                                 placeholder="0"
                                             />
                                             <span className="text-sm text-gray-600">/ {assessment.max_score}</span>

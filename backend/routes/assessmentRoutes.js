@@ -311,7 +311,33 @@ router.get('/:id/grades', async (req, res) => {
             [req.params.id, limit, offset]
         );
 
-        res.json(paginatedResponse(grades, total, page, limit));
+        // Fetch question grades for these students
+        let questionGradesMap = {};
+        if (grades.length > 0) {
+            const studentIds = grades.map(g => g.student_id);
+            const [qGrades] = await pool.query(
+                `SELECT qg.student_id, qg.question_id, qg.score, aq.question_number
+                 FROM question_grades qg
+                 JOIN assessment_questions aq ON qg.question_id = aq.id
+                 WHERE qg.assessment_id = ? AND qg.student_id IN (?)`,
+                [req.params.id, studentIds]
+            );
+
+            qGrades.forEach(qg => {
+                if (!questionGradesMap[qg.student_id]) {
+                    questionGradesMap[qg.student_id] = {};
+                }
+                questionGradesMap[qg.student_id][`q${qg.question_number}`] = qg.score;
+            });
+        }
+
+        // Attach question scores safely (default to empty object)
+        const enrichedGrades = grades.map(g => ({
+            ...g,
+            question_scores: questionGradesMap[g.student_id] || {}
+        }));
+
+        res.json(paginatedResponse(enrichedGrades, total, page, limit));
     } catch (error) {
         console.error('Get grades error:', error);
         res.status(500).json({ success: false, message: 'Error fetching grades' });
@@ -345,13 +371,49 @@ router.post('/:id/grades', async (req, res) => {
             return res.status(400).json({ success: false, message: 'grades array is required' });
         }
 
+        // Fetch questions to validate scores and map question_number to id
+        const [questions] = await conn.query(
+            'SELECT id, question_number, max_marks FROM assessment_questions WHERE assessment_id = ?',
+            [req.params.id]
+        );
+
         for (const grade of grades) {
+            // Validate question scores if provided
+            let finalScore = grade.score;
+            
+            if (grade.question_scores && questions.length > 0) {
+                let computedScore = 0;
+                for (const q of questions) {
+                    const qScore = grade.question_scores[`q${q.question_number}`];
+                    if (qScore !== undefined && qScore !== null && qScore !== '') {
+                        const parsedScore = parseFloat(qScore);
+                        if (!isNaN(parsedScore)) {
+                            // Validate against max marks
+                            if (parsedScore < 0 || parsedScore > parseFloat(q.max_marks)) {
+                                throw new Error(`Score for Question ${q.question_number} exceeds maximum allowed marks.`);
+                            }
+                            computedScore += parsedScore;
+                            
+                            // Insert/Update question grade
+                            await conn.query(
+                                `INSERT INTO question_grades (assessment_id, student_id, question_id, score)
+                                 VALUES (?, ?, ?, ?)
+                                 ON DUPLICATE KEY UPDATE score = VALUES(score)`,
+                                [req.params.id, grade.student_id, q.id, parsedScore]
+                            );
+                        }
+                    }
+                }
+                // Override the total score with the computed sum if questions exist
+                finalScore = computedScore;
+            }
+
             await conn.query(
                 `INSERT INTO grades (assessment_id, student_id, score, remarks, graded_by, graded_at)
                  VALUES (?, ?, ?, ?, ?, NOW())
                  ON DUPLICATE KEY UPDATE
                  score = VALUES(score), remarks = VALUES(remarks), graded_by = VALUES(graded_by), graded_at = NOW()`,
-                [req.params.id, grade.student_id, grade.score, grade.remarks || null, req.user.id]
+                [req.params.id, grade.student_id, finalScore, grade.remarks || null, req.user.id]
             );
         }
 
@@ -360,7 +422,7 @@ router.post('/:id/grades', async (req, res) => {
     } catch (error) {
         await conn.rollback();
         console.error('Save grades error:', error);
-        res.status(500).json({ success: false, message: 'Error saving grades' });
+        res.status(500).json({ success: false, message: error.message || 'Error saving grades' });
     } finally {
         conn.release();
     }
