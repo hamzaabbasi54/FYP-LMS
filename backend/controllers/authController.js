@@ -144,11 +144,11 @@ export const login = async (req, res) => {
         }
 
         // Validate role
-        const validRoles = ['deptadmin', 'faculty'];
+        const validRoles = ['super_admin', 'deptadmin', 'faculty'];
         if (role && !validRoles.includes(role)) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid role. Must be deptadmin or faculty'
+                message: 'Invalid role. Must be super_admin, deptadmin, or faculty'
             });
         }
 
@@ -231,7 +231,9 @@ export const login = async (req, res) => {
                 email: user.email,
                 role: user.role,
                 faculty: user.faculty_name || '',
-                department: user.department_name || ''
+                department: user.department_name || '',
+                faculty_id: user.faculty_id,
+                department_id: user.department_id
             }
         });
     } catch (error) {
@@ -326,6 +328,8 @@ export const updateProfile = async (req, res) => {
                 role: user.role,
                 faculty: user.faculty_name || '',
                 department: user.department_name || '',
+                faculty_id: user.faculty_id,
+                department_id: user.department_id,
                 phoneNumber: user.phone_number,
                 status: user.status,
                 isActive: user.is_active

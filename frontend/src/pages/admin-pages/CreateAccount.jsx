@@ -10,8 +10,8 @@ const CreateAccount = () => {
         department: '',
         faculty: '',
         phoneNumber: '',
-        permissions: [],
-        isActive: true
+        isActive: true,
+        employment_type: 'permanent'
     });
 
     const [faculties, setFaculties] = useState([]);
@@ -57,82 +57,20 @@ const CreateAccount = () => {
         }
     };
 
-    const roles = [
-        { value: 'faculty', label: 'Faculty (Teacher)' },
-        { value: 'deptadmin', label: 'Department Admin' }
-    ];
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const isSuperAdmin = currentUser.role === 'super_admin';
+    const isDeptAdmin = currentUser.role === 'deptadmin';
 
-    const availablePermissions = [
-        {
-            category: 'Academic Structure',
-            permissions: [
-                { code: 'batches.view', label: 'View Batches', module: 'Batch Management' },
-                { code: 'batches.create', label: 'Create Batches', module: 'Batch Management' },
-                { code: 'batches.edit', label: 'Edit Batches', module: 'Batch Management' },
-                { code: 'batches.delete', label: 'Delete Batches', module: 'Batch Management' },
-                { code: 'semesters.view', label: 'View Semesters', module: 'Semester Management' },
-                { code: 'semesters.create', label: 'Create Semesters', module: 'Semester Management' },
-                { code: 'semesters.edit', label: 'Edit Semesters', module: 'Semester Management' },
-                { code: 'plos.view', label: 'View PLOs', module: 'PLO Management' },
-                { code: 'plos.create', label: 'Create PLOs', module: 'PLO Management' }
-            ]
-        },
-        {
-            category: 'Course Management',
-            permissions: [
-                { code: 'courses.view', label: 'View Courses', module: 'Course Catalog' },
-                { code: 'courses.create', label: 'Create Courses', module: 'Course Catalog' },
-                { code: 'courses.edit', label: 'Edit Courses', module: 'Course Catalog' },
-                { code: 'courses.delete', label: 'Delete Courses', module: 'Course Catalog' },
-                { code: 'courses.assign', label: 'Assign Faculty to Courses', module: 'Course Assignment' },
-                { code: 'materials.upload', label: 'Upload Course Materials', module: 'Course Materials' },
-                { code: 'materials.view', label: 'View Course Materials', module: 'Course Materials' }
-            ]
-        },
-        {
-            category: 'Assessment & Grading',
-            permissions: [
-                { code: 'assignments.view', label: 'View Assignments', module: 'Assignment Management' },
-                { code: 'assignments.create', label: 'Create Assignments', module: 'Assignment Management' },
-                { code: 'assignments.grade', label: 'Grade Assignments', module: 'Grading' },
-                { code: 'grades.view', label: 'View Grades', module: 'Grading' },
-                { code: 'grades.submit', label: 'Submit Final Grades', module: 'Grading' }
-            ]
-        },
-        {
-            category: 'Attendance',
-            permissions: [
-                { code: 'attendance.view', label: 'View Attendance', module: 'Attendance Tracking' },
-                { code: 'attendance.mark', label: 'Mark Attendance', module: 'Attendance Tracking' },
-                { code: 'attendance.edit', label: 'Edit Attendance', module: 'Attendance Tracking' }
-            ]
-        },
-        {
-            category: 'Student Management',
-            permissions: [
-                { code: 'students.view', label: 'View Students', module: 'Student Management' },
-                { code: 'students.create', label: 'Add Students', module: 'Student Management' },
-                { code: 'students.edit', label: 'Edit Student Info', module: 'Student Management' },
-                { code: 'students.import', label: 'Bulk Import Students', module: 'Student Management' }
-            ]
-        },
-        {
-            category: 'Lab Management',
-            permissions: [
-                { code: 'labs.view', label: 'View Lab Sessions', module: 'Lab Management' },
-                { code: 'labs.manage', label: 'Manage Lab Sessions', module: 'Lab Management' },
-                { code: 'labs.grade', label: 'Grade Lab Work', module: 'Lab Management' }
-            ]
-        },
-        {
-            category: 'Reports & Analytics',
-            permissions: [
-                { code: 'reports.view', label: 'View Reports', module: 'Reports Dashboard' },
-                { code: 'reports.department', label: 'Department Reports', module: 'Reports Dashboard' },
-                { code: 'reports.course', label: 'Course Reports', module: 'Reports Dashboard' }
-            ]
+    const roles = isSuperAdmin
+        ? [{ value: 'deptadmin', label: 'Department Admin' }]
+        : [{ value: 'faculty', label: 'Faculty (Teacher)' }];
+
+    // Auto-select the only available role on mount
+    useEffect(() => {
+        if (roles.length === 1) {
+            setFormData(prev => ({ ...prev, role: roles[0].value }));
         }
-    ];
+    }, []);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -142,37 +80,6 @@ const CreateAccount = () => {
         }));
     };
 
-    const handlePermissionChange = (permissionCode) => {
-        setFormData(prev => {
-            const permissions = prev.permissions.includes(permissionCode)
-                ? prev.permissions.filter(p => p !== permissionCode)
-                : [...prev.permissions, permissionCode];
-            return { ...prev, permissions };
-        });
-    };
-
-    const selectAllInCategory = (category) => {
-        const categoryPermissions = availablePermissions
-            .find(c => c.category === category)
-            ?.permissions.map(p => p.code) || [];
-
-        const allSelected = categoryPermissions.every(code =>
-            formData.permissions.includes(code)
-        );
-
-        if (allSelected) {
-            setFormData(prev => ({
-                ...prev,
-                permissions: prev.permissions.filter(p => !categoryPermissions.includes(p))
-            }));
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                permissions: [...new Set([...prev.permissions, ...categoryPermissions])]
-            }));
-        }
-    };
-
 
 
     const handleSubmit = async (e) => {
@@ -180,11 +87,6 @@ const CreateAccount = () => {
 
         if (!formData.role) {
             setError('Please select a role');
-            return;
-        }
-
-        if (formData.permissions.length === 0) {
-            setError('Please select at least one permission');
             return;
         }
 
@@ -204,7 +106,6 @@ const CreateAccount = () => {
                         department: '',
                         faculty: '',
                         phoneNumber: '',
-                        permissions: [],
                         isActive: true
                     });
                     setSuccess(false);
@@ -344,125 +245,89 @@ const CreateAccount = () => {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">
-                                    Faculty *
-                                </label>
-                                <div className="relative">
-                                    <MdBusiness className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                    <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 pointer-events-none" />
-                                    <select
-                                        name="faculty"
-                                        value={formData.faculty}
-                                        onChange={handleChange}
-                                        required
-                                        className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
-                                    >
-                                        <option value="">Select Faculty</option>
-                                        {faculties.map((fac) => (
-                                            <option key={fac.id} value={fac.name}>{fac.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
+                            {/* Faculty and Department - Only for Super Admin */}
+                            {isSuperAdmin && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                                            Faculty *
+                                        </label>
+                                        <div className="relative">
+                                            <MdBusiness className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                            <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 pointer-events-none" />
+                                            <select
+                                                name="faculty"
+                                                value={formData.faculty}
+                                                onChange={handleChange}
+                                                required
+                                                className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+                                            >
+                                                <option value="">Select Faculty</option>
+                                                {faculties.map((fac) => (
+                                                    <option key={fac.id} value={fac.name}>{fac.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">
-                                    Department *
-                                </label>
-                                <div className="relative">
-                                    <MdBusiness className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                    <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 pointer-events-none" />
-                                    <select
-                                        name="department"
-                                        value={formData.department}
-                                        onChange={handleChange}
-                                        required
-                                        disabled={!formData.faculty}
-                                        className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white disabled:bg-slate-50 disabled:cursor-not-allowed"
-                                    >
-                                        <option value="">
-                                            {formData.faculty ? 'Select Department' : 'Select Faculty First'}
-                                        </option>
-                                        {departments.map((dept) => (
-                                            <option key={dept.id} value={dept.name}>{dept.name}</option>
-                                        ))}
-                                    </select>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                                            Department *
+                                        </label>
+                                        <div className="relative">
+                                            <MdBusiness className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                            <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 pointer-events-none" />
+                                            <select
+                                                name="department"
+                                                value={formData.department}
+                                                onChange={handleChange}
+                                                required
+                                                disabled={!formData.faculty}
+                                                className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white disabled:bg-slate-50 disabled:cursor-not-allowed"
+                                            >
+                                                <option value="">
+                                                    {formData.faculty ? 'Select Department' : 'Select Faculty First'}
+                                                </option>
+                                                {departments.map((dept) => (
+                                                    <option key={dept.id} value={dept.name}>{dept.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Employment Type - Only for Faculty */}
+                            {formData.role === 'faculty' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                                        Employment Type *
+                                    </label>
+                                    <div className="relative">
+                                        <MdPerson className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                        <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 pointer-events-none" />
+                                        <select
+                                            name="employment_type"
+                                            value={formData.employment_type}
+                                            onChange={handleChange}
+                                            required
+                                            className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+                                        >
+                                            <option value="permanent">Permanent</option>
+                                            <option value="visiting">Visiting</option>
+                                        </select>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </div>
 
-                    {/* Permissions Selection */}
-                    {formData.role && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-bold text-slate-800">Assign Permissions</h2>
-                                <span className="text-sm text-slate-500">
-                                    {formData.permissions.length} permission(s) selected
-                                </span>
-                            </div>
-                            <p className="text-sm text-slate-600 mb-6">
-                                Select which modules this user can access. Only checked modules will be visible on their dashboard.
-                            </p>
-
-                            <div className="space-y-6">
-                                {availablePermissions.map((category) => {
-                                    const categoryPermissions = category.permissions.map(p => p.code);
-                                    const allSelected = categoryPermissions.every(code =>
-                                        formData.permissions.includes(code)
-                                    );
-
-                                    return (
-                                        <div key={category.category} className="border border-slate-200 rounded-xl p-4">
-                                            <div className="flex items-center justify-between mb-3">
-                                                <h3 className="font-semibold text-slate-800">{category.category}</h3>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => selectAllInCategory(category.category)}
-                                                    className={`text-xs px-3 py-1 rounded-lg transition-colors ${allSelected
-                                                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                                        }`}
-                                                >
-                                                    {allSelected ? 'Deselect All' : 'Select All'}
-                                                </button>
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                {category.permissions.map((permission) => (
-                                                    <label
-                                                        key={permission.code}
-                                                        className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={formData.permissions.includes(permission.code)}
-                                                            onChange={() => handlePermissionChange(permission.code)}
-                                                            className="mt-1 w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-2 focus:ring-blue-500"
-                                                        />
-                                                        <div className="flex-1">
-                                                            <p className="text-sm font-medium text-slate-800">
-                                                                {permission.label}
-                                                            </p>
-                                                            <p className="text-xs text-slate-500">
-                                                                Module: {permission.module}
-                                                            </p>
-                                                        </div>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
 
                     {/* Action Buttons */}
                     <div className="flex gap-4">
                         <button
                             type="submit"
-                            disabled={loading || !formData.role || formData.permissions.length === 0}
+                            disabled={loading || !formData.role}
                             className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <MdSave className="w-5 h-5" />
@@ -478,7 +343,6 @@ const CreateAccount = () => {
                                     department: '',
                                     faculty: '',
                                     phoneNumber: '',
-                                    permissions: [],
                                     isActive: true
                                 });
                                 setError('');

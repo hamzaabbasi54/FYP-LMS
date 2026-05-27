@@ -5,11 +5,25 @@ import { curriculumApi } from '../../services/api';
 import { toast } from 'react-toastify';
 
 const ManageCurricula = () => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const token = localStorage.getItem('token');
+    
+    // Fallback: decode JWT to get department_id if it's missing in localStorage user object
+    let deptId = user.department_id;
+    if (!deptId && token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            deptId = payload.department_id;
+        } catch(e) {}
+    }
+    
+    const isDeptAdmin = user.role === 'deptadmin';
+
     const [searchQuery, setSearchQuery] = useState('');
     const [curricula, setCurricula] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
-    const [newCurriculum, setNewCurriculum] = useState({ name: '', department_id: '', description: '' });
+    const [newCurriculum, setNewCurriculum] = useState({ name: '', department_id: isDeptAdmin ? (deptId || '') : '', description: '' });
     const [departments, setDepartments] = useState([]);
     const [creating, setCreating] = useState(false);
     const [deletingId, setDeletingId] = useState(null);
@@ -81,7 +95,7 @@ const ManageCurricula = () => {
             await curriculumApi.create(newCurriculum);
             toast.success('Curriculum created with 8 semesters!');
             setShowCreateDialog(false);
-            setNewCurriculum({ name: '', department_id: '', description: '' });
+            setNewCurriculum({ name: '', department_id: isDeptAdmin ? (deptId || '') : '', description: '' });
             fetchCurricula();
         } catch (error) {
             console.error('Error creating curriculum:', error);
@@ -252,19 +266,28 @@ const ManageCurricula = () => {
                                     className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-700"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700">Department <span className="text-red-500">*</span></label>
-                                <select
-                                    value={newCurriculum.department_id}
-                                    onChange={(e) => setNewCurriculum(prev => ({ ...prev, department_id: e.target.value }))}
-                                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-700"
-                                >
-                                    <option value="">Select Department</option>
-                                    {departments.map(dept => (
-                                        <option key={dept.id} value={dept.id}>{dept.name}</option>
-                                    ))}
-                                </select>
-                            </div>
+                            {!isDeptAdmin ? (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-slate-700">Department <span className="text-red-500">*</span></label>
+                                    <select
+                                        value={newCurriculum.department_id}
+                                        onChange={(e) => setNewCurriculum(prev => ({ ...prev, department_id: e.target.value }))}
+                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-700"
+                                    >
+                                        <option value="">Select Department</option>
+                                        {departments.map(dept => (
+                                            <option key={dept.id} value={dept.id}>{dept.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-slate-700">Department</label>
+                                    <div className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-600 font-medium">
+                                        {user.department || 'Your Department'}
+                                    </div>
+                                </div>
+                            )}
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-slate-700">Description</label>
                                 <textarea

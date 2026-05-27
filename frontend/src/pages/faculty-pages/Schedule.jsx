@@ -1,164 +1,115 @@
-import React, { useState } from 'react';
-import { MdSchedule, MdLocationOn, MdPeople, MdCalendarMonth, MdToday, MdChevronLeft, MdChevronRight } from 'react-icons/md';
+import React, { useState, useEffect } from 'react';
+import { MdSchedule, MdPeople, MdCalendarMonth, MdToday, MdWbSunny, MdNightsStay } from 'react-icons/md';
+import { courseApi } from '../../services/api';
+
+const DAYS_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const DAY_LABELS = {
+    monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday',
+    thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday'
+};
 
 const Schedule = () => {
-    const [viewMode, setViewMode] = useState('today'); // 'today' or 'week'
-    const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
+    const [viewMode, setViewMode] = useState('today');
+    const [scheduleData, setScheduleData] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Mock schedule data
-    const todaySchedule = [
-        {
-            id: 1,
-            courseCode: 'CS-101',
-            courseName: 'Introduction to Programming',
-            time: '09:00 AM - 10:30 AM',
-            startTime: '09:00',
-            endTime: '10:30',
-            room: 'Room 101, Block A',
-            students: 45,
-            status: 'upcoming',
-            type: 'Lecture'
-        },
-        {
-            id: 2,
-            courseCode: 'CS-201',
-            courseName: 'Data Structures',
-            time: '11:00 AM - 12:30 PM',
-            startTime: '11:00',
-            endTime: '12:30',
-            room: 'Room 203, Block B',
-            students: 38,
-            status: 'upcoming',
-            type: 'Lecture'
-        },
-        {
-            id: 3,
-            courseCode: 'CS-101',
-            courseName: 'Introduction to Programming',
-            time: '02:00 PM - 04:00 PM',
-            startTime: '14:00',
-            endTime: '16:00',
-            room: 'Lab 4, Computer Science Block',
-            students: 45,
-            status: 'upcoming',
-            type: 'Lab'
-        }
-    ];
+    useEffect(() => {
+        fetchSchedule();
+    }, []);
 
-    const weekSchedule = [
-        { day: 'Monday', classes: todaySchedule },
-        {
-            day: 'Tuesday', classes: [
-                {
-                    id: 4,
-                    courseCode: 'CS-302',
-                    courseName: 'Operating Systems',
-                    time: '10:00 AM - 11:30 AM',
-                    room: 'Room 105, Block A',
-                    students: 35,
-                    type: 'Lecture'
-                },
-                {
-                    id: 5,
-                    courseCode: 'CS-201',
-                    courseName: 'Data Structures',
-                    time: '02:00 PM - 03:30 PM',
-                    room: 'Room 203, Block B',
-                    students: 38,
-                    type: 'Lecture'
-                }
-            ]
-        },
-        {
-            day: 'Wednesday', classes: [
-                {
-                    id: 6,
-                    courseCode: 'CS-101',
-                    courseName: 'Introduction to Programming',
-                    time: '10:00 AM - 11:30 AM',
-                    room: 'Room 101, Block A',
-                    students: 45,
-                    type: 'Lecture'
-                }
-            ]
-        },
-        {
-            day: 'Thursday', classes: [
-                {
-                    id: 7,
-                    courseCode: 'CS-302',
-                    courseName: 'Operating Systems',
-                    time: '09:00 AM - 10:30 AM',
-                    room: 'Room 105, Block A',
-                    students: 35,
-                    type: 'Lecture'
-                },
-                {
-                    id: 8,
-                    courseCode: 'CS-302',
-                    courseName: 'Operating Systems',
-                    time: '02:00 PM - 04:00 PM',
-                    room: 'Lab 2, Computer Science Block',
-                    students: 35,
-                    type: 'Lab'
-                }
-            ]
-        },
-        {
-            day: 'Friday', classes: [
-                {
-                    id: 9,
-                    courseCode: 'CS-201',
-                    courseName: 'Data Structures',
-                    time: '11:00 AM - 12:30 PM',
-                    room: 'Room 203, Block B',
-                    students: 38,
-                    type: 'Lecture'
-                }
-            ]
+    const fetchSchedule = async () => {
+        try {
+            setLoading(true);
+            const res = await courseApi.getMySchedule();
+            if (res.success) {
+                setScheduleData(res.data || []);
+            }
+        } catch (e) {
+            console.error('Failed to load schedule:', e);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
 
-    const getStatusColor = (type) => {
-        switch (type) {
-            case 'Lecture':
-                return 'bg-blue-100 text-blue-700 border-blue-200';
-            case 'Lab':
-                return 'bg-green-100 text-green-700 border-green-200';
-            default:
-                return 'bg-gray-100 text-gray-700 border-gray-200';
-        }
+    // Format time from HH:MM:SS to displayable AM/PM
+    const formatTime = (timeStr) => {
+        if (!timeStr) return '';
+        const [h, m] = timeStr.split(':');
+        const hour = parseInt(h);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        return `${displayHour}:${m} ${ampm}`;
+    };
+
+    // Get today's day name
+    const getTodayKey = () => {
+        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        return days[new Date().getDay()];
+    };
+
+    const todayKey = getTodayKey();
+    const todayClasses = scheduleData.filter(s => s.day_of_week === todayKey);
+
+    // Group by day for weekly view
+    const weekSchedule = DAYS_ORDER.map(day => ({
+        day: DAY_LABELS[day],
+        dayKey: day,
+        classes: scheduleData.filter(s => s.day_of_week === day)
+    }));
+
+    const totalStudentsToday = todayClasses.reduce((acc, c) => acc + (c.student_count || 0), 0);
+
+    const getShiftColor = (shift) => {
+        if (shift === 'morning') return 'bg-amber-100 text-amber-700 border-amber-200';
+        return 'bg-indigo-100 text-indigo-700 border-indigo-200';
     };
 
     const ClassCard = ({ classItem }) => (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-3">
-                <div>
-                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(classItem.type)}`}>
-                        {classItem.type}
+                <div className="flex items-center gap-2">
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getShiftColor(classItem.shift)}`}>
+                        <span className="flex items-center gap-1">
+                            {classItem.shift === 'morning'
+                                ? <MdWbSunny className="w-3 h-3" />
+                                : <MdNightsStay className="w-3 h-3" />
+                            }
+                            {classItem.shift === 'morning' ? 'Morning' : 'Evening'}
+                        </span>
                     </span>
                 </div>
-                <span className="text-sm font-bold text-blue-600">{classItem.courseCode}</span>
+                <span className="text-sm font-bold text-blue-600">{classItem.course_code}</span>
             </div>
 
-            <h3 className="text-lg font-bold text-gray-800 mb-3">{classItem.courseName}</h3>
+            <h3 className="text-lg font-bold text-gray-800 mb-1">{classItem.course_name}</h3>
+            <p className="text-xs text-gray-400 mb-3">{classItem.batch_name}</p>
 
             <div className="space-y-2 text-sm text-gray-600">
                 <div className="flex items-center gap-2">
                     <MdSchedule className="w-4 h-4 text-gray-400" />
-                    <span>{classItem.time}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <MdLocationOn className="w-4 h-4 text-gray-400" />
-                    <span>{classItem.room}</span>
+                    <span>{formatTime(classItem.start_time)} — {formatTime(classItem.end_time)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <MdPeople className="w-4 h-4 text-gray-400" />
-                    <span>{classItem.students} Students</span>
+                    <span>{classItem.student_count || 0} Students</span>
                 </div>
             </div>
         </div>
     );
+
+    if (loading) {
+        return (
+            <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+                <div className="animate-pulse">
+                    <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
+                    <div className="h-32 bg-gray-200 rounded-xl mb-6"></div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {[1,2,3].map(i => <div key={i} className="h-40 bg-gray-200 rounded-xl"></div>)}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
@@ -167,7 +118,7 @@ const Schedule = () => {
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Class Schedule</h1>
                     <p className="text-gray-600 text-sm">
-                        Manage and view your upcoming classes
+                        View your upcoming classes
                     </p>
                 </div>
 
@@ -216,32 +167,48 @@ const Schedule = () => {
                         </div>
                         <div className="mt-4 flex items-center gap-6 text-white">
                             <div>
-                                <p className="text-2xl font-bold">{todaySchedule.length}</p>
+                                <p className="text-2xl font-bold">{todayClasses.length}</p>
                                 <p className="text-blue-100 text-sm">Classes Today</p>
                             </div>
                             <div className="h-10 w-px bg-blue-400"></div>
                             <div>
-                                <p className="text-2xl font-bold">{todaySchedule.reduce((acc, c) => acc + c.students, 0)}</p>
+                                <p className="text-2xl font-bold">{totalStudentsToday}</p>
                                 <p className="text-blue-100 text-sm">Total Students</p>
                             </div>
                         </div>
                     </div>
 
-                    <h2 className="text-lg font-bold text-gray-800 mb-4">Upcoming Classes</h2>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {todaySchedule.map((classItem) => (
-                            <ClassCard key={classItem.id} classItem={classItem} />
-                        ))}
-                    </div>
+                    {todayClasses.length > 0 ? (
+                        <>
+                            <h2 className="text-lg font-bold text-gray-800 mb-4">Today's Classes</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {todayClasses.map((classItem) => (
+                                    <ClassCard key={classItem.id} classItem={classItem} />
+                                ))}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
+                            <MdCalendarMonth className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                            <h3 className="text-lg font-semibold text-gray-600 mb-1">No Classes Today</h3>
+                            <p className="text-gray-400 text-sm">You don't have any classes scheduled for today.</p>
+                        </div>
+                    )}
                 </div>
             ) : (
                 /* Weekly Schedule */
                 <div className="space-y-6">
                     {weekSchedule.map((daySchedule) => (
-                        <div key={daySchedule.day} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                            <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
+                        <div key={daySchedule.dayKey} className={`bg-white rounded-xl shadow-sm border overflow-hidden ${
+                            daySchedule.dayKey === todayKey ? 'border-blue-300 ring-2 ring-blue-100' : 'border-gray-200'
+                        }`}>
+                            <div className={`px-6 py-3 border-b flex items-center justify-between ${
+                                daySchedule.dayKey === todayKey ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
+                            }`}>
                                 <h3 className="font-bold text-gray-800">{daySchedule.day}</h3>
+                                {daySchedule.dayKey === todayKey && (
+                                    <span className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">Today</span>
+                                )}
                             </div>
                             <div className="p-4">
                                 {daySchedule.classes.length > 0 ? (
@@ -249,25 +216,31 @@ const Schedule = () => {
                                         {daySchedule.classes.map((classItem) => (
                                             <div
                                                 key={classItem.id}
-                                                className={`p-4 rounded-lg border-l-4 ${classItem.type === 'Lab'
-                                                    ? 'border-l-green-500 bg-green-50'
-                                                    : 'border-l-blue-500 bg-blue-50'
-                                                    }`}
+                                                className={`p-4 rounded-lg border-l-4 ${
+                                                    classItem.shift === 'evening'
+                                                        ? 'border-l-indigo-500 bg-indigo-50'
+                                                        : 'border-l-amber-500 bg-amber-50'
+                                                }`}
                                             >
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <span className="font-bold text-gray-800">{classItem.courseCode}</span>
-                                                    <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(classItem.type)}`}>
-                                                        {classItem.type}
+                                                    <span className="font-bold text-gray-800">{classItem.course_code}</span>
+                                                    <span className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${getShiftColor(classItem.shift)}`}>
+                                                        {classItem.shift === 'morning'
+                                                            ? <MdWbSunny className="w-3 h-3" />
+                                                            : <MdNightsStay className="w-3 h-3" />
+                                                        }
+                                                        {classItem.shift === 'morning' ? 'Morning' : 'Evening'}
                                                     </span>
                                                 </div>
-                                                <p className="text-sm text-gray-600 mb-2">{classItem.courseName}</p>
+                                                <p className="text-sm text-gray-600 mb-1">{classItem.course_name}</p>
+                                                <p className="text-xs text-gray-400 mb-2">{classItem.batch_name}</p>
                                                 <div className="flex items-center gap-2 text-xs text-gray-500">
                                                     <MdSchedule className="w-3 h-3" />
-                                                    <span>{classItem.time}</span>
+                                                    <span>{formatTime(classItem.start_time)} — {formatTime(classItem.end_time)}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                                                    <MdLocationOn className="w-3 h-3" />
-                                                    <span>{classItem.room}</span>
+                                                    <MdPeople className="w-3 h-3" />
+                                                    <span>{classItem.student_count || 0} Students</span>
                                                 </div>
                                             </div>
                                         ))}

@@ -13,8 +13,22 @@ const AddCourse = () => {
     const [selectedFaculty, setSelectedFaculty] = useState('');
     const fileInputRef = React.useRef(null);
 
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const token = localStorage.getItem('token');
+    
+    // Fallback: decode JWT to get department_id if it's missing in localStorage user object
+    let deptId = user.department_id;
+    if (!deptId && token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            deptId = payload.department_id;
+        } catch(e) {}
+    }
+    
+    const isDeptAdmin = user.role === 'deptadmin';
+
     const [courseData, setCourseData] = useState({
-        title: '', code: '', department_id: '', credit_hours: '',
+        title: '', code: '', department_id: isDeptAdmin ? (deptId || '') : '', credit_hours: '',
         semester_level: '', description: ''
     });
 
@@ -32,27 +46,29 @@ const AddCourse = () => {
     const [expandedCloId, setExpandedCloId] = useState(null);
 
     useEffect(() => {
-        const fetchFaculties = async () => {
-            try {
-                const res = await authApi.getFaculties();
-                if (res.success) setFaculties(res.data || []);
-            } catch (err) { console.error(err); }
-        };
-        fetchFaculties();
+        if (!isDeptAdmin) {
+            const fetchFaculties = async () => {
+                try {
+                    const res = await authApi.getFaculties();
+                    if (res.success) setFaculties(res.data || []);
+                } catch (err) { console.error(err); }
+            };
+            fetchFaculties();
+        }
     }, []);
 
     useEffect(() => {
-        const fetchDepts = async () => {
-            if (selectedFaculty) {
+        if (!isDeptAdmin && selectedFaculty) {
+            const fetchDepts = async () => {
                 try {
                     const res = await authApi.getDepartments(selectedFaculty);
                     if (res.success) setDepartments(res.data || []);
                 } catch (err) { console.error(err); }
-            } else {
-                setDepartments([]);
-            }
-        };
-        fetchDepts();
+            };
+            fetchDepts();
+        } else if (!isDeptAdmin) {
+            setDepartments([]);
+        }
     }, [selectedFaculty]);
 
     const handleInputChange = (e) => {
@@ -155,9 +171,9 @@ const AddCourse = () => {
     };
 
     const handleReset = () => {
-        setCourseData({ title: '', code: '', department_id: '', credit_hours: '', semester_level: '', description: '' });
+        setCourseData({ title: '', code: '', department_id: isDeptAdmin ? (deptId || '') : '', credit_hours: '', semester_level: '', description: '' });
         setSelectedClos([]);
-        setSelectedFaculty('');
+        if (!isDeptAdmin) setSelectedFaculty('');
         setSelectedPrereqs([]);
     };
 
@@ -223,22 +239,36 @@ const AddCourse = () => {
                             <input type="text" name="code" value={courseData.code} onChange={handleInputChange}
                                 className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. CS-101" />
                         </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Faculty <span className="text-red-500">*</span></label>
-                            <select value={selectedFaculty} onChange={(e) => { setSelectedFaculty(e.target.value); setCourseData({...courseData, department_id: ''}); }}
-                                className="w-full p-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none">
-                                <option value="">Select Faculty</option>
-                                {faculties.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Department <span className="text-red-500">*</span></label>
-                            <select name="department_id" value={courseData.department_id} onChange={handleInputChange} disabled={!selectedFaculty}
-                                className="w-full p-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100">
-                                <option value="">{selectedFaculty ? 'Select Department' : 'Select Faculty first'}</option>
-                                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                            </select>
-                        </div>
+                        {isDeptAdmin ? (
+                            /* Dept admin: show department as read-only info */
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Department</label>
+                                <div className="w-full p-2.5 border border-gray-200 rounded-lg bg-slate-50 text-slate-600 font-medium">
+                                    {user.department || 'Your Department'}
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1">Course will be added to your department automatically</p>
+                            </div>
+                        ) : (
+                            /* Super admin / other: show faculty + department dropdowns */
+                            <>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Faculty <span className="text-red-500">*</span></label>
+                                    <select value={selectedFaculty} onChange={(e) => { setSelectedFaculty(e.target.value); setCourseData({...courseData, department_id: ''}); }}
+                                        className="w-full p-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                                        <option value="">Select Faculty</option>
+                                        {faculties.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Department <span className="text-red-500">*</span></label>
+                                    <select name="department_id" value={courseData.department_id} onChange={handleInputChange} disabled={!selectedFaculty}
+                                        className="w-full p-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100">
+                                        <option value="">{selectedFaculty ? 'Select Department' : 'Select Faculty first'}</option>
+                                        {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                    </select>
+                                </div>
+                            </>
+                        )}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">Credit Hours <span className="text-red-500">*</span></label>
                             <input type="number" name="credit_hours" value={courseData.credit_hours} onChange={handleInputChange}

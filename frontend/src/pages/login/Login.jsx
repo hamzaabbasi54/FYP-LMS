@@ -16,6 +16,7 @@ const Login = () => {
     const [loading, setLoading] = useState(false);
 
     const roleLabels = {
+        super_admin: 'Super Admin',
         deptadmin: 'Department Admin',
         faculty: 'Faculty'
     };
@@ -64,10 +65,11 @@ const Login = () => {
 
                     // Redirect based on role
                     const redirectMap = {
-                        deptadmin: '/admin-dashboard',
+                        super_admin: '/admin-dashboard',
+                        deptadmin: '/deptadmin-dashboard',
                         faculty: '/faculty-dashboard'
                     };
-                    navigate(redirectMap[formData.role] || '/');
+                    navigate(redirectMap[data.data.role] || '/');
                 } else {
                     setErrors({ password: data.message });
                 }
@@ -107,6 +109,7 @@ const Login = () => {
                                 onChange={handleChange}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white text-gray-800"
                             >
+                                <option value="super_admin">{roleLabels.super_admin}</option>
                                 <option value="deptadmin">{roleLabels.deptadmin}</option>
                                 <option value="faculty">{roleLabels.faculty}</option>
                             </select>
@@ -199,18 +202,7 @@ const Login = () => {
                         </button>
                     </form>
 
-                    {/* Sign Up Link */}
-                    <div className="mt-6 text-center">
-                        <p className="text-sm text-gray-600">
-                            Don't have an account?{' '}
-                            <Link
-                                to="/signup"
-                                className="font-semibold text-blue-600 hover:text-blue-700 hover:underline"
-                            >
-                                Sign up
-                            </Link>
-                        </p>
-                    </div>
+
                 </div>
 
                 {/* Footer */}

@@ -16,8 +16,11 @@ router.use(verifyToken);
 // GET all curricula (paginated, with stats)
 router.get('/', async (req, res) => {
     try {
-        const { department_id, search, status } = req.query;
+        const { department_id: queryDeptId, search, status } = req.query;
         const { page, limit, offset } = parsePagination(req.query);
+
+        // Force department scope for dept admins
+        const department_id = (req.user.role === 'deptadmin') ? req.user.department_id : queryDeptId;
 
         let whereClause = 'WHERE 1=1';
         const params = [];
@@ -119,7 +122,12 @@ router.post('/', isAdmin, async (req, res) => {
         await conn.beginTransaction();
         const { name, department_id, description, total_semesters } = req.body;
 
-        if (!name || !department_id) {
+        let final_department_id = department_id;
+        if (req.user.role === 'deptadmin') {
+            final_department_id = req.user.department_id;
+        }
+
+        if (!name || !final_department_id) {
             return res.status(400).json({ success: false, message: 'name and department_id are required' });
         }
 
@@ -127,7 +135,7 @@ router.post('/', isAdmin, async (req, res) => {
 
         const [result] = await conn.query(
             'INSERT INTO curricula (name, department_id, description, total_semesters) VALUES (?, ?, ?, ?)',
-            [name, department_id, description || null, semCount]
+            [name, final_department_id, description || null, semCount]
         );
         const curriculumId = result.insertId;
 

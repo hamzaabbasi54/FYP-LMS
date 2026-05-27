@@ -441,6 +441,124 @@ router.get('/:id/grades/template', async (req, res) => {
 
 // ===================== GRADES EXCEL IMPORT (QUESTION-LEVEL) =====================
 
+// POST preview grades from Excel (calculates CLO without saving)
+router.post('/:id/grades/import-preview', upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ success: false, message: 'Excel file required.' });
+    }
+
+    const conn = await pool.getConnection();
+    try {
+        // Validation and Authorization
+        const [authCheck] = await conn.query(
+            `SELECT ca.faculty_id 
+             FROM assessments a 
+             JOIN course_assignments ca ON a.course_assignment_id = ca.id 
+             WHERE a.id = ?`, [req.params.id]
+        );
+        if (authCheck.length === 0) return res.status(404).json({ success: false, message: 'Assessment not found' });
+        if (req.user.role === 'faculty' && authCheck[0].faculty_id !== req.user.id) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        const [assessmentRows] = await conn.query(
+            `SELECT a.*, ca.course_assignment_id as ca_id FROM assessments a
+             JOIN course_assignments ca ON a.course_assignment_id = ca.id
+             WHERE a.id = ?`, [req.params.id]
+        );
+        const assessment = assessmentRows[0];
+
+        const [questions] = await conn.query(
+            `SELECT aq.*, c.clo_number, c.title as clo_title 
+             FROM assessment_questions aq 
+             LEFT JOIN clos c ON aq.clo_id = c.id 
+             WHERE aq.assessment_id = ? ORDER BY aq.question_number`, [req.params.id]
+        );
+
+        const rows = parseExcel(req.file.path);
+        const previewData = [];
+        const errors = [];
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            try {
+                const regNum = row['Registration Number'] || row['student_id_number'] || row['Reg No'] || row['registration_number'];
+                if (!regNum) continue;
+
+                const [students] = await conn.query(
+                    `SELECT s.id, s.first_name, s.last_name FROM students s
+                     JOIN enrollments e ON s.id = e.student_id
+                     WHERE s.student_id_number = ? AND e.course_assignment_id = ?`,
+                    [regNum, assessment.course_assignment_id]
+                );
+
+                if (students.length === 0) {
+                    errors.push({ row: i + 2, student: regNum, error: 'Student not found or not enrolled' });
+                    continue;
+                }
+
+                const student = students[0];
+                let totalScore = 0;
+                const cloAchievements = {}; // Track CLO performance for this student
+
+                if (questions.length > 0) {
+                    for (const q of questions) {
+                        const colKey = Object.keys(row).find(k => k.startsWith(`Q${q.question_number}`));
+                        if (colKey !== undefined && row[colKey] !== '' && row[colKey] !== undefined) {
+                            const qScore = parseFloat(row[colKey]);
+                            if (!isNaN(qScore) && qScore >= 0 && qScore <= parseFloat(q.max_marks)) {
+                                totalScore += qScore;
+                                
+                                // Calculate CLO % if question is mapped
+                                if (q.clo_id) {
+                                    if (!cloAchievements[q.clo_id]) {
+                                        cloAchievements[q.clo_id] = { clo_number: q.clo_number, score: 0, max: 0 };
+                                    }
+                                    cloAchievements[q.clo_id].score += qScore;
+                                    cloAchievements[q.clo_id].max += parseFloat(q.max_marks);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    const scoreKey = Object.keys(row).find(k => k.startsWith('Total Score') || k === 'score');
+                    if (scoreKey && row[scoreKey] !== '' && row[scoreKey] !== undefined) {
+                        totalScore = parseFloat(row[scoreKey]);
+                    }
+                }
+
+                // Format CLO achievements for preview
+                const formattedCLOs = Object.values(cloAchievements).map(c => ({
+                    clo_number: c.clo_number,
+                    percentage: Math.round((c.score / c.max) * 100)
+                }));
+
+                previewData.push({
+                    student_id_number: regNum,
+                    student_name: `${student.first_name} ${student.last_name}`,
+                    total_score: totalScore,
+                    max_score: assessment.max_score,
+                    clos: formattedCLOs,
+                    remarks: row['Remarks'] || ''
+                });
+
+            } catch (err) {
+                errors.push({ row: i + 2, error: err.message });
+            }
+        }
+
+        res.json({
+            success: true,
+            data: { preview: previewData, errors: errors.slice(0, 10) }
+        });
+    } catch (error) {
+        console.error('Preview error:', error);
+        res.status(500).json({ success: false, message: 'Error generating preview' });
+    } finally {
+        conn.release();
+    }
+});
+
 // POST import grades from Excel (supports question-level columns)
 router.post('/:id/grades/import', upload.single('file'), async (req, res) => {
     if (!req.file) {

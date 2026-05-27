@@ -368,14 +368,14 @@ const ManageCLOs = () => {
                                         <th className="pb-2 font-bold text-gray-700">Required</th>
                                     </tr></thead>
                                     <tbody>
-                                        <tr className="border-b border-gray-100"><td className="py-1.5 font-medium">course_code</td><td className="py-1.5 text-gray-500">CS-101</td><td className="py-1.5 text-red-500">Yes</td></tr>
                                         <tr className="border-b border-gray-100"><td className="py-1.5 font-medium">clo_number</td><td className="py-1.5 text-gray-500">1</td><td className="py-1.5 text-red-500">Yes</td></tr>
+                                        <tr className="border-b border-gray-100"><td className="py-1.5 font-medium">title</td><td className="py-1.5 text-gray-500">CLO-1</td><td className="py-1.5 text-gray-400">No (Auto-generated if omitted)</td></tr>
                                         <tr className="border-b border-gray-100"><td className="py-1.5 font-medium">description</td><td className="py-1.5 text-gray-500">Understand basics</td><td className="py-1.5 text-gray-400">No</td></tr>
                                         <tr><td className="py-1.5 font-medium">cognitive_level</td><td className="py-1.5 text-gray-500">C2</td><td className="py-1.5 text-gray-400">No</td></tr>
                                     </tbody>
                                 </table>
                             </div>
-                            <p className="text-xs text-gray-500 mb-4">The <strong>course_code</strong> must match an existing course. CLO title is auto-generated as CLO-X.</p>
+                            <p className="text-xs text-gray-500 mb-4">CLOs imported here are global and can be mapped to any course later.</p>
                             <input type="file" accept=".xlsx,.xls" className="hidden" ref={cloFileRef} onChange={handleImportFile} />
                             <button onClick={() => cloFileRef.current.click()}
                                 className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-medium rounded-xl hover:shadow-lg transition-all">

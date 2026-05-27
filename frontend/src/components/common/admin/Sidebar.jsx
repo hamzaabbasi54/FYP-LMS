@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { MdDashboard, MdPeople, MdAssignment, MdBook, MdSchool, MdSettings, MdExpandMore, MdExpandLess, MdBuild, MdLink, MdTrackChanges, MdLogout, MdMenuBook } from 'react-icons/md';
+import { MdDashboard, MdPeople, MdAssignment, MdBook, MdSchool, MdSettings, MdExpandMore, MdExpandLess, MdBuild, MdLink, MdTrackChanges, MdLogout, MdMenuBook, MdAdminPanelSettings } from 'react-icons/md';
 
 const Sidebar = () => {
     const location = useLocation();
@@ -49,14 +49,14 @@ const Sidebar = () => {
                 </div>
                 <div>
                     <h2 className="text-lg font-bold text-white leading-tight">Uni LMS</h2>
-                    <p className="text-xs text-slate-500 font-medium">Director Panel</p>
+                    <p className="text-xs text-slate-500 font-medium">{user.role === 'super_admin' ? 'Super Admin' : 'Director Panel'}</p>
                 </div>
             </div>
 
             {/* Navigation */}
             <nav className="flex-1 flex flex-col">
                 <p className="text-xs text-slate-600 font-semibold uppercase tracking-wider mb-3 px-4">Main</p>
-                <NavItem to="/admin-dashboard" icon={MdDashboard} label="Dashboard" />
+                <NavItem to="/deptadmin-dashboard" icon={MdDashboard} label="Dashboard" />
 
                 {/* User Management Section */}
                 <p className="text-xs text-slate-600 font-semibold uppercase tracking-wider mt-6 mb-3 px-4">User Management</p>
@@ -85,11 +85,12 @@ const Sidebar = () => {
                 {operationsExpanded && (
                     <div className="space-y-1">
                         <NavItem to="/admin-managebatches" icon={MdPeople} label="Batches" indent />
-                        <NavItem to="/admin-courseassignment" icon={MdAssignment} label="Assign Courses" indent />
                         <NavItem to="/admin-managecourses" icon={MdBook} label="Courses" indent />
                         <NavItem to="/admin-curricula" icon={MdMenuBook} label="Curricula" indent />
                         <NavItem to="/admin-managefaculty" icon={MdSchool} label="Faculty" indent />
                         <NavItem to="/admin-obe" icon={MdTrackChanges} label="OBE" indent />
+                        <NavItem to="/admin-managecourses/plos" icon={MdTrackChanges} label="PLOs" indent />
+                        <NavItem to="/admin-managecourses/clos" icon={MdTrackChanges} label="CLOs" indent />
                         <NavItem to="/admin-external-links" icon={MdLink} label="Links" indent />
                     </div>
                 )}

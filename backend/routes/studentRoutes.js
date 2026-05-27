@@ -28,6 +28,10 @@ router.get('/', async (req, res) => {
         let whereClause = 'WHERE 1=1';
         const params = [];
         if (batch_id) { whereClause += ' AND s.batch_id = ?'; params.push(batch_id); }
+        // Force department scope for dept admins
+        if (req.user.role === 'deptadmin' && req.user.department_id) {
+            whereClause += ' AND b.department_id = ?'; params.push(req.user.department_id);
+        }
         if (search) {
             whereClause += ' AND (s.first_name LIKE ? OR s.last_name LIKE ? OR s.student_id_number LIKE ? OR s.email LIKE ?)';
             const term = `%${search}%`;
@@ -36,7 +40,7 @@ router.get('/', async (req, res) => {
 
         // Count total
         const [[{ total }]] = await pool.query(
-            `SELECT COUNT(*) as total FROM students s ${whereClause}`, params
+            `SELECT COUNT(*) as total FROM students s LEFT JOIN batches b ON s.batch_id = b.id ${whereClause}`, params
         );
 
         // Get paginated data

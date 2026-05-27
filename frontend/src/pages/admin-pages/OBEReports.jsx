@@ -1,114 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MdExpandMore, MdExpandLess, MdTrendingUp, MdCheckCircle, MdWarning, MdSchool, MdBook, MdCloudDownload } from 'react-icons/md';
+import { obeApi } from '../../services/api';
+import { toast } from 'react-toastify';
 
 const OBEReports = () => {
     const [expandedBatch, setExpandedBatch] = useState(null);
     const [expandedSemester, setExpandedSemester] = useState(null);
+    const [batches, setBatches] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Mock data for batches with PLO achievements
-    const batches = [
-        {
-            id: 1,
-            name: 'Batch 2023-2027',
-            year: 'Year 1',
-            totalPLOs: 12,
-            overallAchievement: 78,
-            plos: [
-                { id: 'PLO-1', name: 'Engineering Knowledge', achievement: 85, status: 'good' },
-                { id: 'PLO-2', name: 'Problem Analysis', achievement: 72, status: 'average' },
-                { id: 'PLO-3', name: 'Design/Development', achievement: 68, status: 'average' },
-                { id: 'PLO-4', name: 'Investigation', achievement: 90, status: 'good' },
-                { id: 'PLO-5', name: 'Modern Tool Usage', achievement: 75, status: 'good' },
-                { id: 'PLO-6', name: 'Engineering & Society', achievement: 82, status: 'good' },
-            ],
-            semesters: [
-                {
-                    id: 1,
-                    name: 'Fall 2023',
-                    achievement: 76,
-                    clos: [
-                        { id: 'CLO-1', course: 'CS-101', name: 'Understand programming fundamentals', achievement: 88, plo: 'PLO-1' },
-                        { id: 'CLO-2', course: 'CS-101', name: 'Apply problem-solving techniques', achievement: 75, plo: 'PLO-2' },
-                        { id: 'CLO-3', course: 'MA-102', name: 'Apply discrete mathematics', achievement: 70, plo: 'PLO-1' },
-                        { id: 'CLO-4', course: 'MA-102', name: 'Solve logical problems', achievement: 65, plo: 'PLO-2' },
-                    ]
-                },
-                {
-                    id: 2,
-                    name: 'Spring 2024',
-                    achievement: 80,
-                    clos: [
-                        { id: 'CLO-5', course: 'CS-102', name: 'Design data structures', achievement: 82, plo: 'PLO-3' },
-                        { id: 'CLO-6', course: 'CS-102', name: 'Implement algorithms', achievement: 78, plo: 'PLO-4' },
-                        { id: 'CLO-7', course: 'CS-103', name: 'Use modern IDEs', achievement: 85, plo: 'PLO-5' },
-                    ]
-                }
-            ]
-        },
-        {
-            id: 2,
-            name: 'Batch 2022-2026',
-            year: 'Year 2',
-            totalPLOs: 12,
-            overallAchievement: 82,
-            plos: [
-                { id: 'PLO-1', name: 'Engineering Knowledge', achievement: 88, status: 'good' },
-                { id: 'PLO-2', name: 'Problem Analysis', achievement: 80, status: 'good' },
-                { id: 'PLO-3', name: 'Design/Development', achievement: 75, status: 'good' },
-                { id: 'PLO-4', name: 'Investigation', achievement: 85, status: 'good' },
-                { id: 'PLO-5', name: 'Modern Tool Usage', achievement: 82, status: 'good' },
-                { id: 'PLO-6', name: 'Engineering & Society', achievement: 78, status: 'good' },
-            ],
-            semesters: [
-                {
-                    id: 3,
-                    name: 'Fall 2024',
-                    achievement: 84,
-                    clos: [
-                        { id: 'CLO-8', course: 'CS-201', name: 'Advanced data structures', achievement: 90, plo: 'PLO-1' },
-                        { id: 'CLO-9', course: 'CS-201', name: 'Algorithm optimization', achievement: 82, plo: 'PLO-2' },
-                        { id: 'CLO-10', course: 'CS-204', name: 'Computer architecture concepts', achievement: 80, plo: 'PLO-1' },
-                    ]
-                },
-                {
-                    id: 4,
-                    name: 'Spring 2025',
-                    achievement: 80,
-                    clos: [
-                        { id: 'CLO-11', course: 'CS-202', name: 'Database design', achievement: 85, plo: 'PLO-3' },
-                        { id: 'CLO-12', course: 'CS-202', name: 'SQL query optimization', achievement: 75, plo: 'PLO-4' },
-                    ]
-                }
-            ]
-        },
-        {
-            id: 3,
-            name: 'Batch 2021-2025',
-            year: 'Year 3',
-            totalPLOs: 12,
-            overallAchievement: 85,
-            plos: [
-                { id: 'PLO-1', name: 'Engineering Knowledge', achievement: 92, status: 'excellent' },
-                { id: 'PLO-2', name: 'Problem Analysis', achievement: 85, status: 'good' },
-                { id: 'PLO-3', name: 'Design/Development', achievement: 88, status: 'good' },
-                { id: 'PLO-4', name: 'Investigation', achievement: 82, status: 'good' },
-                { id: 'PLO-5', name: 'Modern Tool Usage', achievement: 90, status: 'excellent' },
-                { id: 'PLO-6', name: 'Engineering & Society', achievement: 75, status: 'good' },
-            ],
-            semesters: [
-                {
-                    id: 5,
-                    name: 'Fall 2024',
-                    achievement: 87,
-                    clos: [
-                        { id: 'CLO-13', course: 'CS-302', name: 'Operating system concepts', achievement: 90, plo: 'PLO-1' },
-                        { id: 'CLO-14', course: 'CS-302', name: 'Process management', achievement: 85, plo: 'PLO-2' },
-                        { id: 'CLO-15', course: 'CS-303', name: 'Software engineering practices', achievement: 88, plo: 'PLO-3' },
-                    ]
-                }
-            ]
+    useEffect(() => {
+        fetchReports();
+    }, []);
+
+    const fetchReports = async () => {
+        try {
+            setLoading(true);
+            const res = await obeApi.getReports();
+            if (res.success) {
+                setBatches(res.data || []);
+            }
+        } catch (error) {
+            console.error('Failed to fetch OBE reports:', error);
+            toast.error('Failed to fetch OBE reports');
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
 
     const getAchievementColor = (percentage) => {
         if (percentage >= 85) return 'text-green-600 bg-green-50';
@@ -144,6 +62,20 @@ const OBEReports = () => {
         // Simulate download
         alert(`Downloading CLO Report for ${batchName} - ${semesterName}...`);
     };
+
+    if (loading) {
+        return (
+            <div className="p-6 lg:p-8 space-y-6">
+                <div className="animate-pulse space-y-4">
+                    <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {[1, 2, 3].map(i => <div key={i} className="h-32 bg-gray-200 rounded-2xl"></div>)}
+                    </div>
+                    <div className="h-40 bg-gray-200 rounded-2xl mt-6"></div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="p-6 lg:p-8 space-y-6">

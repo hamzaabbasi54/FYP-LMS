@@ -24,6 +24,9 @@ const GradeAssignment = () => {
     const [downloading, setDownloading] = useState(false);
     const [importing, setImporting] = useState(false);
     const [importResult, setImportResult] = useState(null);
+    const [previewData, setPreviewData] = useState(null);
+    const [previewErrors, setPreviewErrors] = useState([]);
+    const [selectedFile, setSelectedFile] = useState(null);
     const fileInputRef = useRef(null);
 
     // Avatar color options
@@ -241,8 +244,35 @@ const GradeAssignment = () => {
         try {
             setImporting(true);
             setImportResult(null);
-            const result = await gradeApi.importGrades(gradeAssignmentId, file);
+            
+            // First call the preview endpoint
+            const result = await gradeApi.importGradesPreview(gradeAssignmentId, file);
+            if (result.success) {
+                setPreviewData(result.data.preview);
+                setPreviewErrors(result.data.errors || []);
+                setSelectedFile(file);
+            } else {
+                setImportResult({ success: false, message: result.message || 'Failed to generate preview.' });
+            }
+        } catch (err) {
+            console.error('Import preview error:', err);
+            setImportResult({ success: false, message: 'Failed to read file. Please check the format.' });
+        } finally {
+            setImporting(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    // Confirm and save grades
+    const handleConfirmImport = async () => {
+        if (!selectedFile) return;
+        try {
+            setImporting(true);
+            const result = await gradeApi.importGrades(gradeAssignmentId, selectedFile);
             setImportResult(result);
+            setPreviewData(null);
+            setSelectedFile(null);
+            
             // Refresh data after import
             if (result.success && result.data?.imported > 0) {
                 const gradesRes = await gradeApi.getByAssessment(gradeAssignmentId, { limit: 500 });
@@ -270,11 +300,15 @@ const GradeAssignment = () => {
             }
         } catch (err) {
             console.error('Import error:', err);
-            setImportResult({ success: false, message: 'Failed to import grades. Please check the file format.' });
+            setImportResult({ success: false, message: 'Failed to save imported grades.' });
         } finally {
             setImporting(false);
-            if (fileInputRef.current) fileInputRef.current.value = '';
         }
+    };
+
+    const handleCancelImport = () => {
+        setPreviewData(null);
+        setSelectedFile(null);
     };
 
     // Filter students based on search
@@ -585,6 +619,92 @@ const GradeAssignment = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Preview Modal */}
+            {previewData && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                        <div className="p-6 border-b border-gray-200">
+                            <h2 className="text-xl font-bold text-gray-800">Preview Import Results</h2>
+                            <p className="text-sm text-gray-500 mt-1">Review the grades and calculated CLO achievements before saving.</p>
+                        </div>
+                        
+                        <div className="p-6 overflow-y-auto flex-1">
+                            {previewErrors.length > 0 && (
+                                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                    <h4 className="font-semibold text-red-800 mb-2">Warning: Some rows had errors</h4>
+                                    <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+                                        {previewErrors.map((e, idx) => (
+                                            <li key={idx}>Row {e.row}: {e.student ? `(Student ${e.student}) ` : ''}{e.error}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
+                            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-200">
+                                        <tr>
+                                            <th className="px-4 py-3">Registration #</th>
+                                            <th className="px-4 py-3">Student Name</th>
+                                            <th className="px-4 py-3">Total Score</th>
+                                            <th className="px-4 py-3">CLO Achievements</th>
+                                            <th className="px-4 py-3">Remarks</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200">
+                                        {previewData.map((row, idx) => (
+                                            <tr key={idx} className="hover:bg-gray-50">
+                                                <td className="px-4 py-3 font-medium text-gray-900">{row.student_id_number}</td>
+                                                <td className="px-4 py-3">{row.student_name}</td>
+                                                <td className="px-4 py-3 font-bold text-blue-600">
+                                                    {row.total_score} / {row.max_score}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {row.clos && row.clos.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {row.clos.map((c, i) => (
+                                                                <span key={i} className={`px-2 py-1 rounded text-xs font-semibold ${
+                                                                    c.percentage >= 80 ? 'bg-green-100 text-green-700' :
+                                                                    c.percentage >= 60 ? 'bg-blue-100 text-blue-700' :
+                                                                    c.percentage >= 50 ? 'bg-amber-100 text-amber-700' :
+                                                                    'bg-red-100 text-red-700'
+                                                                }`}>
+                                                                    CLO-{c.clo_number}: {c.percentage}%
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400 italic">No mapped CLOs</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-600">{row.remarks}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
+                            <button
+                                onClick={handleCancelImport}
+                                disabled={importing}
+                                className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmImport}
+                                disabled={importing}
+                                className="flex items-center px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm disabled:opacity-50"
+                            >
+                                {importing ? 'Saving...' : 'Confirm & Save to Database'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

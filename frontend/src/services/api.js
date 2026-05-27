@@ -175,6 +175,14 @@ export const batchApi = {
         return response.data;
     },
     // Semesters
+    getSemesters: async (batchId) => {
+        const response = await api.get(`/batches/${batchId}/semesters`);
+        return response.data;
+    },
+    getPLOs: async (batchId) => {
+        const response = await api.get(`/batches/${batchId}/plos`);
+        return response.data;
+    },
     getSemester: async (batchId, semId) => {
         const response = await api.get(`/batches/${batchId}/semesters/${semId}`);
         return response.data;
@@ -196,8 +204,8 @@ export const batchApi = {
         const response = await api.post(`/batches/${batchId}/plos`, data);
         return response.data;
     },
-    updateAllPLOs: async (batchId, plos) => {
-        const response = await api.put(`/batches/${batchId}/plos`, { plos });
+    updateAllPLOs: async (batchId, ploIds) => {
+        const response = await api.post(`/batches/${batchId}/plos`, { plo_ids: ploIds });
         return response.data;
     },
     deletePLO: async (batchId, ploId) => {
@@ -216,7 +224,42 @@ export const batchApi = {
     removeBatchCourse: async (batchId, semesterNumber, courseId) => {
         const response = await api.delete(`/batches/${batchId}/semesters/${semesterNumber}/courses/${courseId}`);
         return response.data;
-    }
+    },
+    // Class Schedule
+    getCourseDetailsForBatch: async (batchId, courseId) => {
+        const response = await api.get(`/batches/${batchId}/courses/${courseId}/details`);
+        return response.data;
+    },
+    getCourseSchedule: async (batchId, courseId) => {
+        const response = await api.get(`/batches/${batchId}/courses/${courseId}/schedule`);
+        return response.data;
+    },
+    saveCourseSchedule: async (batchId, courseId, data) => {
+        const response = await api.put(`/batches/${batchId}/courses/${courseId}/schedule`, data);
+        return response.data;
+    },
+    // Faculty & Content
+    assignFaculty: async (batchId, semesterNumber, courseId, facultyId) => {
+        const response = await api.post(`/batches/${batchId}/semesters/${semesterNumber}/courses/${courseId}/assign`, { faculty_id: facultyId });
+        return response.data;
+    },
+    uploadCourseFile: async (batchId, semesterNumber, courseId, file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post(`/batches/${batchId}/semesters/${semesterNumber}/courses/${courseId}/upload`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
+    // CLO-PLO Mapping
+    getCLOPLOMappings: async (batchId) => {
+        const response = await api.get(`/batches/${batchId}/clo-mappings`);
+        return response.data;
+    },
+    saveCLOPLOMappings: async (batchId, courseId, mappings) => {
+        const response = await api.post(`/batches/${batchId}/clo-mappings`, { course_id: courseId, mappings });
+        return response.data;
+    },
 };
 
 // ============================================
@@ -303,6 +346,11 @@ export const courseApi = {
     // Syllabus
     updateSyllabus: async (courseId, data) => {
         const response = await api.put(`/courses/${courseId}/syllabus`, data);
+        return response.data;
+    },
+    // Faculty weekly schedule
+    getMySchedule: async () => {
+        const response = await api.get('/courses/my-schedule');
         return response.data;
     },
     // All courses list (no pagination, for pickers)
@@ -474,6 +522,24 @@ export const gradeApi = {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
         return response.data;
+    },
+    importGradesPreview: async (assessmentId, file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post(`/assessments/${assessmentId}/grades/import-preview`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    }
+};
+
+// ============================================
+// OBE API
+// ============================================
+export const obeApi = {
+    getReports: async () => {
+        const response = await api.get('/obe/reports');
+        return response.data;
     }
 };
 
@@ -551,6 +617,37 @@ export const departmentApi = {
     getPLOs: async (departmentId) => {
         const response = await api.get(`/departments/${departmentId}/plos`);
         return response.data;
+    },
+    getAllPLOs: async () => {
+        const response = await api.get('/departments/plos/all');
+        return response.data;
+    },
+    addPLO: async (data) => {
+        const response = await api.post('/departments/plos/add', data);
+        return response.data;
+    },
+    deletePLO: async (ploId) => {
+        const response = await api.delete(`/departments/plos/${ploId}`);
+        return response.data;
+    },
+    importPLOs: async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post('/departments/plos/import', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
+    exportPLOs: async () => {
+        const response = await api.get('/departments/plos/export', { responseType: 'blob' });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'plos_export.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
     }
 };
 
