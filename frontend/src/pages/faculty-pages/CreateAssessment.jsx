@@ -159,6 +159,9 @@ const CreateAssessment = () => {
             setSaving(true);
             setError(null);
 
+            const chosenDate = showDueDate ? formData.dueDate : (showConductedDate ? formData.conductedDate : null);
+            const calculatedStatus = (chosenDate && new Date(chosenDate) < new Date()) ? 'needs_grading' : 'scheduled';
+
             const payload = {
                 course_assignment_id: parseInt(courseAssignmentId),
                 type: formData.assessmentType,
@@ -170,7 +173,7 @@ const CreateAssessment = () => {
                 max_score: parseInt(formData.maxScore) || 100,
                 weight: formData.weight ? parseFloat(formData.weight) : null,
                 duration_minutes: formData.duration ? parseInt(formData.duration) : null,
-                status: 'scheduled',
+                status: calculatedStatus,
                 questions: questions.length > 0 ? questions.map(q => ({
                     description: q.description || null,
                     max_marks: parseFloat(q.max_marks) || 10,

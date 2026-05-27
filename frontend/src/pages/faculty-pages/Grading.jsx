@@ -344,6 +344,10 @@ const Grading = () => {
                                     const statusColor = getStatusColor(assessment.status);
                                     const typeLabel = getTypeLabel(assessment.type);
 
+                                    const dateToCheck = assessment.conducted_date || assessment.due_date;
+                                    const isDatePassed = dateToCheck ? new Date(dateToCheck) < new Date() : false;
+                                    const canGrade = assessment.status !== 'scheduled' || isDatePassed;
+
                                     return (
                                         <tr key={assessment.id} className="hover:bg-gray-50 transition-colors">
                                             {/* Assessment Name */}
@@ -387,7 +391,7 @@ const Grading = () => {
                                             {/* Actions */}
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    {assessment.status === 'scheduled' ? (
+                                                    {!canGrade ? (
                                                         <span
                                                             className="flex items-center px-3 py-1.5 bg-gray-300 text-gray-500 rounded-lg text-xs font-medium cursor-not-allowed"
                                                             title="Cannot grade a scheduled assignment before its due date"

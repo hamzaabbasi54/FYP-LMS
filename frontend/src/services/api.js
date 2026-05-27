@@ -467,6 +467,14 @@ export const studentApi = {
         });
         return response.data;
     },
+    facultyImportStudents: async (assignmentId, file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post(`/students/import/course/${assignmentId}`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
     export: async (batchId) => {
         const response = await api.get(`/students/export/excel`, {
             params: { batch_id: batchId },
