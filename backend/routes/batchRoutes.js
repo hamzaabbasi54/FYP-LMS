@@ -91,9 +91,19 @@ router.get('/:id', async (req, res) => {
             [req.params.id]
         );
 
+        // Fetch PLOs attached to this batch
+        const [plos] = await pool.query(
+            `SELECT p.id, p.plo_number, p.description
+             FROM batch_plos bp
+             JOIN plos p ON bp.plo_id = p.id
+             WHERE bp.batch_id = ?
+             ORDER BY p.plo_number`,
+            [req.params.id]
+        );
+
         res.json({
             success: true,
-            data: { ...batches[0], semesters }
+            data: { ...batches[0], semesters, plos }
         });
     } catch (error) {
         console.error('Get batch error:', error);
@@ -536,7 +546,7 @@ router.post('/:batchId/semesters/:semesterNumber/courses/:courseId/assign', isAd
     try {
         const { batchId, semesterNumber, courseId } = req.params;
         const { faculty_id } = req.body;
-        
+
         await conn.beginTransaction();
 
         // 1. Ensure the semester exists in the `semesters` table
@@ -614,7 +624,7 @@ router.post('/:batchId/semesters/:semesterNumber/courses/:courseId/upload', isAd
             'SELECT id FROM course_assignments WHERE semester_id = ? AND course_id = ?',
             [semesterId, courseId]
         );
-        
+
         let assignmentId;
         if (assignments.length === 0) {
             const [result] = await pool.query(
@@ -627,7 +637,7 @@ router.post('/:batchId/semesters/:semesterNumber/courses/:courseId/upload', isAd
         }
 
         const filePath = `/uploads/course_content/${req.file.filename}`;
-        
+
         await pool.query(
             'INSERT INTO course_assignment_files (course_assignment_id, file_name, file_path, file_type) VALUES (?, ?, ?, ?)',
             [assignmentId, req.file.originalname, filePath, req.file.mimetype]
@@ -698,10 +708,11 @@ router.get('/:batchId/courses/:courseId/details', async (req, res) => {
             `SELECT c.id, c.title, c.clo_number, c.description, 
                     GROUP_CONCAT(m.plo_id) as mapped_plo_ids
              FROM clos c
+             LEFT JOIN course_clo_mapping ccm ON ccm.clo_id = c.id
              LEFT JOIN batch_clo_plo_mapping m ON c.id = m.clo_id AND m.batch_id = ?
-             WHERE c.course_id = ?
+             WHERE c.course_id = ? OR ccm.course_id = ?
              GROUP BY c.id`,
-            [batchId, courseId]
+            [batchId, courseId, courseId]
         );
 
         res.json({
@@ -827,7 +838,7 @@ router.post('/:id/plos', isAdmin, async (req, res) => {
         const { plo_ids } = req.body;
         await conn.beginTransaction();
         await conn.query('DELETE FROM batch_plos WHERE batch_id = ?', [req.params.id]);
-        
+
         if (plo_ids && Array.isArray(plo_ids) && plo_ids.length > 0) {
             const ploValues = plo_ids.map(ploId => [req.params.id, ploId]);
             await conn.query('INSERT INTO batch_plos (batch_id, plo_id) VALUES ?', [ploValues]);
@@ -876,7 +887,7 @@ router.post('/:id/clo-mappings', isAdmin, async (req, res) => {
     try {
         const { mappings, course_id } = req.body; // Array of { clo_id, plo_id }
         await conn.beginTransaction();
-        
+
         // Delete existing mappings for this batch (optionally scoped to a course)
         if (course_id) {
             await conn.query(`
@@ -887,7 +898,7 @@ router.post('/:id/clo-mappings', isAdmin, async (req, res) => {
         } else {
             await conn.query('DELETE FROM batch_clo_plo_mapping WHERE batch_id = ?', [req.params.id]);
         }
-        
+
         // Insert new mappings
         if (mappings && Array.isArray(mappings) && mappings.length > 0) {
             const values = mappings.map(m => [req.params.id, m.clo_id, m.plo_id]);
@@ -896,7 +907,7 @@ router.post('/:id/clo-mappings', isAdmin, async (req, res) => {
                 [values]
             );
         }
-        
+
         await conn.commit();
         res.json({ success: true, message: 'CLO-PLO mappings saved successfully' });
     } catch (error) {

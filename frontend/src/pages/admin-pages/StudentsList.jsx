@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MdArrowBack, MdSearch, MdFileDownload, MdFileUpload, MdPersonAdd, MdClose, MdEmail } from 'react-icons/md';
+import { MdArrowBack, MdSearch, MdFileDownload, MdFileUpload, MdPersonAdd, MdClose, MdEmail, MdDelete } from 'react-icons/md';
 import { studentApi } from '../../services/api';
 import { toast } from 'react-toastify';
 
@@ -17,17 +17,36 @@ const StudentList = () => {
         matric_marks: '', fsc_marks: '', background: ''
     });
     const [showImportModal, setShowImportModal] = useState(false);
+    const [selectedStudents, setSelectedStudents] = useState(new Set());
+    const [deleting, setDeleting] = useState(false);
+
+    // Pagination & Search
+    const [page, setPage] = useState(1);
+    const [limit] = useState(10);
+    const [pagination, setPagination] = useState(null);
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     useEffect(() => {
         fetchStudents();
-    }, [id]);
+    }, [id, page, debouncedSearch]);
 
     const fetchStudents = async () => {
         try {
             setLoading(true);
-            const response = await studentApi.getAll({ batch_id: id });
+            const response = await studentApi.getAll({ 
+                batch_id: id,
+                page,
+                limit,
+                search: debouncedSearch
+            });
             if (response.success) {
                 setStudents(response.data || []);
+                setPagination(response.pagination);
             }
         } catch (error) {
             console.error('Error fetching students:', error);
@@ -36,17 +55,6 @@ const StudentList = () => {
             setLoading(false);
         }
     };
-
-    const filteredStudents = students.filter((student) => {
-        const query = searchQuery.toLowerCase();
-        const fullName = `${student.first_name || ''} ${student.last_name || ''}`.toLowerCase();
-        return (
-            fullName.includes(query) ||
-            (student.student_id_number || '').toLowerCase().includes(query) ||
-            (student.roll_number || '').toLowerCase().includes(query) ||
-            (student.email || '').toLowerCase().includes(query)
-        );
-    });
 
     const handleAddStudent = async (e) => {
         e.preventDefault();
@@ -134,6 +142,47 @@ const StudentList = () => {
         return 'from-red-500 to-rose-600';
     };
 
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            const allIds = students.map(s => s.id);
+            setSelectedStudents(new Set(allIds));
+        } else {
+            setSelectedStudents(new Set());
+        }
+    };
+
+    const handleSelect = (e, id) => {
+        e.stopPropagation(); // prevent row click
+        const newSet = new Set(selectedStudents);
+        if (newSet.has(id)) {
+            newSet.delete(id);
+        } else {
+            newSet.add(id);
+        }
+        setSelectedStudents(newSet);
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedStudents.size === 0) return;
+        if (!window.confirm(`Are you sure you want to delete ${selectedStudents.size} students? This cannot be undone.`)) return;
+
+        setDeleting(true);
+        try {
+            const ids = Array.from(selectedStudents);
+            const response = await studentApi.bulkDelete(ids);
+            if (response.success) {
+                toast.success(response.message || 'Students deleted successfully');
+                setSelectedStudents(new Set());
+                fetchStudents();
+            }
+        } catch (error) {
+            console.error('Bulk delete error:', error);
+            toast.error(error.response?.data?.message || 'Failed to delete students');
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
             <div className="p-8 max-w-7xl mx-auto">
@@ -154,7 +203,12 @@ const StudentList = () => {
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                        {selectedStudents.size > 0 && (
+                            <button onClick={handleBulkDelete} disabled={deleting} className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-all disabled:opacity-50">
+                                <MdDelete className="w-5 h-5" /> {deleting ? 'Deleting...' : `Delete (${selectedStudents.size})`}
+                            </button>
+                        )}
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx,.xls,.csv" className="hidden" />
                         <button onClick={() => setShowAddModal(true)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/25 transition-all">
                             <MdPersonAdd className="w-5 h-5" /> Add
@@ -183,6 +237,16 @@ const StudentList = () => {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-slate-100">
+                                    <th className="py-4 px-6 w-12 text-left">
+                                            <div className="flex items-center h-full">
+                                            <input 
+                                                type="checkbox" 
+                                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                checked={students.length > 0 && selectedStudents.size === students.length}
+                                                onChange={handleSelectAll}
+                                            />
+                                        </div>
+                                    </th>
                                     <th className="text-left py-4 px-6 text-xs uppercase text-slate-400 font-semibold tracking-wider">Student</th>
                                     <th className="text-left py-4 px-6 text-xs uppercase text-slate-400 font-semibold tracking-wider">Roll No.</th>
                                     <th className="text-left py-4 px-6 text-xs uppercase text-slate-400 font-semibold tracking-wider">Contact</th>
@@ -191,12 +255,22 @@ const StudentList = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-50">
                                 {loading ? (
-                                    <tr><td colSpan="4" className="py-12 text-center text-slate-400">Loading students...</td></tr>
-                                ) : filteredStudents.length === 0 ? (
-                                    <tr><td colSpan="4" className="py-12 text-center text-slate-400">{searchQuery ? 'No students match your search' : 'No students enrolled yet'}</td></tr>
+                                    <tr><td colSpan="5" className="py-12 text-center text-slate-400">Loading students...</td></tr>
+                                ) : students.length === 0 ? (
+                                    <tr><td colSpan="5" className="py-12 text-center text-slate-400">{searchQuery ? 'No students match your search' : 'No students enrolled yet'}</td></tr>
                                 ) : (
-                                    filteredStudents.map((student) => (
-                                        <tr key={student.id} onClick={() => navigate(`/admin-managebatches/${id}/students/${student.id}`)} className="hover:bg-slate-50/50 transition-colors cursor-pointer">
+                                    students.map((student) => (
+                                        <tr key={student.id} onClick={() => navigate(`/admin-managebatches/${id}/students/${student.id}`)} className="hover:bg-slate-50/50 transition-colors cursor-pointer group">
+                                            <td className="py-4 px-6 w-12" onClick={(e) => e.stopPropagation()}>
+                                                <div className="flex items-center h-full">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                        checked={selectedStudents.has(student.id)}
+                                                        onChange={(e) => handleSelect(e, student.id)}
+                                                    />
+                                                </div>
+                                            </td>
                                             <td className="py-4 px-6">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
@@ -229,8 +303,33 @@ const StudentList = () => {
                     </div>
                     <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
                         <p className="text-sm text-slate-500">
-                            {searchQuery ? `Found ${filteredStudents.length} results` : `Showing ${students.length} students`}
+                            {selectedStudents.size > 0 
+                                ? `${selectedStudents.size} selected`
+                                : (pagination ? `Showing ${students.length} of ${pagination.total} students` : `Showing ${students.length} students`)
+                            }
                         </p>
+                        
+                        {pagination && pagination.totalPages > 1 && (
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={!pagination.hasPrev}
+                                    className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                >
+                                    Previous
+                                </button>
+                                <span className="text-sm text-slate-600 font-medium px-2">
+                                    Page {pagination.page} of {pagination.totalPages}
+                                </span>
+                                <button 
+                                    onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                                    disabled={!pagination.hasNext}
+                                    className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 

@@ -202,6 +202,24 @@ router.delete('/:id', isAdmin, async (req, res) => {
     }
 });
 
+// POST bulk delete students
+router.post('/bulk-delete', isAdmin, async (req, res) => {
+    try {
+        const { student_ids } = req.body;
+        if (!student_ids || !Array.isArray(student_ids) || student_ids.length === 0) {
+            return res.status(400).json({ success: false, message: 'No student IDs provided' });
+        }
+        
+        const placeholders = student_ids.map(() => '?').join(',');
+        const [result] = await pool.query(`DELETE FROM students WHERE id IN (${placeholders})`, student_ids);
+        
+        res.json({ success: true, message: `${result.affectedRows} students deleted successfully` });
+    } catch (error) {
+        console.error('Bulk delete students error:', error);
+        res.status(500).json({ success: false, message: 'Error deleting students' });
+    }
+});
+
 // ===================== EXCEL IMPORT =====================
 
 // POST bulk import students from Excel

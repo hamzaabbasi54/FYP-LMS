@@ -116,6 +116,17 @@ router.post('/clos/add', isAdmin, async (req, res) => {
             return res.status(400).json({ success: false, message: 'CLO title must be in CLO-X format (e.g. CLO-1, CLO-2)' });
         }
         const cloNumber = parseInt(title.split('-')[1]);
+
+        // Check for duplicate standalone CLO with same title
+        const [existing] = await conn.query(
+            'SELECT id FROM clos WHERE title = ? AND course_id IS NULL',
+            [title]
+        );
+        if (existing.length > 0) {
+            await conn.rollback();
+            return res.status(400).json({ success: false, message: `CLO with title '${title}' already exists` });
+        }
+
         const [result] = await conn.query(
             'INSERT INTO clos (course_id, clo_number, title, description, cognitive_level) VALUES (NULL, ?, ?, ?, ?)',
             [cloNumber, title, description || null, cognitive_level || null]
@@ -217,6 +228,20 @@ router.get('/clos/export', async (req, res) => {
     } catch (error) {
         console.error('Export CLOs error:', error);
         res.status(500).json({ success: false, message: 'Error exporting CLOs' });
+    }
+});
+
+// DELETE standalone CLO by ID
+router.delete('/clos/:cloId', isAdmin, async (req, res) => {
+    try {
+        const [result] = await pool.query('DELETE FROM clos WHERE id = ? AND course_id IS NULL', [req.params.cloId]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'CLO not found or is attached to a course (cannot delete course-bound CLOs here)' });
+        }
+        res.json({ success: true, message: 'CLO deleted successfully' });
+    } catch (error) {
+        console.error('Delete CLO error:', error);
+        res.status(500).json({ success: false, message: 'Error deleting CLO' });
     }
 });
 

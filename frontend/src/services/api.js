@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -9,6 +9,34 @@ const api = axios.create({
         'Content-Type': 'application/json',
     },
 });
+
+// Helper to get absolute file URLs
+export const getFileUrl = (path) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    
+    // If the API is hosted on a different domain (e.g., Vercel frontend + Heroku backend),
+    // VITE_API_URL will be absolute (e.g., https://api.myfyp.com/api).
+    // We extract the origin to construct the file URL.
+    if (API_BASE_URL.startsWith('http')) {
+        try {
+            const url = new URL(API_BASE_URL);
+            return `${url.origin}${path}`;
+        } catch (e) {
+            console.error("Invalid API_BASE_URL", e);
+        }
+    }
+    
+    // For local dev where backend is 3000, we force it to 3000 to bypass Vite SPA fallback
+    const isDev = window.location.hostname === 'localhost';
+    if (isDev && path.startsWith('/uploads')) {
+        return `http://localhost:3000${path}`;
+    }
+    
+    // If hosted on the same domain (e.g., via Nginx proxying both /api and /uploads),
+    // it will return the relative path.
+    return path;
+};
 
 // Add token to requests if available
 api.interceptors.request.use(
@@ -385,6 +413,10 @@ export const courseApi = {
         link.click();
         link.remove();
         window.URL.revokeObjectURL(url);
+    },
+    deleteGlobalCLO: async (cloId) => {
+        const response = await api.delete(`/courses/clos/${cloId}`);
+        return response.data;
     }
 };
 
@@ -420,6 +452,10 @@ export const studentApi = {
     },
     delete: async (id) => {
         const response = await api.delete(`/students/${id}`);
+        return response.data;
+    },
+    bulkDelete: async (studentIds) => {
+        const response = await api.post('/students/bulk-delete', { student_ids: studentIds });
         return response.data;
     },
     import: async (batchId, file) => {

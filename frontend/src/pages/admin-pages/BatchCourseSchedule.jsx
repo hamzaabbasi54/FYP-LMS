@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MdArrowBack, MdMenuBook, MdPerson, MdSchool, MdSave, MdSchedule, MdWbSunny, MdNightsStay, MdAccessTime, MdCheckCircle } from 'react-icons/md';
-import { batchApi, approvalApi } from '../../services/api';
+import { batchApi, approvalApi, getFileUrl } from '../../services/api';
 import { toast } from 'react-toastify';
 
 const DAYS = [
@@ -361,7 +361,7 @@ const BatchCourseSchedule = () => {
                                         {courseData.files.map(f => (
                                             <div key={f.id} className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-sm">
                                                 <span className="text-slate-700 truncate mr-3 flex-1">{f.file_name}</span>
-                                                <a href={`http://localhost:5000${f.file_path}`} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex-shrink-0 text-xs font-medium">View</a>
+                                                <a href={getFileUrl(f.file_path)} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex-shrink-0 text-xs font-medium">View</a>
                                             </div>
                                         ))}
                                     </div>
@@ -369,6 +369,44 @@ const BatchCourseSchedule = () => {
                                     <p className="text-xs text-slate-400 italic">No files uploaded yet.</p>
                                 )}
                             </div>
+                        </div>
+
+                        {/* Course CLOs Divider */}
+                        <div className="my-6 border-t border-slate-100"></div>
+
+                        {/* Course CLOs Section */}
+                        <div>
+                            <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <MdCheckCircle className="w-4 h-4 text-emerald-500" /> Course Learning Outcomes (CLOs)
+                            </h3>
+                            
+                            {courseData.clos && courseData.clos.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {courseData.clos.map(clo => (
+                                        <div key={clo.id} className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                                            <div className="flex items-start justify-between mb-2">
+                                                <h4 className="font-bold text-slate-800 text-sm">{clo.title}</h4>
+                                                {clo.mapped_plo_ids ? (
+                                                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded text-[10px] font-bold tracking-wide">
+                                                        MAPPED
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-2 py-0.5 bg-amber-50 text-amber-600 border border-amber-100 rounded text-[10px] font-bold tracking-wide">
+                                                        UNMAPPED
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-slate-600 leading-relaxed">{clo.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="p-6 bg-slate-50 border border-slate-100 rounded-xl text-center">
+                                    <MdCheckCircle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                                    <p className="text-sm text-slate-500 font-medium">No CLOs attached to this course.</p>
+                                    <p className="text-xs text-slate-400 mt-1">CLOs are managed in the curriculum blueprint.</p>
+                                </div>
+                            )}
                         </div>
 
                         {/* CLO-PLO Mapping */}

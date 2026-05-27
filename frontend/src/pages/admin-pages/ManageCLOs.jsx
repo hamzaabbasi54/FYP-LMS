@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { MdArrowBack, MdSearch, MdAdd, MdFileUpload, MdFileDownload, MdClose, MdExpandMore, MdExpandLess } from 'react-icons/md';
+import { MdArrowBack, MdSearch, MdAdd, MdFileUpload, MdFileDownload, MdClose, MdExpandMore, MdExpandLess, MdDelete } from 'react-icons/md';
 import { courseApi } from '../../services/api';
 import { toast } from 'react-toastify';
 
@@ -81,6 +81,19 @@ const ManageCLOs = () => {
 
     const handleExport = () => { courseApi.exportCLOs(); };
 
+    const handleDeleteCLO = async (cloId, cloTitle) => {
+        if (!window.confirm(`Are you sure you want to delete ${cloTitle}? This cannot be undone.`)) return;
+        try {
+            const res = await courseApi.deleteGlobalCLO(cloId);
+            if (res.success) {
+                toast.success(`${cloTitle} deleted successfully`);
+                fetchCLOs();
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to delete CLO');
+        }
+    };
+
     const getCognitiveLabel = (level) => {
         const map = { C1: 'Remember', C2: 'Understand', C3: 'Apply', C4: 'Analyze', C5: 'Evaluate', C6: 'Create' };
         return level ? `${level} - ${map[level] || ''}` : 'Not specified';
@@ -125,6 +138,13 @@ const ManageCLOs = () => {
                                 {clo.cognitive_level}
                             </span>
                         )}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteCLO(clo.id, clo.title); }}
+                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            title={`Delete ${clo.title}`}
+                        >
+                            <MdDelete className="w-4 h-4" />
+                        </button>
                         {isExpanded ? <MdExpandLess className="w-5 h-5 text-slate-400" /> : <MdExpandMore className="w-5 h-5 text-slate-400" />}
                     </div>
                 </div>
