@@ -106,6 +106,15 @@ router.get('/reports', async (req, res) => {
             WHERE b.status = 'active' ${deptFilter}
         `, deptParams);
 
+        // Fetch precise CLO to PLO mappings for the batches
+        const [cloPloMappings] = await pool.query(`
+            SELECT m.batch_id, m.clo_id, p.plo_number
+            FROM batch_clo_plo_mapping m
+            JOIN plos p ON m.plo_id = p.id
+            JOIN batches b ON m.batch_id = b.id
+            WHERE b.status = 'active' ${deptFilter}
+        `, deptParams);
+
         // Restructure data to match frontend OBEReports requirements
         const formattedBatches = batches.map(b => {
             // Find all PLOs for this batch (graded and ungraded)
@@ -150,14 +159,17 @@ router.get('/reports', async (req, res) => {
                     };
                 }
 
-                // Find mapped PLO (just the first one for display)
-                const mappedPloId = ploRows.find(p => p.batch_id === b.id && batchPLOs.some(bp => bp.id === `PLO-${p.plo_number}`))?.plo_number;
+                // Find mapped PLO(s) using the exact mappings
+                const mappedPlos = cloPloMappings
+                    .filter(m => m.batch_id === b.id && m.clo_id === c.clo_id)
+                    .map(m => `PLO-${m.plo_number}`);
+                const mappedPloStr = mappedPlos.length > 0 ? mappedPlos.join(', ') : 'Mapped PLO';
 
                 semestersMap[c.semester_id].courses[c.course_id].clos.push({
                     id: `CLO-${c.clo_number}`,
                     name: c.clo_title,
                     achievement: Math.round(c.avg_clo_achievement),
-                    plo: mappedPloId ? `PLO-${mappedPloId}` : 'Mapped PLO'
+                    plo: mappedPloStr
                 });
                 
                 semestersMap[c.semester_id].courses[c.course_id].totalAchievement += c.avg_clo_achievement;

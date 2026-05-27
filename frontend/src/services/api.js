@@ -346,6 +346,27 @@ export const courseApi = {
         const response = await api.get('/courses/assignments', { params });
         return response.data;
     },
+    // CLO Management
+    getAllClos: async () => {
+        const response = await api.get('/courses/clos/all');
+        return response.data;
+    },
+    mapClosToCourse: async (courseId, cloIds) => {
+        const response = await api.post(`/courses/${courseId}/clos/map`, { clo_ids: cloIds });
+        return response.data;
+    },
+    addSingleClo: async (courseId, data) => {
+        const response = await api.post(`/courses/${courseId}/clos/single`, data);
+        return response.data;
+    },
+    updateClo: async (cloId, data) => {
+        const response = await api.put(`/courses/clos/${cloId}`, data);
+        return response.data;
+    },
+    deleteClo: async (cloId) => {
+        const response = await api.delete(`/courses/clos/${cloId}`);
+        return response.data;
+    },
     getAssignmentDetails: async (assignmentId) => {
         const response = await api.get(`/courses/assignments/${assignmentId}`);
         return response.data;

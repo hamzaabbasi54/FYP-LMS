@@ -142,6 +142,27 @@ router.post('/clos/add', isAdmin, async (req, res) => {
     }
 });
 
+// PUT update individual CLO
+router.put('/clos/:id', isAdmin, async (req, res) => {
+    try {
+        const { title, description, cognitive_level } = req.body;
+        if (!title) {
+            return res.status(400).json({ success: false, message: 'CLO title is required' });
+        }
+        const [result] = await pool.query(
+            'UPDATE clos SET title = ?, description = ?, cognitive_level = ? WHERE id = ?',
+            [title, description || null, cognitive_level || null, req.params.id]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'CLO not found' });
+        }
+        res.json({ success: true, message: 'CLO updated successfully' });
+    } catch (error) {
+        console.error('Update CLO error:', error);
+        res.status(500).json({ success: false, message: 'Error updating CLO' });
+    }
+});
+
 // POST import CLOs from Excel
 router.post('/clos/import', upload.single('file'), async (req, res) => {
     if (!req.file) {
@@ -231,12 +252,12 @@ router.get('/clos/export', async (req, res) => {
     }
 });
 
-// DELETE standalone CLO by ID
+// DELETE CLO by ID
 router.delete('/clos/:cloId', isAdmin, async (req, res) => {
     try {
-        const [result] = await pool.query('DELETE FROM clos WHERE id = ? AND course_id IS NULL', [req.params.cloId]);
+        const [result] = await pool.query('DELETE FROM clos WHERE id = ?', [req.params.cloId]);
         if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'CLO not found or is attached to a course (cannot delete course-bound CLOs here)' });
+            return res.status(404).json({ success: false, message: 'CLO not found' });
         }
         res.json({ success: true, message: 'CLO deleted successfully' });
     } catch (error) {
@@ -678,6 +699,68 @@ router.put('/:id/clos', isAdmin, async (req, res) => {
         await conn.rollback();
         console.error('Update CLOs error:', error);
         res.status(500).json({ success: false, message: 'Error updating CLOs' });
+    } finally {
+        conn.release();
+    }
+});
+
+// POST add a single CLO to a course
+router.post('/:id/clos/single', isAdmin, async (req, res) => {
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+        const { title, description, cognitive_level } = req.body;
+        const courseId = req.params.id;
+        
+        if (!title) {
+            return res.status(400).json({ success: false, message: 'CLO title is required' });
+        }
+        
+        const cloPattern = /^CLO-\d+$/;
+        if (!cloPattern.test(title)) {
+            return res.status(400).json({ success: false, message: 'CLO title must be in CLO-X format (e.g. CLO-1, CLO-2)' });
+        }
+        const cloNumber = parseInt(title.split('-')[1]);
+
+        // Insert directly mapping to course
+        const [result] = await conn.query(
+            'INSERT INTO clos (course_id, clo_number, title, description, cognitive_level) VALUES (?, ?, ?, ?, ?)',
+            [courseId, cloNumber, title, description || null, cognitive_level || null]
+        );
+        
+        await conn.commit();
+        res.status(201).json({ success: true, message: 'CLO added to course', data: { id: result.insertId } });
+    } catch (error) {
+        await conn.rollback();
+        console.error('Add single CLO error:', error);
+        res.status(500).json({ success: false, message: 'Error adding CLO to course' });
+    } finally {
+        conn.release();
+    }
+});
+
+// POST map existing CLOs to a course
+router.post('/:id/clos/map', isAdmin, async (req, res) => {
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+        const courseId = req.params.id;
+        const { clo_ids } = req.body;
+        
+        if (!clo_ids || !Array.isArray(clo_ids) || clo_ids.length === 0) {
+            return res.status(400).json({ success: false, message: 'clo_ids array is required and cannot be empty' });
+        }
+
+        // Use IGNORE to avoid duplicate key errors if already mapped
+        const cloValues = clo_ids.map(cloId => [courseId, cloId]);
+        await conn.query('INSERT IGNORE INTO course_clo_mapping (course_id, clo_id) VALUES ?', [cloValues]);
+        
+        await conn.commit();
+        res.status(200).json({ success: true, message: 'CLOs mapped to course successfully' });
+    } catch (error) {
+        await conn.rollback();
+        console.error('Map CLOs error:', error);
+        res.status(500).json({ success: false, message: 'Error mapping CLOs to course' });
     } finally {
         conn.release();
     }

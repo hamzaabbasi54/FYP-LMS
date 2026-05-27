@@ -892,8 +892,8 @@ router.post('/:id/clo-mappings', isAdmin, async (req, res) => {
         if (course_id) {
             await conn.query(`
                 DELETE m FROM batch_clo_plo_mapping m
-                JOIN clos c ON m.clo_id = c.id
-                WHERE m.batch_id = ? AND c.course_id = ?
+                JOIN course_clo_mapping ccm ON m.clo_id = ccm.clo_id
+                WHERE m.batch_id = ? AND ccm.course_id = ?
             `, [req.params.id, course_id]);
         } else {
             await conn.query('DELETE FROM batch_clo_plo_mapping WHERE batch_id = ?', [req.params.id]);
