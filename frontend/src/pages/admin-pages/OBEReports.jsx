@@ -108,7 +108,7 @@ const OBEReports = () => {
                 <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-5 text-white shadow-lg">
                     <div className="flex items-center justify-between mb-2">
                         <MdBook className="w-8 h-8 opacity-80" />
-                        <span className="text-3xl font-bold">12</span>
+                        <span className="text-3xl font-bold">{batches.reduce((acc, b) => acc + (b.totalPLOs || 0), 0)}</span>
                     </div>
                     <p className="text-sm opacity-90">Total PLOs</p>
                 </div>
