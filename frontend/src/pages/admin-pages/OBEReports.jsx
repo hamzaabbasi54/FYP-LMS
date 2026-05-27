@@ -202,7 +202,7 @@ const OBEReports = () => {
                                                             </div>
                                                             <div className="text-left">
                                                                 <p className="font-semibold text-gray-800">{semester.name}</p>
-                                                                <p className="text-xs text-gray-400">{semester.clos.length} CLOs</p>
+                                                                <p className="text-xs text-gray-400">{semester.courses?.length || 0} Courses</p>
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-3">
@@ -222,36 +222,48 @@ const OBEReports = () => {
                                                         </div>
                                                     </div>
 
-                                                    {/* CLOs */}
+                                                    {/* Courses & CLOs */}
                                                     {expandedSemester === semester.id && (
-                                                        <div className="border-t border-gray-100 p-4 bg-gray-50 space-y-2">
-                                                            {semester.clos.map((clo) => (
-                                                                <div key={clo.id} className="bg-white rounded-lg p-3 border border-gray-200">
-                                                                    <div className="flex items-start justify-between mb-2">
-                                                                        <div className="flex-1">
-                                                                            <div className="flex items-center gap-2 mb-1">
-                                                                                <span className="text-xs font-bold text-emerald-600">{clo.id}</span>
-                                                                                <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-medium">
-                                                                                    {clo.course}
-                                                                                </span>
-                                                                                <span className="text-xs px-2 py-0.5 bg-violet-100 text-violet-700 rounded-full font-medium">
-                                                                                    Maps to {clo.plo}
-                                                                                </span>
-                                                                            </div>
-                                                                            <p className="text-sm text-gray-700">{clo.name}</p>
+                                                        <div className="border-t border-gray-100 p-4 bg-gray-50 space-y-4">
+                                                            {semester.courses.map((course) => (
+                                                                <div key={course.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                                                    <div className="w-full p-3 bg-gray-100 flex items-center justify-between">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-sm font-bold text-gray-800">{course.code}</span>
+                                                                            <span className="text-sm text-gray-600">- {course.title}</span>
                                                                         </div>
-                                                                        <span className={`text-base font-bold ml-3 ${getAchievementColor(clo.achievement).split(' ')[0]}`}>
-                                                                            {clo.achievement}%
+                                                                        <span className={`text-sm font-bold px-2 py-1 rounded ${getAchievementColor(course.achievement)}`}>
+                                                                            Course Avg: {course.achievement}%
                                                                         </span>
                                                                     </div>
-                                                                    <div className="w-full bg-gray-200 rounded-full h-1.5">
-                                                                        <div
-                                                                            className={`h-1.5 rounded-full ${clo.achievement >= 85 ? 'bg-green-500' :
-                                                                                clo.achievement >= 70 ? 'bg-blue-500' :
-                                                                                    clo.achievement >= 60 ? 'bg-amber-500' : 'bg-red-500'
-                                                                                }`}
-                                                                            style={{ width: `${clo.achievement}%` }}
-                                                                        />
+                                                                    <div className="p-3 space-y-2">
+                                                                        {course.clos.map((clo) => (
+                                                                            <div key={clo.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                                                                <div className="flex items-start justify-between mb-2">
+                                                                                    <div className="flex-1">
+                                                                                        <div className="flex items-center gap-2 mb-1">
+                                                                                            <span className="text-xs font-bold text-emerald-600">{clo.id}</span>
+                                                                                            <span className="text-xs px-2 py-0.5 bg-violet-100 text-violet-700 rounded-full font-medium">
+                                                                                                Maps to {clo.plo}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <p className="text-sm text-gray-700">{clo.name}</p>
+                                                                                    </div>
+                                                                                    <span className={`text-base font-bold ml-3 ${getAchievementColor(clo.achievement).split(' ')[0]}`}>
+                                                                                        {clo.achievement}%
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                                                                    <div
+                                                                                        className={`h-1.5 rounded-full ${clo.achievement >= 85 ? 'bg-green-500' :
+                                                                                            clo.achievement >= 70 ? 'bg-blue-500' :
+                                                                                                clo.achievement >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                                                                                            }`}
+                                                                                        style={{ width: `${clo.achievement}%` }}
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
                                                                     </div>
                                                                 </div>
                                                             ))}

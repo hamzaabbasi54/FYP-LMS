@@ -85,9 +85,8 @@ router.get('/reports', async (req, res) => {
                 ) as base
                 GROUP BY base.batch_id, base.clo_id
             ) as batch_plo
-            JOIN clo_plo_mapping cpm ON batch_plo.clo_id = cpm.clo_id
-            JOIN batch_plos bp ON cpm.plo_id = bp.plo_id AND bp.batch_id = batch_plo.batch_id
-            JOIN plos p ON cpm.plo_id = p.id
+            JOIN batch_clo_plo_mapping bcpm ON batch_plo.clo_id = bcpm.clo_id AND batch_plo.batch_id = bcpm.batch_id
+            JOIN plos p ON bcpm.plo_id = p.id
             GROUP BY batch_plo.batch_id, p.id, p.plo_number, p.description
         `, deptParams);
 
@@ -126,7 +125,7 @@ router.get('/reports', async (req, res) => {
                 ? Math.round(batchPLOs.reduce((acc, p) => acc + p.achievement, 0) / batchPLOs.length)
                 : 0;
 
-            // Group CLOs into Semesters
+            // Group CLOs into Semesters -> Courses
             const batchCLOs = cloRows.filter(c => c.batch_id === b.id);
             const semestersMap = {};
             batchCLOs.forEach(c => {
@@ -134,29 +133,51 @@ router.get('/reports', async (req, res) => {
                     semestersMap[c.semester_id] = {
                         id: c.semester_id,
                         name: c.semester_name,
+                        courses: {},
+                        totalAchievement: 0,
+                        cloCount: 0
+                    };
+                }
+                
+                if (!semestersMap[c.semester_id].courses[c.course_id]) {
+                    semestersMap[c.semester_id].courses[c.course_id] = {
+                        id: c.course_id,
+                        code: c.course_code,
+                        title: c.course_title,
                         clos: [],
                         totalAchievement: 0
                     };
                 }
-                
+
                 // Find mapped PLO (just the first one for display)
                 const mappedPloId = ploRows.find(p => p.batch_id === b.id && batchPLOs.some(bp => bp.id === `PLO-${p.plo_number}`))?.plo_number;
 
-                semestersMap[c.semester_id].clos.push({
+                semestersMap[c.semester_id].courses[c.course_id].clos.push({
                     id: `CLO-${c.clo_number}`,
-                    course: c.course_code,
                     name: c.clo_title,
                     achievement: Math.round(c.avg_clo_achievement),
                     plo: mappedPloId ? `PLO-${mappedPloId}` : 'Mapped PLO'
                 });
+                
+                semestersMap[c.semester_id].courses[c.course_id].totalAchievement += c.avg_clo_achievement;
                 semestersMap[c.semester_id].totalAchievement += c.avg_clo_achievement;
+                semestersMap[c.semester_id].cloCount++;
             });
 
-            // Calculate semester averages
-            const semesters = Object.values(semestersMap).map(s => ({
-                ...s,
-                achievement: s.clos.length > 0 ? Math.round(s.totalAchievement / s.clos.length) : 0
-            }));
+            // Calculate semester & course averages
+            const semesters = Object.values(semestersMap).map(s => {
+                const coursesArray = Object.values(s.courses).map(course => ({
+                    ...course,
+                    achievement: course.clos.length > 0 ? Math.round(course.totalAchievement / course.clos.length) : 0
+                }));
+                
+                return {
+                    id: s.id,
+                    name: s.name,
+                    courses: coursesArray,
+                    achievement: s.cloCount > 0 ? Math.round(s.totalAchievement / s.cloCount) : 0
+                };
+            });
 
             return {
                 id: b.id,

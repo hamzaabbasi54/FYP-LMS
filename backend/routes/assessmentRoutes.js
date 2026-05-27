@@ -417,6 +417,9 @@ router.post('/:id/grades', async (req, res) => {
             );
         }
 
+        // Update assessment status to graded
+        await conn.query(`UPDATE assessments SET status = 'graded' WHERE id = ?`, [req.params.id]);
+
         await conn.commit();
         res.json({ success: true, message: `${grades.length} grades saved` });
     } catch (error) {
