@@ -91,9 +91,10 @@ router.get('/reports', async (req, res) => {
         `, deptParams);
 
         // Also fetch a list of all active batches to ensure they appear even if they have no grades yet
+        const deptFilterSimple = deptId ? ' AND department_id = ?' : '';
         const [batches] = await pool.query(`
             SELECT id, name, (YEAR(CURRENT_DATE) - YEAR(start_date) + 1) as year_number
-            FROM batches WHERE status = 'active' ${deptFilter}
+            FROM batches WHERE status = 'active' ${deptFilterSimple}
         `, deptParams);
 
         // Fetch actual attached PLOs for these batches
@@ -192,7 +193,7 @@ router.get('/reports', async (req, res) => {
 
         res.json({ success: true, data: formattedBatches });
     } catch (error) {
-        console.error('Get OBE Reports Error:', error);
+        console.error('Get OBE Reports Error:', error.message);
         res.status(500).json({ success: false, message: 'Failed to fetch OBE reports' });
     }
 });
