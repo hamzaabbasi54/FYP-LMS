@@ -1,57 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MdArrowBack, MdSearch, MdAdd, MdBook, MdClose, MdPerson, MdPersonAdd, MdCheck } from 'react-icons/md';
 import { batchApi, courseApi, approvalApi } from '../../services/api';
 import { toast } from 'react-toastify';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const SemesterCourses = () => {
+    const queryClient = useQueryClient();
     const { id, semesterId } = useParams();
-    const [semesterData, setSemesterData] = useState(null);
-    const [courses, setCourses] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
     
-    // Add-course modal
+    const [searchQuery, setSearchQuery] = useState('');
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-    const [availableCourses, setAvailableCourses] = useState([]);
     const [modalSearchQuery, setModalSearchQuery] = useState('');
-    const [assigningLoading, setAssigningLoading] = useState(false);
-
-    // Course details modal
     const [selectedCourse, setSelectedCourse] = useState(null);
-    const [courseDetails, setCourseDetails] = useState(null);
-    const [detailsLoading, setDetailsLoading] = useState(false);
-
-    // Faculty assign modal
     const [showFacultyModal, setShowFacultyModal] = useState(false);
-    const [facultyList, setFacultyList] = useState([]);
     const [facultySearch, setFacultySearch] = useState('');
-    const [assigningFaculty, setAssigningFaculty] = useState(false);
 
-    useEffect(() => {
-        fetchSemesterCourses();
-    }, [id, semesterId]);
-
-    const fetchSemesterCourses = async () => {
-        try {
-            setLoading(true);
+    const { data: semesterDataResult, isLoading: loading } = useQuery({
+        queryKey: ['semesterCourses', id, semesterId],
+        queryFn: async () => {
             const response = await batchApi.getSemester(id, semesterId);
             if (response.success) {
                 const semester = response.data;
-                setSemesterData({
-                    title: `${semester.name} Courses`,
-                    batchName: semester.batchName,
-                    semesterName: semester.name
-                });
-                setCourses(semester.courses || []);
+                return {
+                    semesterData: {
+                        title: `${semester.name} Courses`,
+                        batchName: semester.batchName,
+                        semesterName: semester.name
+                    },
+                    courses: semester.courses || []
+                };
             }
-        } catch (error) {
-            console.error('Error fetching semester courses:', error);
-            toast.error('Failed to load semester courses');
-        } finally {
-            setLoading(false);
+            throw new Error('Failed to load semester courses');
         }
-    };
+    });
+
+    const semesterData = semesterDataResult?.semesterData || null;
+    const courses = semesterDataResult?.courses || [];
 
     const filteredCourses = courses.filter(c =>
         (c.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -59,41 +44,39 @@ const SemesterCourses = () => {
     );
 
     // --- Add-Course Modal Logic ---
-    const handleOpenAssignModal = async () => {
-        setIsAssignModalOpen(true);
-        try {
+    const { data: availableCourses = [], isLoading: availableLoading } = useQuery({
+        queryKey: ['availableCourses', id, semesterId],
+        enabled: isAssignModalOpen,
+        queryFn: async () => {
             const response = await courseApi.getAll({ limit: 1000 });
             if (response.success) {
                 const assignedIds = courses.map(c => c.course_id || c.id);
-                const available = (response.data || []).filter(c => !assignedIds.includes(c.id));
-                setAvailableCourses(available);
+                return (response.data || []).filter(c => !assignedIds.includes(c.id));
             }
-        } catch (error) {
-            console.error('Error fetching available courses:', error);
-            toast.error('Failed to load available courses');
+            throw new Error('Failed to load available courses');
         }
-    };
+    });
 
-    const handleAssignCourse = async (courseId) => {
-        if (assigningLoading) return;
-        setAssigningLoading(true);
-        try {
-            const response = await courseApi.assign({
-                course_id: courseId,
-                semester_id: parseInt(semesterId),
-                faculty_id: null
-            });
-            if (response.success) {
-                toast.success('Course assigned successfully');
-                setAvailableCourses(prev => prev.filter(c => c.id !== courseId));
-                fetchSemesterCourses();
-            }
-        } catch (error) {
-            console.error('Error assigning course:', error);
+    const assignCourseMutation = useMutation({
+        mutationFn: (courseId) => courseApi.assign({
+            course_id: courseId,
+            semester_id: parseInt(semesterId),
+            faculty_id: null
+        }),
+        onSuccess: () => {
+            toast.success('Course assigned successfully');
+            queryClient.invalidateQueries({ queryKey: ['semesterCourses', id, semesterId] });
+            queryClient.invalidateQueries({ queryKey: ['availableCourses', id, semesterId] });
+        },
+        onError: (error) => {
             toast.error(error.response?.data?.message || 'Failed to assign course');
-        } finally {
-            setAssigningLoading(false);
         }
+    });
+
+    const handleOpenAssignModal = () => setIsAssignModalOpen(true);
+
+    const handleAssignCourse = (courseId) => {
+        assignCourseMutation.mutate(courseId);
     };
 
     const filteredAvailableCourses = availableCourses.filter(c =>
@@ -102,59 +85,58 @@ const SemesterCourses = () => {
     );
 
     // --- Course Details Modal ---
-    const handleCourseClick = async (course) => {
-        setSelectedCourse(course);
-        setDetailsLoading(true);
-        setCourseDetails(null);
-        try {
-            const courseId = course.course_id || course.id;
-            const response = await courseApi.getById(courseId);
-            if (response.success) {
-                setCourseDetails(response.data);
-            }
-        } catch (error) {
-            console.error('Error fetching course details:', error);
-            toast.error('Failed to load course details');
-        } finally {
-            setDetailsLoading(false);
+    const courseIdForDetails = selectedCourse?.course_id || selectedCourse?.id;
+    const { data: courseDetails, isLoading: detailsLoading } = useQuery({
+        queryKey: ['courseDetails', courseIdForDetails],
+        enabled: !!courseIdForDetails,
+        queryFn: async () => {
+            const response = await courseApi.getById(courseIdForDetails);
+            if (response.success) return response.data;
+            throw new Error('Failed to load course details');
         }
+    });
+
+    const handleCourseClick = (course) => {
+        setSelectedCourse(course);
     };
 
     const closeCourseDetails = () => {
         setSelectedCourse(null);
-        setCourseDetails(null);
     };
 
     // --- Faculty Assign Modal ---
-    const handleOpenFacultyModal = async () => {
+    const { data: facultyList = [], isLoading: facultyLoading } = useQuery({
+        queryKey: ['facultyList'],
+        enabled: showFacultyModal,
+        queryFn: async () => {
+            const res = await approvalApi.getUsersByRole('faculty');
+            if (res.success) return res.data || [];
+            throw new Error('Failed to load faculty');
+        }
+    });
+
+    const handleOpenFacultyModal = () => {
         setShowFacultyModal(true);
         setFacultySearch('');
-        try {
-            const res = await approvalApi.getUsersByRole('faculty');
-            if (res.success) setFacultyList(res.data || []);
-        } catch (error) {
-            console.error('Error fetching faculty:', error);
-            toast.error('Failed to load faculty list');
-        }
     };
 
-    const handleAssignFaculty = async (facultyId) => {
-        if (assigningFaculty) return;
-        setAssigningFaculty(true);
-        try {
-            const assignmentId = selectedCourse?.assignment_id || selectedCourse?.id;
-            await courseApi.updateAssignmentFaculty(assignmentId, facultyId);
-            const fac = facultyList.find(f => f.id === facultyId);
+    const assignFacultyMutation = useMutation({
+        mutationFn: ({ assignmentId, facultyId }) => courseApi.updateAssignmentFaculty(assignmentId, facultyId),
+        onSuccess: (_, variables) => {
+            const fac = facultyList.find(f => f.id === variables.facultyId);
             toast.success(`Assigned to ${fac?.full_name || fac?.fullName || 'Faculty'}`);
             setShowFacultyModal(false);
             closeCourseDetails();
-            fetchSemesterCourses();
-        } catch (error) {
-            console.error('Error assigning faculty:', error);
+            queryClient.invalidateQueries({ queryKey: ['semesterCourses', id, semesterId] });
+        },
+        onError: () => {
             toast.error('Failed to assign faculty');
-        } finally {
-            setAssigningFaculty(false);
         }
+    });
+
+    const handleAssignFaculty = (facultyId) => {
+        const assignmentId = selectedCourse?.assignment_id || selectedCourse?.id;
+        assignFacultyMutation.mutate({ assignmentId, facultyId });
     };
 
     const filteredFaculty = facultyList.filter(f => {
@@ -308,7 +290,7 @@ const SemesterCourses = () => {
                                                 </div>
                                                 <button
                                                     onClick={() => handleAssignCourse(course.id)}
-                                                    disabled={assigningLoading}
+                                                    disabled={assignCourseMutation.isPending}
                                                     className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors disabled:opacity-50 flex-shrink-0"
                                                     title="Assign this course"
                                                 >
@@ -463,7 +445,7 @@ const SemesterCourses = () => {
                                             <button
                                                 key={fac.id}
                                                 onClick={() => handleAssignFaculty(fac.id)}
-                                                disabled={assigningFaculty}
+                                                disabled={assignFacultyMutation.isPending}
                                                 className="w-full flex items-center gap-3 p-4 rounded-xl bg-white border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 transition-all text-left disabled:opacity-50"
                                             >
                                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center flex-shrink-0">

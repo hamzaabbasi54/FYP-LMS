@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MdEdit, MdPeople, MdCheckCircle, MdAssignment, MdArrowForward, MdArrowBack, MdSchedule, MdMenuBook, MdAccessTime, MdWbSunny, MdNightsStay, MdOpenInNew, MdFileDownload } from 'react-icons/md';
 import { useCourse } from '../../context/CourseContext';
 import { batchApi, getFileUrl } from '../../services/api';
+import { useQuery } from '@tanstack/react-query';
 
 // Component for Course Management Cards
 const ManagementCard = ({ icon: Icon, title, description, buttonText, iconColor, buttonColor, iconBgColor, to = "#" }) => {
@@ -32,45 +33,25 @@ const DAY_LABELS = { monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday
 const MyCourses = () => {
     const { selectedCourse } = useCourse();
     const navigate = useNavigate();
-    const [schedule, setSchedule] = useState([]);
-    const [files, setFiles] = useState([]);
-    const [loadingSchedule, setLoadingSchedule] = useState(false);
-    const [loadingFiles, setLoadingFiles] = useState(false);
-
-    useEffect(() => {
-        if (selectedCourse?.batch_id && selectedCourse?.course_id) {
-            fetchSchedule();
-            fetchFiles();
-        }
-    }, [selectedCourse]);
-
-    const fetchSchedule = async () => {
-        try {
-            setLoadingSchedule(true);
+    const { data: schedule = [], isLoading: loadingSchedule } = useQuery({
+        queryKey: ['courseSchedule', selectedCourse?.batch_id, selectedCourse?.course_id],
+        enabled: !!selectedCourse?.batch_id && !!selectedCourse?.course_id,
+        queryFn: async () => {
             const res = await batchApi.getCourseSchedule(selectedCourse.batch_id, selectedCourse.course_id);
-            if (res.success) {
-                setSchedule(res.data || []);
-            }
-        } catch (e) {
-            console.error('Failed to fetch schedule:', e);
-        } finally {
-            setLoadingSchedule(false);
+            if (res.success) return res.data || [];
+            throw new Error('Failed to fetch schedule');
         }
-    };
+    });
 
-    const fetchFiles = async () => {
-        try {
-            setLoadingFiles(true);
+    const { data: files = [], isLoading: loadingFiles } = useQuery({
+        queryKey: ['courseFiles', selectedCourse?.batch_id, selectedCourse?.course_id],
+        enabled: !!selectedCourse?.batch_id && !!selectedCourse?.course_id,
+        queryFn: async () => {
             const res = await batchApi.getCourseDetailsForBatch(selectedCourse.batch_id, selectedCourse.course_id);
-            if (res.success) {
-                setFiles(res.data?.files || []);
-            }
-        } catch (e) {
-            console.error('Failed to fetch files:', e);
-        } finally {
-            setLoadingFiles(false);
+            if (res.success) return res.data?.files || [];
+            throw new Error('Failed to fetch files');
         }
-    };
+    });
 
     // If no course is selected, redirect back to dashboard
     if (!selectedCourse) {

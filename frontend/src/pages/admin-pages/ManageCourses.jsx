@@ -1,17 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MdAdd, MdSearch, MdFilterList, MdChevronLeft, MdChevronRight, MdDelete, MdInfoOutline } from 'react-icons/md';
 import { courseApi } from '../../services/api';
 import { toast } from 'react-toastify';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 
 const ManageCourses = () => {
+    const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [courses, setCourses] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [total, setTotal] = useState(0);
 
     const colorPalette = [
         "from-indigo-500 to-violet-600",
@@ -22,39 +20,37 @@ const ManageCourses = () => {
         "from-purple-500 to-fuchsia-600"
     ];
 
-    useEffect(() => {
-        fetchCourses();
-    }, [page, searchQuery]);
-
-    const fetchCourses = async () => {
-        try {
-            setLoading(true);
+    const { data, isLoading: loading } = useQuery({
+        queryKey: ['courses', page, searchQuery],
+        queryFn: async () => {
             const params = { page, limit: 12 };
             if (searchQuery) params.search = searchQuery;
             const response = await courseApi.getAll(params);
-            if (response.success) {
-                setCourses(response.data || []);
-                setTotalPages(response.pagination?.totalPages || 1);
-                setTotal(response.pagination?.total || 0);
-            }
-        } catch (error) {
-            console.error('Error fetching courses:', error);
-            toast.error('Failed to load courses');
-        } finally {
-            setLoading(false);
-        }
-    };
+            if (response.success) return response;
+            throw new Error('Failed to fetch courses');
+        },
+        placeholderData: keepPreviousData,
+    });
 
-    const handleDelete = async (id) => {
+    const courses = data?.data || [];
+    const totalPages = data?.pagination?.totalPages || 1;
+    const total = data?.pagination?.total || 0;
+
+    const deleteMutation = useMutation({
+        mutationFn: (id) => courseApi.delete(id),
+        onSuccess: () => {
+            toast.success('Course deleted successfully');
+            queryClient.invalidateQueries({ queryKey: ['courses'] });
+        },
+        onError: (error) => {
+            console.error('Error deleting course:', error);
+            toast.error(error.response?.data?.message || 'Failed to delete course');
+        }
+    });
+
+    const handleDelete = (id) => {
         if (window.confirm('Are you sure you want to delete this course?')) {
-            try {
-                await courseApi.delete(id);
-                toast.success('Course deleted successfully');
-                fetchCourses();
-            } catch (error) {
-                console.error('Error deleting course:', error);
-                toast.error(error.response?.data?.message || 'Failed to delete course');
-            }
+            deleteMutation.mutate(id);
         }
     };
 
@@ -195,7 +191,8 @@ const ManageCourses = () => {
                                                 </Link>
                                                 <button
                                                     onClick={() => handleDelete(course.id)}
-                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                    disabled={deleteMutation.isPending && deleteMutation.variables === course.id}
+                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
                                                     title="Delete"
                                                 >
                                                     <MdDelete className="w-4 h-4" />

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { MdArrowBack, MdMenuBook, MdPerson, MdSchool, MdSave, MdSchedule, MdWbSunny, MdNightsStay, MdAccessTime, MdCheckCircle, MdAdd, MdEdit, MdDelete, MdClose, MdExpandMore } from 'react-icons/md';
 import { batchApi, approvalApi, courseApi, getFileUrl } from '../../services/api';
 import { toast } from 'react-toastify';
+import OverlayLoader from '../../components/common/OverlayLoader';
 
 const DAYS = [
     { key: 'monday', label: 'Monday', short: 'Mon' },
@@ -354,6 +355,7 @@ const BatchCourseSchedule = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+            <OverlayLoader isLoading={savingMappings || uploading} text={savingMappings ? "Saving CLO-PLO mappings..." : "Uploading syllabus file..."} />
             <div className="p-8 max-w-5xl mx-auto">
                 {/* Breadcrumb */}
                 <div className="mb-6">

@@ -3,8 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { MdSearch, MdChevronRight, MdAdd, MdEdit, MdDelete, MdMoreVert, MdNotificationsActive, MdGrade, MdDescription, MdHelpOutline, MdStar, MdDiamond } from 'react-icons/md';
 import { useCourse } from '../../context/CourseContext';
 import { assessmentApi, studentApi } from '../../services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const Grading = () => {
+    const queryClient = useQueryClient();
     const navigate = useNavigate();
     const { selectedCourse } = useCourse();
     const { assignmentId } = useParams();
@@ -14,12 +16,27 @@ const Grading = () => {
     const [statusFilter, setStatusFilter] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [showNewAssessmentDropdown, setShowNewAssessmentDropdown] = useState(false);
-    const [assessments, setAssessments] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [totalStudents, setTotalStudents] = useState(0);
-    const [deleting, setDeleting] = useState(null);
-    const dropdownRef = useRef(null);
+    const { data: assessments = [], isLoading: loadingAssessments } = useQuery({
+        queryKey: ['assessments', courseAssignmentId],
+        enabled: !!courseAssignmentId,
+        queryFn: async () => {
+            const assessmentRes = await assessmentApi.getByCourse(courseAssignmentId, { limit: 100 });
+            return assessmentRes.success !== false ? (assessmentRes.data || []) : [];
+        }
+    });
 
+    const { data: totalStudents = 0, isLoading: loadingStudents } = useQuery({
+        queryKey: ['totalStudents', courseAssignmentId],
+        enabled: !!courseAssignmentId,
+        queryFn: async () => {
+            const studentRes = await studentApi.getEnrolledStudents(courseAssignmentId);
+            return studentRes.success ? (studentRes.data || []).length : 0;
+        }
+    });
+
+    const loading = loadingAssessments || loadingStudents;
+
+    const dropdownRef = useRef(null);
     const courseCode = selectedCourse?.code || 'Course';
 
     // Close dropdown when clicking outside
@@ -38,37 +55,6 @@ const Grading = () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [showNewAssessmentDropdown]);
-
-    // Fetch assessments and student count
-    useEffect(() => {
-        const fetchData = async () => {
-            if (!courseAssignmentId) return;
-
-            try {
-                setLoading(true);
-
-                // Fetch assessments (with large limit to get all)
-                const assessmentRes = await assessmentApi.getByCourse(courseAssignmentId, { limit: 100 });
-                const fetchedAssessments = assessmentRes.success !== false ? (assessmentRes.data || []) : [];
-                setAssessments(fetchedAssessments);
-
-                // Fetch enrolled students count
-                try {
-                    const studentRes = await studentApi.getEnrolledStudents(courseAssignmentId);
-                    const students = studentRes.success ? (studentRes.data || []) : [];
-                    setTotalStudents(students.length);
-                } catch (err) {
-                    setTotalStudents(0);
-                }
-            } catch (err) {
-                console.error('Error fetching assessments:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, [courseAssignmentId]);
 
     // Map DB type to display type label
     const getTypeLabel = (type, index) => {
@@ -135,21 +121,22 @@ const Grading = () => {
     };
 
     // Delete assessment
-    const handleDelete = async (assessmentId, title) => {
+    const deleteMutation = useMutation({
+        mutationFn: (assessmentId) => assessmentApi.delete(assessmentId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['assessments', courseAssignmentId] });
+        },
+        onError: (err) => {
+            console.error('Error deleting assessment:', err);
+            alert('Failed to delete assessment. Please try again.');
+        }
+    });
+
+    const handleDelete = (assessmentId, title) => {
         if (!window.confirm(`Are you sure you want to delete "${title}"? This will also delete all grades for this assessment.`)) {
             return;
         }
-
-        try {
-            setDeleting(assessmentId);
-            await assessmentApi.delete(assessmentId);
-            setAssessments(prev => prev.filter(a => a.id !== assessmentId));
-        } catch (err) {
-            console.error('Error deleting assessment:', err);
-            alert('Failed to delete assessment. Please try again.');
-        } finally {
-            setDeleting(null);
-        }
+        deleteMutation.mutate(assessmentId);
     };
 
     const tabs = ['All', 'Quizzes', 'Assignments', 'Midterms', 'Finals'];
@@ -415,7 +402,7 @@ const Grading = () => {
                                                     </button>
                                                     <button 
                                                         onClick={() => handleDelete(assessment.id, assessment.title)}
-                                                        disabled={deleting === assessment.id}
+                                                        disabled={deleteMutation.isPending && deleteMutation.variables === assessment.id}
                                                         className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                                                     >
                                                         <MdDelete className="w-5 h-5" />

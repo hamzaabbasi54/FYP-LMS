@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { MdChevronRight, MdCalendarToday, MdAccessTime, MdInfo, MdHelpOutline, MdFormatBold, MdFormatItalic, MdFormatUnderlined, MdLink, MdAdd, MdDelete } from 'react-icons/md';
 import { useCourse } from '../../context/CourseContext';
-import { assessmentApi, courseApi } from '../../services/api';
+import { assessmentApi } from '../../services/api';
 
 const CreateAssessment = () => {
     const navigate = useNavigate();

@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdSchool, MdScience, MdSettings, MdArrowForward, MdViewList, MdViewModule, MdBook, MdComputer, MdBiotech } from 'react-icons/md';
 import { useCourse } from '../../context/CourseContext';
 import { courseApi } from '../../services/api';
+import { useQuery } from '@tanstack/react-query';
 
 // Gradient color palette for course cards
 const GRADIENT_COLORS = [
@@ -67,31 +68,21 @@ const CourseCard = ({ course, icon: Icon, gradientColor }) => {
 
 const Dashboard = () => {
     const { setCourse } = useCourse();
-    const [courses, setCourses] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
 
     useEffect(() => {
         setCourse(null);
     }, [setCourse]);
 
-    // Fetch assigned courses from the API
-    useEffect(() => {
-        const fetchCourses = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                const response = await courseApi.getAssigned();
-                setCourses(response.data || []);
-            } catch (err) {
-                console.error('Error fetching assigned courses:', err);
-                setError('Failed to load assigned courses. Please try again.');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchCourses();
-    }, []);
+    const { data: courses = [], isLoading: loading, error: queryError } = useQuery({
+        queryKey: ['facultyDashboardCourses'],
+        queryFn: async () => {
+            const response = await courseApi.getAssigned();
+            if (response.success) return response.data || [];
+            throw new Error('Failed to load assigned courses. Please try again.');
+        }
+    });
+
+    const error = queryError?.message || null;
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">

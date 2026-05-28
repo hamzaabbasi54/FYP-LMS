@@ -1,73 +1,70 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MdAdd, MdSearch, MdEmail, MdMoreHoriz, MdDelete, MdCheckCircle, MdCancel } from 'react-icons/md';
 import { approvalApi } from '../../services/api';
 import { toast } from 'react-toastify';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const ManageFaculty = () => {
+    const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState('');
-    const [facultyMembers, setFacultyMembers] = useState([]);
-    const [pendingFaculty, setPendingFaculty] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('approved');
 
-    useEffect(() => {
-        fetchFacultyData();
-    }, []);
-
-    const fetchFacultyData = async () => {
-        try {
-            setLoading(true);
-            const [approvedRes, pendingRes] = await Promise.all([
-                approvalApi.getUsersByRole('faculty'),
-                approvalApi.getPendingUsers()
-            ]);
-            if (approvedRes.success) {
-                setFacultyMembers(approvedRes.data || []);
-            }
-            if (pendingRes.success) {
-                setPendingFaculty(pendingRes.data || []);
-            }
-        } catch (error) {
-            console.error('Error fetching faculty:', error);
-            toast.error('Failed to load faculty data');
-        } finally {
-            setLoading(false);
+    const { data: facultyMembers = [], isLoading: loadingApproved } = useQuery({
+        queryKey: ['faculty_approved'],
+        queryFn: async () => {
+            const res = await approvalApi.getUsersByRole('faculty');
+            if (res.success) return res.data || [];
+            throw new Error('Failed to load faculty');
         }
-    };
+    });
 
-    const handleApprove = async (userId) => {
-        try {
-            await approvalApi.approveUser(userId);
+    const { data: pendingFaculty = [], isLoading: loadingPending } = useQuery({
+        queryKey: ['faculty_pending'],
+        queryFn: async () => {
+            const res = await approvalApi.getPendingUsers();
+            if (res.success) return res.data || [];
+            throw new Error('Failed to load pending faculty');
+        }
+    });
+
+    const loading = loadingApproved || loadingPending;
+
+    const approveMutation = useMutation({
+        mutationFn: (userId) => approvalApi.approveUser(userId),
+        onSuccess: () => {
             toast.success('Faculty approved successfully');
-            fetchFacultyData();
-        } catch (error) {
-            console.error('Error approving faculty:', error);
-            toast.error('Failed to approve faculty');
-        }
-    };
+            queryClient.invalidateQueries({ queryKey: ['faculty_approved'] });
+            queryClient.invalidateQueries({ queryKey: ['faculty_pending'] });
+        },
+        onError: () => toast.error('Failed to approve faculty')
+    });
 
-    const handleReject = async (userId) => {
-        try {
-            await approvalApi.rejectUser(userId, 'Application rejected by Department Admin');
+    const handleApprove = (userId) => approveMutation.mutate(userId);
+
+    const rejectMutation = useMutation({
+        mutationFn: (userId) => approvalApi.rejectUser(userId, 'Application rejected by Department Admin'),
+        onSuccess: () => {
             toast.success('Faculty application rejected');
-            fetchFacultyData();
-        } catch (error) {
-            console.error('Error rejecting faculty:', error);
-            toast.error('Failed to reject faculty');
-        }
-    };
+            queryClient.invalidateQueries({ queryKey: ['faculty_pending'] });
+        },
+        onError: () => toast.error('Failed to reject faculty')
+    });
 
-    const handleDelete = async (userId) => {
+    const handleReject = (userId) => rejectMutation.mutate(userId);
+
+    const deleteMutation = useMutation({
+        mutationFn: (userId) => approvalApi.deleteUser(userId),
+        onSuccess: () => {
+            toast.success('Faculty member removed');
+            queryClient.invalidateQueries({ queryKey: ['faculty_approved'] });
+        },
+        onError: () => toast.error('Failed to remove faculty')
+    });
+
+    const handleDelete = (userId) => {
         if (window.confirm('Are you sure you want to remove this faculty member?')) {
-            try {
-                await approvalApi.deleteUser(userId);
-                toast.success('Faculty member removed');
-                fetchFacultyData();
-            } catch (error) {
-                console.error('Error deleting faculty:', error);
-                toast.error('Failed to remove faculty');
-            }
+            deleteMutation.mutate(userId);
         }
     };
 
@@ -219,14 +216,16 @@ const ManageFaculty = () => {
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => handleApprove(member.id)}
-                                                className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-emerald-100 text-emerald-700 rounded-xl text-sm font-medium hover:bg-emerald-200 transition-colors"
+                                                disabled={approveMutation.isPending && approveMutation.variables === member.id}
+                                                className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-emerald-100 text-emerald-700 rounded-xl text-sm font-medium hover:bg-emerald-200 transition-colors disabled:opacity-50"
                                             >
                                                 <MdCheckCircle className="w-4 h-4" />
                                                 Approve
                                             </button>
                                             <button
                                                 onClick={() => handleReject(member.id)}
-                                                className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-100 text-red-700 rounded-xl text-sm font-medium hover:bg-red-200 transition-colors"
+                                                disabled={rejectMutation.isPending && rejectMutation.variables === member.id}
+                                                className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-100 text-red-700 rounded-xl text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50"
                                             >
                                                 <MdCancel className="w-4 h-4" />
                                                 Reject
@@ -236,7 +235,8 @@ const ManageFaculty = () => {
                                         <div className="flex justify-center">
                                             <button
                                                 onClick={() => handleDelete(member.id)}
-                                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                disabled={deleteMutation.isPending && deleteMutation.variables === member.id}
+                                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
                                                 title="Remove faculty"
                                             >
                                                 <MdDelete className="w-5 h-5" />

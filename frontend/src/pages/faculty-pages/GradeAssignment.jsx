@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { MdSearch, MdChevronRight, MdSave, MdDownload, MdUploadFile } from 'react-icons/md';
 import { useCourse } from '../../context/CourseContext';
 import { assessmentApi, gradeApi, studentApi } from '../../services/api';
+import OverlayLoader from '../../components/common/OverlayLoader';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const GradeAssignment = () => {
     const { assignmentId, gradeAssignmentId } = useParams();
-    const navigate = useNavigate();
     const { selectedCourse } = useCourse();
     const courseAssignmentId = selectedCourse?.assignment_id || assignmentId;
     const courseCode = selectedCourse?.code || 'Course';
@@ -53,83 +54,87 @@ const GradeAssignment = () => {
         return avatarColors[Math.abs(hash) % avatarColors.length];
     };
 
-    // Fetch assessment, enrolled students, and existing grades
+    const queryClient = useQueryClient();
+
+    // Fetch assessment details
+    const { data: assessmentData, isLoading: loadingAssessment } = useQuery({
+        queryKey: ['assessmentDetails', gradeAssignmentId],
+        enabled: !!gradeAssignmentId,
+        queryFn: async () => {
+            const res = await assessmentApi.getById(gradeAssignmentId);
+            return res.success ? res.data : null;
+        }
+    });
+
+    // Fetch enrolled students
+    const { data: enrolledStudents = [], isLoading: loadingStudents } = useQuery({
+        queryKey: ['enrolledStudents', courseAssignmentId],
+        enabled: !!courseAssignmentId,
+        queryFn: async () => {
+            const res = await studentApi.getEnrolledStudents(courseAssignmentId);
+            return res.success ? (res.data || []) : [];
+        }
+    });
+
+    // Fetch existing grades
+    const { data: existingGrades = [], isLoading: loadingGrades } = useQuery({
+        queryKey: ['assessmentGrades', gradeAssignmentId],
+        enabled: !!gradeAssignmentId,
+        queryFn: async () => {
+            const res = await gradeApi.getByAssessment(gradeAssignmentId, { limit: 500 });
+            return res.data || [];
+        }
+    });
+
+    // Sync to local form state
     useEffect(() => {
-        const fetchData = async () => {
-            if (!gradeAssignmentId || !courseAssignmentId) return;
+        if (loadingAssessment || loadingStudents || loadingGrades) {
+            setLoading(true);
+            return;
+        }
 
-            try {
-                setLoading(true);
+        if (assessmentData) setAssessment(assessmentData);
 
-                // Fetch assessment details
-                const assessmentRes = await assessmentApi.getById(gradeAssignmentId);
-                if (assessmentRes.success) {
-                    setAssessment(assessmentRes.data);
-                }
+        const gradeMap = {};
+        existingGrades.forEach(g => {
+            gradeMap[g.student_id] = { score: g.score, remarks: g.remarks || '', question_scores: g.question_scores || {} };
+        });
 
-                // Fetch enrolled students
-                const enrolledRes = await studentApi.getEnrolledStudents(courseAssignmentId);
-                const enrolledStudents = enrolledRes.success ? (enrolledRes.data || []) : [];
+        const mergedStudents = enrolledStudents.map(student => {
+            const fullName = `${student.first_name} ${student.last_name}`;
+            const initials = `${(student.first_name || '')[0] || ''}${(student.last_name || '')[0] || ''}`.toUpperCase();
+            const grade = gradeMap[student.id];
 
-                // Fetch existing grades
-                let existingGrades = [];
-                try {
-                    const gradesRes = await gradeApi.getByAssessment(gradeAssignmentId, { limit: 500 });
-                    existingGrades = gradesRes.data || [];
-                } catch (err) {
-                    // No grades yet
-                }
+            return {
+                id: student.id,
+                name: fullName,
+                studentId: student.student_id_number,
+                initials,
+                avatarColor: getAvatarColor(fullName),
+                score: grade?.score ?? null,
+                remarks: grade?.remarks || '',
+                question_scores: grade?.question_scores || {}
+            };
+        });
 
-                // Build grade lookup: { studentId: { score, remarks } }
-                const gradeMap = {};
-                existingGrades.forEach(g => {
-                    gradeMap[g.student_id] = { score: g.score, remarks: g.remarks || '', question_scores: g.question_scores || {} };
-                });
+        setStudents(mergedStudents);
 
-                // Merge students with grades
-                const mergedStudents = enrolledStudents.map(student => {
-                    const fullName = `${student.first_name} ${student.last_name}`;
-                    const initials = `${(student.first_name || '')[0] || ''}${(student.last_name || '')[0] || ''}`.toUpperCase();
-                    const grade = gradeMap[student.id];
+        const initialScores = {};
+        const initialQuestionScores = {};
+        const initialRemarks = {};
+        mergedStudents.forEach(s => {
+            initialScores[s.id] = s.score !== null ? s.score : '';
+            initialQuestionScores[s.id] = s.question_scores || {};
+            initialRemarks[s.id] = s.remarks || '';
+        });
 
-                    return {
-                        id: student.id,
-                        name: fullName,
-                        studentId: student.student_id_number,
-                        initials,
-                        avatarColor: getAvatarColor(fullName),
-                        score: grade?.score ?? null,
-                        remarks: grade?.remarks || '',
-                        question_scores: grade?.question_scores || {}
-                    };
-                });
-
-                setStudents(mergedStudents);
-
-                // Initialize scores
-                const initialScores = {};
-                const initialQuestionScores = {};
-                const initialRemarks = {};
-                mergedStudents.forEach(s => {
-                    initialScores[s.id] = s.score !== null ? s.score : '';
-                    initialQuestionScores[s.id] = s.question_scores || {};
-                    initialRemarks[s.id] = s.remarks || '';
-                });
-                setScores(initialScores);
-                setQuestionScores(initialQuestionScores);
-                setRemarks(initialRemarks);
-                setOriginalScores({ ...initialScores });
-                setOriginalQuestionScores(JSON.parse(JSON.stringify(initialQuestionScores)));
-
-            } catch (err) {
-                console.error('Error fetching grading data:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, [gradeAssignmentId, courseAssignmentId]);
+        setScores(initialScores);
+        setQuestionScores(initialQuestionScores);
+        setRemarks(initialRemarks);
+        setOriginalScores({ ...initialScores });
+        setOriginalQuestionScores(JSON.parse(JSON.stringify(initialQuestionScores)));
+        setLoading(false);
+    }, [assessmentData, enrolledStudents, existingGrades, loadingAssessment, loadingStudents, loadingGrades]);
 
     // Handle score change
     const handleScoreChange = (studentId, value) => {
@@ -208,54 +213,60 @@ const GradeAssignment = () => {
     };
 
     // Handle save — sends grades to the backend
-    const handleSave = async () => {
-        try {
-            setSaving(true);
-            setSaveMessage(null);
-
-            // Build grades array from all students that have scores
-            const gradesPayload = students
-                .filter(s => scores[s.id] !== '' && scores[s.id] !== undefined)
-                .map(s => ({
-                    student_id: s.id,
-                    score: parseFloat(scores[s.id]),
-                    remarks: remarks[s.id] || null,
-                    question_scores: questionScores[s.id] || {}
-                }));
-
-            if (gradesPayload.length === 0) {
-                setSaveMessage({ type: 'info', text: 'No scores to save.' });
-                setSaving(false);
-                return;
-            }
-
-            const response = await gradeApi.save(gradeAssignmentId, gradesPayload);
-
-            if (response.success) {
-                setSaveMessage({ type: 'success', text: response.message || 'Grades saved successfully!' });
-                setUnsavedChanges({});
-                // Update original scores
-                setOriginalScores({ ...scores });
-                setOriginalQuestionScores(JSON.parse(JSON.stringify(questionScores)));
-                // Update students with new scores
-                setStudents(prev =>
-                    prev.map(student => ({
-                        ...student,
-                        score: scores[student.id] !== '' ? parseFloat(scores[student.id]) : null,
-                        remarks: remarks[student.id] || '',
-                        question_scores: questionScores[student.id] || {}
-                    }))
-                );
-            } else {
-                setSaveMessage({ type: 'error', text: response.message || 'Failed to save grades.' });
-            }
-        } catch (err) {
-            console.error('Save grades error:', err);
-            setSaveMessage({ type: 'error', text: 'Failed to save grades. Please try again.' });
-        } finally {
+    const saveGradesMutation = useMutation({
+        mutationFn: (gradesPayload) => gradeApi.save(gradeAssignmentId, gradesPayload),
+        onSuccess: (response) => {
+            setSaveMessage({ type: 'success', text: response.message || 'Grades saved successfully!' });
+            setUnsavedChanges({});
+            // Update original scores
+            setOriginalScores({ ...scores });
+            setOriginalQuestionScores(JSON.parse(JSON.stringify(questionScores)));
+            // Update students with new scores
+            setStudents(prev =>
+                prev.map(student => ({
+                    ...student,
+                    score: scores[student.id] !== '' ? parseFloat(scores[student.id]) : null,
+                    remarks: remarks[student.id] || '',
+                    question_scores: questionScores[student.id] || {}
+                }))
+            );
+            
+            // Invalidate existing grades cache
+            queryClient.invalidateQueries({ queryKey: ['assessmentGrades', gradeAssignmentId] });
+            queryClient.invalidateQueries({ queryKey: ['assessments', courseAssignmentId] });
+        },
+        onError: (err) => {
+            console.error('Error saving grades:', err);
+            setSaveMessage({ type: 'error', text: err.response?.data?.message || 'Failed to save grades. Please try again.' });
+        },
+        onSettled: () => {
             setSaving(false);
         }
+    });
+
+    const handleSave = () => {
+        setSaving(true);
+        setSaveMessage(null);
+
+        // Build grades array from all students that have scores
+        const gradesPayload = students
+            .filter(s => scores[s.id] !== '' && scores[s.id] !== undefined)
+            .map(s => ({
+                student_id: s.id,
+                score: parseFloat(scores[s.id]),
+                remarks: remarks[s.id] || null,
+                question_scores: questionScores[s.id] || {}
+            }));
+
+        if (gradesPayload.length === 0) {
+            setSaveMessage({ type: 'info', text: 'No scores to save.' });
+            setSaving(false);
+            return;
+        }
+
+        saveGradesMutation.mutate(gradesPayload);
     };
+
 
     // Handle cancel
     const handleCancel = () => {
@@ -422,7 +433,9 @@ const GradeAssignment = () => {
     const { date: dueDate, time: dueTime } = formatDate(assessment.due_date);
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="p-4 sm:p-6 lg:p-8 space-y-6 bg-slate-50 min-h-screen">
+            <OverlayLoader isLoading={saving || importing} text={saving ? "Saving grades to database..." : "Importing grades..."} />
+            
             {/* Breadcrumbs */}
             <div className="flex items-center text-sm text-gray-500 mb-4">
                 <Link to={`/faculty-mycourses/${courseAssignmentId}`} className="hover:text-blue-600 transition-colors">

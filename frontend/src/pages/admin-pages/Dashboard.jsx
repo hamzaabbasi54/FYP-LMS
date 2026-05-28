@@ -1,60 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { MdPeople, MdLibraryBooks, MdSchool, MdAssignmentLate, MdArrowForward, MdTrendingUp } from 'react-icons/md';
 import { approvalApi, dashboardApi } from '../../services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const Dashboard = () => {
-    const [pendingFaculty, setPendingFaculty] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [dashStats, setDashStats] = useState({});
+    const queryClient = useQueryClient();
     const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-    useEffect(() => {
-        fetchPendingFaculty();
-        fetchDashboardStats();
-    }, []);
-
-    const fetchPendingFaculty = async () => {
-        try {
+    const { data: pendingFaculty = [], isLoading: loading } = useQuery({
+        queryKey: ['pendingFaculty'],
+        queryFn: async () => {
             const response = await approvalApi.getPendingUsers();
-            if (response.success) {
-                setPendingFaculty(response.data);
-            }
-        } catch (error) {
-            console.error('Error fetching pending faculty:', error);
-        } finally {
-            setLoading(false);
+            if (response.success) return response.data || [];
+            throw new Error('Failed to load pending faculty');
         }
-    };
+    });
 
-    const fetchDashboardStats = async () => {
-        try {
+    const { data: dashStats = {} } = useQuery({
+        queryKey: ['dashboardStats'],
+        queryFn: async () => {
             const response = await dashboardApi.getStats();
-            if (response.success) {
-                setDashStats(response.data);
-            }
-        } catch (error) {
-            console.error('Error fetching dashboard stats:', error);
+            if (response.success) return response.data || {};
+            throw new Error('Failed to load stats');
         }
-    };
+    });
 
-    const handleApprove = async (userId) => {
-        try {
-            await approvalApi.approveUser(userId);
-            fetchPendingFaculty();
-        } catch (error) {
-            console.error('Error approving user:', error);
+    const approveMutation = useMutation({
+        mutationFn: (userId) => approvalApi.approveUser(userId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['pendingFaculty'] });
+            queryClient.invalidateQueries({ queryKey: ['faculty_approved'] });
+            queryClient.invalidateQueries({ queryKey: ['faculty_pending'] });
         }
-    };
+    });
 
-    const handleReject = async (userId) => {
-        try {
-            await approvalApi.rejectUser(userId, 'Application rejected by Department Admin');
-            fetchPendingFaculty();
-        } catch (error) {
-            console.error('Error rejecting user:', error);
+    const rejectMutation = useMutation({
+        mutationFn: (userId) => approvalApi.rejectUser(userId, 'Application rejected by Department Admin'),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['pendingFaculty'] });
+            queryClient.invalidateQueries({ queryKey: ['faculty_pending'] });
         }
-    };
+    });
+
+    const handleApprove = (userId) => approveMutation.mutate(userId);
+    const handleReject = (userId) => rejectMutation.mutate(userId);
 
     const stats = [
         {
@@ -213,13 +203,15 @@ const Dashboard = () => {
                                         </span>
                                         <button
                                             onClick={() => handleApprove(faculty.id)}
-                                            className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-medium rounded-lg hover:shadow-lg hover:shadow-emerald-500/25 transition-all duration-200"
+                                            disabled={approveMutation.isPending || rejectMutation.isPending}
+                                            className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-medium rounded-lg hover:shadow-lg hover:shadow-emerald-500/25 transition-all duration-200 disabled:opacity-50"
                                         >
                                             Approve
                                         </button>
                                         <button
                                             onClick={() => handleReject(faculty.id)}
-                                            className="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
+                                            disabled={approveMutation.isPending || rejectMutation.isPending}
+                                            className="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
                                         >
                                             Reject
                                         </button>

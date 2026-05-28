@@ -1,14 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { MdArrowBack, MdSearch, MdAdd, MdFileUpload, MdFileDownload, MdClose, MdExpandMore, MdExpandLess, MdDelete } from 'react-icons/md';
 import { courseApi } from '../../services/api';
 import { toast } from 'react-toastify';
+import OverlayLoader from '../../components/common/OverlayLoader';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const ManageCLOs = () => {
-    const [allCLOs, setAllCLOs] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [cloSearch, setCloSearch] = useState('');
     const [expandedCloId, setExpandedCloId] = useState(null);
+    const [isImporting, setIsImporting] = useState(false);
 
     // Add CLO modal
     const [showAddModal, setShowAddModal] = useState(false);
@@ -18,16 +20,14 @@ const ManageCLOs = () => {
     const [showImportInfo, setShowImportInfo] = useState(false);
     const cloFileRef = useRef(null);
 
-    useEffect(() => { fetchCLOs(); }, []);
-
-    const fetchCLOs = async () => {
-        setLoading(true);
-        try {
+    const { data: allCLOs = [], isLoading: loading } = useQuery({
+        queryKey: ['global_clos'],
+        queryFn: async () => {
             const res = await courseApi.getAllCLOs();
-            if (res.success) setAllCLOs(res.data || []);
-        } catch (err) { toast.error('Failed to load CLOs'); }
-        finally { setLoading(false); }
-    };
+            if (res.success) return res.data || [];
+            throw new Error('Failed to load CLOs');
+        }
+    });
 
     const filteredCLOs = allCLOs.filter(c =>
         (c.title || '').toLowerCase().includes(cloSearch.toLowerCase()) ||
@@ -39,7 +39,19 @@ const ManageCLOs = () => {
         setShowAddModal(true);
     };
 
-    const handleAddSubmit = async () => {
+    const addCloMutation = useMutation({
+        mutationFn: (data) => courseApi.addGlobalCLO(data),
+        onSuccess: () => {
+            toast.success('CLO added successfully');
+            setShowAddModal(false);
+            queryClient.invalidateQueries({ queryKey: ['global_clos'] });
+        },
+        onError: (err) => {
+            toast.error(err.response?.data?.message || 'Failed to add CLO');
+        }
+    });
+
+    const handleAddSubmit = () => {
         if (!newClo.title) {
             toast.error('CLO title is required');
             return;
@@ -48,50 +60,51 @@ const ManageCLOs = () => {
             toast.error('CLO title must be in CLO-X format (e.g. CLO-1)');
             return;
         }
-        try {
-            const res = await courseApi.addGlobalCLO({
-                title: newClo.title,
-                description: newClo.description,
-                cognitive_level: newClo.cognitive_level
-            });
-            if (res.success) {
-                toast.success('CLO added successfully');
-                setShowAddModal(false);
-                fetchCLOs();
-            }
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to add CLO');
-        }
+        addCloMutation.mutate({
+            title: newClo.title,
+            description: newClo.description,
+            cognitive_level: newClo.cognitive_level
+        });
     };
+    const importMutation = useMutation({
+        mutationFn: (file) => courseApi.importCLOs(file),
+        onSuccess: (res) => {
+            toast.success(`${res.data.imported} CLOs imported, ${res.data.skipped} skipped`);
+            setShowImportInfo(false);
+            queryClient.invalidateQueries({ queryKey: ['global_clos'] });
+        },
+        onError: (err) => {
+            toast.error(err.response?.data?.message || 'Failed to import CLOs');
+        },
+        onSettled: () => {
+            setIsImporting(false);
+        }
+    });
 
-    const handleImportFile = async (e) => {
+    const handleImportFile = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        try {
-            const res = await courseApi.importCLOs(file);
-            if (res.success) {
-                toast.success(`${res.data.imported} CLOs imported, ${res.data.skipped} skipped`);
-                setShowImportInfo(false);
-                fetchCLOs();
-            }
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to import CLOs');
-        } finally { e.target.value = ''; }
+        setIsImporting(true);
+        importMutation.mutate(file);
+        e.target.value = '';
     };
 
     const handleExport = () => { courseApi.exportCLOs(); };
 
-    const handleDeleteCLO = async (cloId, cloTitle) => {
-        if (!window.confirm(`Are you sure you want to delete ${cloTitle}? This cannot be undone.`)) return;
-        try {
-            const res = await courseApi.deleteGlobalCLO(cloId);
-            if (res.success) {
-                toast.success(`${cloTitle} deleted successfully`);
-                fetchCLOs();
-            }
-        } catch (err) {
+    const deleteCloMutation = useMutation({
+        mutationFn: (cloId) => courseApi.deleteGlobalCLO(cloId),
+        onSuccess: (_, cloId) => {
+            toast.success(`CLO deleted successfully`);
+            queryClient.invalidateQueries({ queryKey: ['global_clos'] });
+        },
+        onError: (err) => {
             toast.error(err.response?.data?.message || 'Failed to delete CLO');
         }
+    });
+
+    const handleDeleteCLO = (cloId, cloTitle) => {
+        if (!window.confirm(`Are you sure you want to delete ${cloTitle}? This cannot be undone.`)) return;
+        deleteCloMutation.mutate(cloId);
     };
 
     const getCognitiveLabel = (level) => {
@@ -140,10 +153,11 @@ const ManageCLOs = () => {
                         )}
                         <button
                             onClick={(e) => { e.stopPropagation(); handleDeleteCLO(clo.id, clo.title); }}
-                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            disabled={deleteCloMutation.isPending && deleteCloMutation.variables === clo.id}
+                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
                             title={`Delete ${clo.title}`}
                         >
-                            <MdDelete className="w-4 h-4" />
+                            <MdDelete className="w-5 h-5" />
                         </button>
                         {isExpanded ? <MdExpandLess className="w-5 h-5 text-slate-400" /> : <MdExpandMore className="w-5 h-5 text-slate-400" />}
                     </div>
@@ -223,6 +237,7 @@ const ManageCLOs = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-8">
+            <OverlayLoader isLoading={isImporting} text="Importing CLOs..." />
             <div className="max-w-6xl mx-auto">
                 {/* Breadcrumb */}
                 <Link to="/admin-managecourses" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm mb-6">
@@ -363,8 +378,10 @@ const ManageCLOs = () => {
                             </div>
                         </div>
                         <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
-                            <button onClick={() => setShowAddModal(false)} className="px-5 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>
-                            <button onClick={handleAddSubmit} className="px-5 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600">Add CLO</button>
+                            <button onClick={() => setShowAddModal(false)} disabled={addCloMutation.isPending} className="px-5 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50">Cancel</button>
+                            <button onClick={handleAddSubmit} disabled={addCloMutation.isPending} className="px-5 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 disabled:opacity-50">
+                                {addCloMutation.isPending ? 'Adding...' : 'Add CLO'}
+                            </button>
                         </div>
                     </div>
                 </div>

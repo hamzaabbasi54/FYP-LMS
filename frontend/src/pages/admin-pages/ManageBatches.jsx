@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MdSearch, MdAdd, MdPeople, MdBook, MdCalendarToday, MdDelete } from 'react-icons/md';
 import { batchApi } from '../../services/api';
 import { toast } from 'react-toastify';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const ManageBatches = () => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [batches, setBatches] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
 
     const colorPalette = [
         "from-emerald-500 to-teal-600",
@@ -18,37 +18,34 @@ const ManageBatches = () => {
         "from-cyan-500 to-sky-600"
     ];
 
-    useEffect(() => {
-        fetchBatches();
-    }, []);
-
-    const fetchBatches = async () => {
-        try {
-            setLoading(true);
+    const { data: batches = [], isLoading: loading } = useQuery({
+        queryKey: ['batches'],
+        queryFn: async () => {
             const response = await batchApi.getAll();
             if (response.success) {
-                setBatches(response.data || []);
+                return response.data || [];
             }
-        } catch (error) {
-            console.error('Error fetching batches:', error);
-            toast.error('Failed to load batches');
-        } finally {
-            setLoading(false);
+            throw new Error('Failed to fetch batches');
         }
-    };
+    });
 
-    const handleDelete = async (id, e) => {
+    const deleteMutation = useMutation({
+        mutationFn: (id) => batchApi.delete(id),
+        onSuccess: () => {
+            toast.success('Batch deleted successfully');
+            queryClient.invalidateQueries({ queryKey: ['batches'] });
+        },
+        onError: (error) => {
+            console.error('Error deleting batch:', error);
+            toast.error('Failed to delete batch');
+        }
+    });
+
+    const handleDelete = (id, e) => {
         e.preventDefault();
         e.stopPropagation();
         if (window.confirm('Are you sure you want to delete this batch?')) {
-            try {
-                await batchApi.delete(id);
-                toast.success('Batch deleted successfully');
-                fetchBatches();
-            } catch (error) {
-                console.error('Error deleting batch:', error);
-                toast.error('Failed to delete batch');
-            }
+            deleteMutation.mutate(id);
         }
     };
 

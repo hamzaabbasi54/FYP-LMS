@@ -728,6 +728,12 @@ router.post('/:id/clos/single', isAdmin, async (req, res) => {
             [courseId, cloNumber, title, description || null, cognitive_level || null]
         );
         
+        // Also insert into the course_clo_mapping junction table
+        await conn.query(
+            'INSERT IGNORE INTO course_clo_mapping (course_id, clo_id) VALUES (?, ?)',
+            [courseId, result.insertId]
+        );
+        
         await conn.commit();
         res.status(201).json({ success: true, message: 'CLO added to course', data: { id: result.insertId } });
     } catch (error) {

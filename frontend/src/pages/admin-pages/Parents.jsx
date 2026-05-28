@@ -1,50 +1,44 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { MdSearch, MdPeople, MdEmail, MdPhone, MdSchool, MdFileUpload, MdFileDownload, MdPersonAdd, MdClose, MdChevronLeft, MdChevronRight } from 'react-icons/md';
 import { parentApi } from '../../services/api';
-import { toast } from 'react-toastify';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 
 const Parents = () => {
     const fileInputRef = useRef(null);
     const [showAddModal, setShowAddModal] = useState(false);
     
     // Data & Pagination State
-    const [parents, setParents] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [total, setTotal] = useState(0);
-
-    const [newParent, setNewParent] = useState({
-        parentName: '', email: '', phone: '', studentName: '', studentId: ''
-    });
+    const [debouncedSearch, setDebouncedSearch] = useState('');
 
     useEffect(() => {
-        const delayDebounceFn = setTimeout(() => {
-            fetchParents();
-        }, 500);
-        return () => clearTimeout(delayDebounceFn);
-    }, [searchQuery, page]);
+        const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
-    const fetchParents = async () => {
-        try {
-            setLoading(true);
+    const { data, isLoading: loading } = useQuery({
+        queryKey: ['parents', page, debouncedSearch],
+        queryFn: async () => {
             const params = { page, limit: 12 };
-            if (searchQuery) params.search = searchQuery;
+            if (debouncedSearch) params.search = debouncedSearch;
             
             const response = await parentApi.getAll(params);
             if (response.success) {
-                setParents(response.data || []);
-                setTotalPages(response.pagination?.totalPages || 1);
-                setTotal(response.pagination?.total || 0);
+                return {
+                    parents: response.data || [],
+                    totalPages: response.pagination?.totalPages || 1,
+                    total: response.pagination?.total || 0
+                };
             }
-        } catch (error) {
-            console.error('Error fetching parents:', error);
-            toast.error('Failed to load parents');
-        } finally {
-            setLoading(false);
-        }
-    };
+            throw new Error('Failed to load parents');
+        },
+        placeholderData: keepPreviousData
+    });
+
+    const parents = data?.parents || [];
+    const totalPages = data?.totalPages || 1;
+    const total = data?.total || 0;
 
     const handleImportClick = () => fileInputRef.current?.click();
 
@@ -55,6 +49,10 @@ const Parents = () => {
         }
         e.target.value = '';
     };
+
+    const [newParent, setNewParent] = useState({
+        parentName: '', email: '', phone: '', studentName: '', studentId: ''
+    });
 
     const handleAddParent = (e) => {
         e.preventDefault();

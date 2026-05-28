@@ -1,23 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MdArrowBack, MdAdd, MdDelete, MdSearch, MdClose, MdMenuBook, MdSchool, MdLibraryBooks, MdGroups, MdCheckCircle } from 'react-icons/md';
 import { curriculumApi, courseApi } from '../../services/api';
 import { toast } from 'react-toastify';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const CurriculumDetails = () => {
     const { id } = useParams();
-    const [curriculum, setCurriculum] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [activeSemester, setActiveSemester] = useState(1);
 
     // Add Course Modal State
     const [showAddCourse, setShowAddCourse] = useState(false);
-    const [allCourses, setAllCourses] = useState([]);
     const [courseSearch, setCourseSearch] = useState('');
     const [selectedCourses, setSelectedCourses] = useState([]);
-    const [addingCourses, setAddingCourses] = useState(false);
     const [courseType, setCourseType] = useState('core');
-    const [removingCourseId, setRemovingCourseId] = useState(null);
 
     const semesterColors = [
         'from-indigo-500 to-blue-600',
@@ -30,38 +27,26 @@ const CurriculumDetails = () => {
         'from-teal-500 to-green-600',
     ];
 
-    useEffect(() => {
-        fetchCurriculum();
-    }, [id]);
-
-    const fetchCurriculum = async () => {
-        try {
-            setLoading(true);
+    const { data: curriculum, isLoading: loading } = useQuery({
+        queryKey: ['curriculum', id],
+        queryFn: async () => {
             const response = await curriculumApi.getById(id);
-            if (response.success) {
-                setCurriculum(response.data);
-            }
-        } catch (error) {
-            console.error('Error fetching curriculum:', error);
-            toast.error('Failed to load curriculum');
-        } finally {
-            setLoading(false);
+            if (response.success) return response.data;
+            throw new Error('Failed to load curriculum');
         }
-    };
+    });
 
-    const fetchAllCourses = async () => {
-        try {
+    const { data: allCourses = [] } = useQuery({
+        queryKey: ['allCoursesList'],
+        queryFn: async () => {
             const response = await courseApi.getAllList();
-            if (response.success) {
-                setAllCourses(response.data || []);
-            }
-        } catch (error) {
-            console.error('Error fetching courses:', error);
-        }
-    };
+            if (response.success) return response.data || [];
+            return [];
+        },
+        enabled: showAddCourse
+    });
 
     const handleOpenAddCourse = () => {
-        fetchAllCourses();
         setSelectedCourses([]);
         setCourseSearch('');
         setCourseType('core');
@@ -76,49 +61,49 @@ const CurriculumDetails = () => {
         );
     };
 
-    const handleAddCourses = async () => {
+    const addCoursesMutation = useMutation({
+        mutationFn: (data) => curriculumApi.addCourses(id, activeSemester, data),
+        onSuccess: (response) => {
+            const addedCount = response.data?.added?.length || 0;
+            const errorCount = response.data?.errors?.length || 0;
+            if (addedCount > 0) toast.success(`${addedCount} course(s) added to Semester ${activeSemester}`);
+            if (errorCount > 0) {
+                response.data.errors.forEach(err => {
+                    toast.warn(`Course ID ${err.course_id}: ${err.error}`);
+                });
+            }
+            setShowAddCourse(false);
+            queryClient.invalidateQueries({ queryKey: ['curriculum', id] });
+        },
+        onError: (error) => {
+            console.error('Error adding courses:', error);
+            toast.error(error.response?.data?.message || 'Failed to add courses');
+        }
+    });
+
+    const handleAddCourses = () => {
         if (selectedCourses.length === 0) {
             toast.error('Select at least one course');
             return;
         }
-        try {
-            setAddingCourses(true);
-            const response = await curriculumApi.addCourses(id, activeSemester, {
-                course_ids: selectedCourses, type: courseType
-            });
-            if (response.success) {
-                const addedCount = response.data?.added?.length || 0;
-                const errorCount = response.data?.errors?.length || 0;
-                if (addedCount > 0) toast.success(`${addedCount} course(s) added to Semester ${activeSemester}`);
-                if (errorCount > 0) {
-                    response.data.errors.forEach(err => {
-                        toast.warn(`Course ID ${err.course_id}: ${err.error}`);
-                    });
-                }
-            }
-            setShowAddCourse(false);
-            fetchCurriculum();
-        } catch (error) {
-            console.error('Error adding courses:', error);
-            toast.error(error.response?.data?.message || 'Failed to add courses');
-        } finally {
-            setAddingCourses(false);
-        }
+        addCoursesMutation.mutate({ course_ids: selectedCourses, type: courseType });
     };
 
-    const handleRemoveCourse = async (courseId) => {
-        if (!window.confirm('Remove this course from the semester?')) return;
-        setRemovingCourseId(courseId);
-        try {
-            await curriculumApi.removeCourse(id, activeSemester, courseId);
+    const removeCourseMutation = useMutation({
+        mutationFn: (courseId) => curriculumApi.removeCourse(id, activeSemester, courseId),
+        onSuccess: () => {
             toast.success('Course removed');
-            fetchCurriculum();
-        } catch (error) {
+            queryClient.invalidateQueries({ queryKey: ['curriculum', id] });
+        },
+        onError: (error) => {
             console.error('Error removing course:', error);
             toast.error('Failed to remove course');
-        } finally {
-            setRemovingCourseId(null);
         }
+    });
+
+    const handleRemoveCourse = (courseId) => {
+        if (!window.confirm('Remove this course from the semester?')) return;
+        removeCourseMutation.mutate(courseId);
     };
 
     // Get all course IDs already in any semester of this curriculum
@@ -313,7 +298,7 @@ const CurriculumDetails = () => {
                                                             <p className="text-xs text-slate-400 mt-0.5">{course.credit_hours} Credits • {course.department_name}</p>
                                                         </div>
                                                     </div>
-                                                    <button onClick={() => handleRemoveCourse(course.course_id)} disabled={removingCourseId === course.course_id}
+                                                    <button onClick={() => handleRemoveCourse(course.course_id)} disabled={removeCourseMutation.isPending && removeCourseMutation.variables === course.course_id}
                                                         className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50">
                                                         <MdDelete className="w-5 h-5" />
                                                     </button>
@@ -343,7 +328,7 @@ const CurriculumDetails = () => {
                                                             <p className="text-xs text-slate-400 mt-0.5">{course.credit_hours} Credits • {course.department_name}</p>
                                                         </div>
                                                     </div>
-                                                    <button onClick={() => handleRemoveCourse(course.course_id)} disabled={removingCourseId === course.course_id}
+                                                    <button onClick={() => handleRemoveCourse(course.course_id)} disabled={removeCourseMutation.isPending && removeCourseMutation.variables === course.course_id}
                                                         className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50">
                                                         <MdDelete className="w-5 h-5" />
                                                     </button>
@@ -391,7 +376,7 @@ const CurriculumDetails = () => {
                                     Add Courses to Semester {activeSemester}
                                 </h2>
                             </div>
-                            <button onClick={() => setShowAddCourse(false)} disabled={addingCourses} className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50">
+                            <button onClick={() => setShowAddCourse(false)} disabled={addCoursesMutation.isPending} className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50">
                                 <MdClose className="w-5 h-5 text-slate-500" />
                             </button>
                         </div>
@@ -462,14 +447,14 @@ const CurriculumDetails = () => {
 
                         {/* Modal Footer */}
                         <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200 bg-slate-50">
-                            <button onClick={() => setShowAddCourse(false)} disabled={addingCourses}
+                            <button onClick={() => setShowAddCourse(false)} disabled={addCoursesMutation.isPending}
                                 className="px-5 py-2.5 text-sm font-medium text-slate-600 border border-slate-300 rounded-xl hover:bg-white transition-all disabled:opacity-50">
                                 Cancel
                             </button>
-                            <button onClick={handleAddCourses} disabled={!selectedCourses.length || addingCourses}
+                            <button onClick={handleAddCourses} disabled={!selectedCourses.length || addCoursesMutation.isPending}
                                 className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                                 <MdAdd className="w-4 h-4" />
-                                {addingCourses ? 'Adding...' : `Add ${selectedCourses.length} as ${courseType}`}
+                                {addCoursesMutation.isPending ? 'Adding...' : `Add ${selectedCourses.length} as ${courseType}`}
                             </button>
                         </div>
                     </div>

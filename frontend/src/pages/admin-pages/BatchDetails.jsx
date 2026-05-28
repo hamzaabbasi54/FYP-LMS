@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MdArrowBack, MdPeople, MdAccessTime, MdArrowForward, MdMenuBook, MdAdd, MdDelete, MdClose, MdSearch, MdCheckCircle, MdSchool, MdLibraryBooks, MdInfo, MdSchedule } from 'react-icons/md';
 import { batchApi, curriculumApi, courseApi, obeApi, departmentApi } from '../../services/api';
 import { toast } from 'react-toastify';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const BatchDetails = () => {
     const { id } = useParams();
-    const [batchData, setBatchData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [curricula, setCurricula] = useState([]);
-    const [batchCourseData, setBatchCourseData] = useState(null);
+    const queryClient = useQueryClient();
+    
     const [activeSemester, setActiveSemester] = useState(1);
     const [assigningCurriculum, setAssigningCurriculum] = useState(false);
 
@@ -35,47 +34,41 @@ const BatchDetails = () => {
         'from-red-500 to-orange-600', 'from-teal-500 to-green-600',
     ];
 
-    useEffect(() => { fetchBatchDetails(); fetchCurricula(); }, [id]);
-
-    const fetchBatchDetails = async () => {
-        try {
-            setLoading(true);
+    const { data: batchData, isLoading: loading, error: batchError } = useQuery({
+        queryKey: ['batch', id],
+        queryFn: async () => {
             const res = await batchApi.getById(id);
-            if (res.success) {
-                setBatchData(res.data);
-                if (res.data.curriculum_id) fetchBatchCourses();
-                else setBatchCourseData(null);
-            }
-        } catch (e) { toast.error('Failed to load batch'); }
-        finally { setLoading(false); }
-    };
+            if (res.success) return res.data;
+            throw new Error('Failed to load batch');
+        }
+    });
 
-    const fetchCurricula = async () => {
-        try {
+    const { data: curricula = [] } = useQuery({
+        queryKey: ['curricula'],
+        queryFn: async () => {
             const res = await curriculumApi.getAll({ limit: 100 });
-            if (res.success) setCurricula(res.data || []);
-        } catch (e) { console.error(e); }
-    };
+            if (res.success) return res.data || [];
+            return [];
+        }
+    });
 
-    // Fetch batch-specific courses (from batch_semester_courses table)
-    const fetchBatchCourses = async () => {
-        try {
+    const { data: batchCourseData, isLoading: loadingCourses, refetch: fetchBatchCourses } = useQuery({
+        queryKey: ['batchCourses', id],
+        queryFn: async () => {
             const res = await batchApi.getCurriculumCourses(id);
-            if (res.success) setBatchCourseData(res.data);
-        } catch (e) { console.error(e); }
-    };
+            if (res.success) return res.data;
+            return null;
+        },
+        enabled: !!batchData?.curriculum_id
+    });
 
     const handleCurriculumChange = async (val) => {
         setAssigningCurriculum(true);
         try {
             await batchApi.update(id, { curriculum_id: val || null });
             toast.success(val ? 'Curriculum assigned — courses copied to batch' : 'Curriculum removed');
-            const res = await batchApi.getById(id);
-            if (res.success) {
-                setBatchData(res.data);
-                if (res.data.curriculum_id) fetchBatchCourses();
-                else setBatchCourseData(null);
-            }
+            await queryClient.invalidateQueries(['batch', id]);
+            if (val) await queryClient.invalidateQueries(['batchCourses', id]);
             setActiveSemester(1);
         } catch (e) { toast.error('Failed to update curriculum'); }
         finally { setAssigningCurriculum(false); }
@@ -149,7 +142,7 @@ const BatchDetails = () => {
             const res = await batchApi.updateAllPLOs(id, selectedPloIds);
             if (res.success) {
                 toast.success('Batch PLOs updated successfully');
-                fetchBatchDetails(); // Refresh to get updated PLOs
+                queryClient.invalidateQueries(['batch', id]);
             }
         } catch(e) {
             console.error(e);
@@ -321,7 +314,12 @@ const BatchDetails = () => {
                 </div>
 
                 {/* Semester Tabs + Courses (reads from batch_semester_courses) */}
-                {batchCourseData && (
+                {loadingCourses ? (
+                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center flex flex-col items-center justify-center">
+                        <div className="inline-block w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+                        <p className="text-slate-500 font-medium text-sm">Loading semester details...</p>
+                    </div>
+                ) : batchCourseData && (
                     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                         {/* Semester Tabs */}
                         <div className="flex overflow-x-auto border-b border-slate-100">

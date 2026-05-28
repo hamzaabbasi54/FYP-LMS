@@ -1,44 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { MdSearch, MdAdd, MdChevronRight, MdPeople, MdEmail, MdPhone, MdMoreVert } from 'react-icons/md';
 import { useCourse } from '../../context/CourseContext';
 import { studentApi } from '../../services/api';
+import { useQuery } from '@tanstack/react-query';
 
 const ManageStudents = () => {
     const { selectedCourse } = useCourse();
     const { assignmentId } = useParams();
     const [searchQuery, setSearchQuery] = useState('');
-    const [students, setStudents] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const courseAssignmentId = selectedCourse?.assignment_id || assignmentId;
 
-    // Fetch enrolled students from the API
-    useEffect(() => {
-        const fetchStudents = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                const courseAssignmentId = selectedCourse?.assignment_id || assignmentId;
-                if (!courseAssignmentId) {
-                    setError('No course selected');
-                    setLoading(false);
-                    return;
-                }
-                const response = await studentApi.getEnrolledStudents(courseAssignmentId);
-                if (response.success) {
-                    setStudents(response.data || []);
-                } else {
-                    setError(response.message || 'Failed to fetch students');
-                }
-            } catch (err) {
-                console.error('Error fetching enrolled students:', err);
-                setError('Failed to fetch enrolled students');
-            } finally {
-                setLoading(false);
+    const { data: students = [], isLoading: loading, error: queryError } = useQuery({
+        queryKey: ['enrolledStudents', courseAssignmentId],
+        enabled: !!courseAssignmentId,
+        queryFn: async () => {
+            const response = await studentApi.getEnrolledStudents(courseAssignmentId);
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to fetch students');
             }
-        };
-        fetchStudents();
-    }, [selectedCourse, assignmentId]);
+            return response.data || [];
+        }
+    });
+
+    const error = !courseAssignmentId ? 'No course selected' : (queryError?.message || null);
 
     const filteredStudents = students.filter(student => {
         const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
@@ -79,7 +64,6 @@ const ManageStudents = () => {
         return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     };
 
-    const courseAssignmentId = selectedCourse?.assignment_id || assignmentId;
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">

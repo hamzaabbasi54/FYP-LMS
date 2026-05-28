@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { MdSchedule, MdPeople, MdCalendarMonth, MdToday, MdWbSunny, MdNightsStay } from 'react-icons/md';
 import { courseApi } from '../../services/api';
+import { useQuery } from '@tanstack/react-query';
 
 const DAYS_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const DAY_LABELS = {
@@ -10,26 +11,15 @@ const DAY_LABELS = {
 
 const Schedule = () => {
     const [viewMode, setViewMode] = useState('today');
-    const [scheduleData, setScheduleData] = useState([]);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchSchedule();
-    }, []);
-
-    const fetchSchedule = async () => {
-        try {
-            setLoading(true);
+    const { data: scheduleData = [], isLoading: loading } = useQuery({
+        queryKey: ['facultySchedule'],
+        queryFn: async () => {
             const res = await courseApi.getMySchedule();
-            if (res.success) {
-                setScheduleData(res.data || []);
-            }
-        } catch (e) {
-            console.error('Failed to load schedule:', e);
-        } finally {
-            setLoading(false);
+            if (res.success) return res.data || [];
+            throw new Error('Failed to load schedule');
         }
-    };
+    });
 
     // Format time from HH:MM:SS to displayable AM/PM
     const formatTime = (timeStr) => {

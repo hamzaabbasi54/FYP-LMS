@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { MdSearch, MdAdd, MdFileUpload, MdFileDownload, MdClose, MdExpandMore, MdExpandLess, MdDelete } from 'react-icons/md';
 import { departmentApi } from '../../services/api';
 import { toast } from 'react-toastify';
+import OverlayLoader from '../../components/common/OverlayLoader';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const ManagePLOs = () => {
-    const [allPLOs, setAllPLOs] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [ploSearch, setPloSearch] = useState('');
     const [expandedPloId, setExpandedPloId] = useState(null);
+    const [isImporting, setIsImporting] = useState(false);
 
     // Add PLO modal
     const [showAddModal, setShowAddModal] = useState(false);
@@ -17,16 +19,14 @@ const ManagePLOs = () => {
     const [showImportInfo, setShowImportInfo] = useState(false);
     const ploFileRef = useRef(null);
 
-    useEffect(() => { fetchPLOs(); }, []);
-
-    const fetchPLOs = async () => {
-        setLoading(true);
-        try {
+    const { data: allPLOs = [], isLoading: loading } = useQuery({
+        queryKey: ['global_plos'],
+        queryFn: async () => {
             const res = await departmentApi.getAllPLOs();
-            if (res.success) setAllPLOs(res.data || []);
-        } catch (err) { toast.error('Failed to load PLOs'); }
-        finally { setLoading(false); }
-    };
+            if (res.success) return res.data || [];
+            throw new Error('Failed to load PLOs');
+        }
+    });
 
     const filteredPLOs = allPLOs.filter(p =>
         (p.description || '').toLowerCase().includes(ploSearch.toLowerCase()) ||
@@ -39,50 +39,66 @@ const ManagePLOs = () => {
         setShowAddModal(true);
     };
 
-    const handleAddSubmit = async () => {
+    const addPloMutation = useMutation({
+        mutationFn: (data) => departmentApi.addPLO(data),
+        onSuccess: () => {
+            toast.success('PLO added successfully');
+            setShowAddModal(false);
+            queryClient.invalidateQueries({ queryKey: ['global_plos'] });
+        },
+        onError: (err) => {
+            toast.error(err.response?.data?.message || 'Failed to add PLO');
+        }
+    });
+
+    const handleAddSubmit = () => {
         if (!newPlo.plo_number || !newPlo.description) {
             toast.error('PLO number and description are required');
             return;
         }
-        try {
-            const res = await departmentApi.addPLO({
-                plo_number: parseInt(newPlo.plo_number),
-                description: newPlo.description
-            });
-            if (res.success) {
-                toast.success('PLO added successfully');
-                setShowAddModal(false);
-                fetchPLOs();
-            }
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to add PLO');
-        }
+        addPloMutation.mutate({
+            plo_number: parseInt(newPlo.plo_number),
+            description: newPlo.description
+        });
     };
 
-    const handleDelete = async (ploId) => {
-        if (!window.confirm('Are you sure you want to delete this PLO?')) return;
-        try {
-            await departmentApi.deletePLO(ploId);
+    const deletePloMutation = useMutation({
+        mutationFn: (ploId) => departmentApi.deletePLO(ploId),
+        onSuccess: () => {
             toast.success('PLO deleted');
-            fetchPLOs();
-        } catch (err) {
+            queryClient.invalidateQueries({ queryKey: ['global_plos'] });
+        },
+        onError: (err) => {
             toast.error(err.response?.data?.message || 'Failed to delete PLO');
         }
+    });
+
+    const handleDelete = (ploId) => {
+        if (!window.confirm('Are you sure you want to delete this PLO?')) return;
+        deletePloMutation.mutate(ploId);
     };
 
-    const handleImportFile = async (e) => {
+    const importMutation = useMutation({
+        mutationFn: (file) => departmentApi.importPLOs(file),
+        onSuccess: (res) => {
+            toast.success(`${res.data.imported} PLOs imported, ${res.data.skipped} skipped`);
+            setShowImportInfo(false);
+            queryClient.invalidateQueries({ queryKey: ['global_plos'] });
+        },
+        onError: (err) => {
+            toast.error(err.response?.data?.message || 'Failed to import PLOs');
+        },
+        onSettled: () => {
+            setIsImporting(false);
+        }
+    });
+
+    const handleImportFile = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        try {
-            const res = await departmentApi.importPLOs(file);
-            if (res.success) {
-                toast.success(`${res.data.imported} PLOs imported, ${res.data.skipped} skipped`);
-                setShowImportInfo(false);
-                fetchPLOs();
-            }
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to import PLOs');
-        } finally { e.target.value = ''; }
+        setIsImporting(true);
+        importMutation.mutate(file);
+        e.target.value = '';
     };
 
     const handleExport = () => { departmentApi.exportPLOs(); };
@@ -98,6 +114,7 @@ const ManagePLOs = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+            <OverlayLoader isLoading={isImporting} text="Importing PLOs..." />
             <div className="p-8 max-w-5xl mx-auto">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -189,7 +206,8 @@ const ManagePLOs = () => {
                                         <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleDelete(plo.id); }}
-                                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                disabled={deletePloMutation.isPending && deletePloMutation.variables === plo.id}
+                                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                                                 title="Delete PLO"
                                             >
                                                 <MdDelete className="w-4 h-4" />
@@ -232,7 +250,7 @@ const ManagePLOs = () => {
                                 <div className="w-2 h-6 bg-gradient-to-b from-indigo-500 to-violet-600 rounded-full"></div>
                                 <h2 className="text-xl font-bold text-slate-800">Add PLO</h2>
                             </div>
-                            <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                            <button onClick={() => setShowAddModal(false)} disabled={addPloMutation.isPending} className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50">
                                 <MdClose className="w-5 h-5 text-slate-500" />
                             </button>
                         </div>
@@ -260,13 +278,13 @@ const ManagePLOs = () => {
                             </div>
                         </div>
                         <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200 bg-slate-50">
-                            <button onClick={() => setShowAddModal(false)} className="px-5 py-2.5 text-sm font-medium text-slate-600 border border-slate-300 rounded-xl hover:bg-white transition-all">
+                            <button onClick={() => setShowAddModal(false)} disabled={addPloMutation.isPending} className="px-5 py-2.5 text-sm font-medium text-slate-600 border border-slate-300 rounded-xl hover:bg-white transition-all disabled:opacity-50">
                                 Cancel
                             </button>
                             <button onClick={handleAddSubmit}
-                                disabled={!newPlo.plo_number || !newPlo.description}
+                                disabled={!newPlo.plo_number || !newPlo.description || addPloMutation.isPending}
                                 className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-indigo-500/25 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                                <MdAdd className="w-4 h-4" /> Add PLO
+                                <MdAdd className="w-4 h-4" /> {addPloMutation.isPending ? 'Adding...' : 'Add PLO'}
                             </button>
                         </div>
                     </div>

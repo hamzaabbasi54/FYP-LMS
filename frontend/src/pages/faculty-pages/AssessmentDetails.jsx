@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { MdChevronRight, MdDownload, MdQuiz, MdAssignment, MdSchool, MdDescription, MdAccessTime, MdStar, MdEdit } from 'react-icons/md';
 import { useCourse } from '../../context/CourseContext';
 import { assessmentApi, gradeApi } from '../../services/api';
+import { useQuery } from '@tanstack/react-query';
 
 const AssessmentDetails = () => {
     const { assignmentId, gradeAssignmentId } = useParams();
@@ -10,32 +11,19 @@ const AssessmentDetails = () => {
     const courseAssignmentId = selectedCourse?.assignment_id || assignmentId;
     const courseCode = selectedCourse?.code || 'Course';
 
-    const [assessment, setAssessment] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [exporting, setExporting] = useState(false);
 
-    useEffect(() => {
-        const fetchAssessment = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                const res = await assessmentApi.getById(gradeAssignmentId);
-                if (res.success) {
-                    setAssessment(res.data);
-                    setError(null);
-                } else {
-                    setError('Assessment not found');
-                }
-            } catch (err) {
-                console.error('Fetch assessment error:', err);
-                setError('Failed to load assessment details');
-            } finally {
-                setLoading(false);
-            }
-        };
-        if (gradeAssignmentId) fetchAssessment();
-    }, [gradeAssignmentId]);
+    const { data: assessment, isLoading: loading, error: queryError } = useQuery({
+        queryKey: ['assessmentDetails', gradeAssignmentId],
+        enabled: !!gradeAssignmentId,
+        queryFn: async () => {
+            const res = await assessmentApi.getById(gradeAssignmentId);
+            if (res.success) return res.data;
+            throw new Error('Assessment not found');
+        }
+    });
+
+    const error = queryError?.message || null;
 
     const handleExport = async () => {
         try {

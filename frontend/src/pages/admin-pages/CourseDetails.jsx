@@ -1,32 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MdArrowBack, MdAccessTime, MdInfoOutline, MdAccountBalance } from 'react-icons/md';
 import { courseApi } from '../../services/api';
-import { toast } from 'react-toastify';
+
+import { useQuery } from '@tanstack/react-query';
 
 const CourseDetails = () => {
     const { id } = useParams();
-    const [course, setCourse] = useState(null);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchCourseDetails = async () => {
-            try {
-                setLoading(true);
-                const response = await courseApi.getById(id);
-                if (response.success) {
-                    setCourse(response.data);
-                }
-            } catch (error) {
-                console.error('Error fetching course:', error);
-                toast.error('Failed to load course details');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchCourseDetails();
-    }, [id]);
+    const { data: course, isLoading: loading } = useQuery({
+        queryKey: ['course', id],
+        queryFn: async () => {
+            const response = await courseApi.getById(id);
+            if (response.success) return response.data;
+            throw new Error('Failed to load course details');
+        }
+    });
 
     if (loading) {
         return (

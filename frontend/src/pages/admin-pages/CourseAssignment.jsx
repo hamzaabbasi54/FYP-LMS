@@ -1,48 +1,45 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { MdSearch, MdCheck, MdSwapHoriz } from 'react-icons/md';
 import { courseApi, approvalApi } from '../../services/api';
 import { toast } from 'react-toastify';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+const colorPalette = [
+    'from-blue-500 to-indigo-600',
+    'from-emerald-500 to-teal-600',
+    'from-violet-500 to-purple-600',
+    'from-amber-500 to-orange-600',
+    'from-rose-500 to-pink-600',
+    'from-cyan-500 to-sky-600',
+    'from-fuchsia-500 to-pink-600',
+    'from-lime-500 to-green-600',
+];
 
 const CourseAssignment = () => {
+    const queryClient = useQueryClient();
     const [selectedCourseIds, setSelectedCourseIds] = useState([]);
     const [selectedFacultyId, setSelectedFacultyId] = useState(null);
     const [courseSearch, setCourseSearch] = useState('');
     const [facultySearch, setFacultySearch] = useState('');
-    const [courses, setCourses] = useState([]);
-    const [faculty, setFaculty] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [assigning, setAssigning] = useState(false);
-
-    const colorPalette = [
-        "from-violet-500 to-purple-600",
-        "from-blue-500 to-indigo-600",
-        "from-amber-500 to-orange-600",
-        "from-teal-500 to-emerald-600",
-        "from-pink-500 to-rose-600",
-        "from-cyan-500 to-blue-600",
-        "from-emerald-500 to-teal-600"
-    ];
-
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const fetchData = async () => {
-        try {
-            setLoading(true);
-            const [coursesRes, facultyRes] = await Promise.all([
-                courseApi.getAssignments(),
-                approvalApi.getUsersByRole('faculty')
-            ]);
-            if (coursesRes.success) setCourses(coursesRes.data || []);
-            if (facultyRes.success) setFaculty(facultyRes.data || []);
-        } catch (error) {
-            console.error('Error fetching data:', error);
-            toast.error('Failed to load data');
-        } finally {
-            setLoading(false);
+    const { data: courses = [], isLoading: loadingCourses } = useQuery({
+        queryKey: ['assignments'],
+        queryFn: async () => {
+            const res = await courseApi.getAssignments();
+            if (res.success) return res.data || [];
+            throw new Error('Failed to load assignments');
         }
-    };
+    });
+
+    const { data: faculty = [], isLoading: loadingFaculty } = useQuery({
+        queryKey: ['faculty'],
+        queryFn: async () => {
+            const res = await approvalApi.getUsersByRole('faculty');
+            if (res.success) return res.data || [];
+            throw new Error('Failed to load faculty');
+        }
+    });
+
+    const loading = loadingCourses || loadingFaculty;
 
     const toggleCourseSelection = (assignmentId) => {
         setSelectedCourseIds(prev =>
@@ -52,38 +49,38 @@ const CourseAssignment = () => {
         );
     };
 
-    const handleAssign = async () => {
-        if (selectedCourseIds.length === 0 || !selectedFacultyId) return;
-        
-        setAssigning(true);
-        try {
-            const prof = faculty.find(f => f.id === selectedFacultyId);
-            const profName = prof?.full_name || prof?.fullName || 'Faculty';
-
-            // Assign each selected course to the selected faculty
+    const assignBulkMutation = useMutation({
+        mutationFn: async ({ courseIds, facultyId }) => {
             let successCount = 0;
-            for (const assignmentId of selectedCourseIds) {
+            for (const assignmentId of courseIds) {
                 try {
-                    await courseApi.updateAssignmentFaculty(assignmentId, selectedFacultyId);
+                    await courseApi.updateAssignmentFaculty(assignmentId, facultyId);
                     successCount++;
                 } catch (err) {
-                    const course = courses.find(c => c.assignment_id === assignmentId);
-                    console.error(`Failed to assign ${course?.title}:`, err);
+                    console.error(`Failed to assign course ${assignmentId}:`, err);
                 }
             }
-
+            return successCount;
+        },
+        onSuccess: (successCount, variables) => {
             if (successCount > 0) {
+                const prof = faculty.find(f => f.id === variables.facultyId);
+                const profName = prof?.full_name || prof?.fullName || 'Faculty';
                 toast.success(`Assigned ${successCount} course(s) to ${profName}`);
             }
             setSelectedCourseIds([]);
             setSelectedFacultyId(null);
-            fetchData();
-        } catch (error) {
+            queryClient.invalidateQueries({ queryKey: ['assignments'] });
+        },
+        onError: (error) => {
             console.error('Error assigning courses:', error);
-            toast.error(error.response?.data?.message || 'Failed to assign courses');
-        } finally {
-            setAssigning(false);
+            toast.error(error.message || 'Failed to assign courses');
         }
+    });
+
+    const handleAssign = () => {
+        if (selectedCourseIds.length === 0 || !selectedFacultyId) return;
+        assignBulkMutation.mutate({ courseIds: selectedCourseIds, facultyId: selectedFacultyId });
     };
 
     const filteredCourses = courses.filter(c =>
@@ -231,13 +228,13 @@ const CourseAssignment = () => {
 
                     {/* Assign Button */}
                     <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-center">
-                        <button onClick={handleAssign} disabled={selectedCourseIds.length === 0 || !selectedFacultyId || assigning}
+                        <button onClick={handleAssign} disabled={selectedCourseIds.length === 0 || !selectedFacultyId || assignBulkMutation.isPending}
                             className={`px-8 py-3 rounded-xl font-semibold transition-all duration-300 ${
                                 selectedCourseIds.length > 0 && selectedFacultyId
                                     ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white hover:shadow-lg hover:shadow-indigo-500/25'
                                     : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                             }`}>
-                            {assigning ? 'Assigning...' : `Assign ${selectedCourseIds.length > 0 ? selectedCourseIds.length : ''} Course(s) to Faculty`}
+                            {assignBulkMutation.isPending ? 'Assigning...' : `Assign ${selectedCourseIds.length > 0 ? selectedCourseIds.length : ''} Course(s) to Faculty`}
                         </button>
                     </div>
                 </div>

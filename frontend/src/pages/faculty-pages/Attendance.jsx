@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { MdSearch, MdCheckCircle, MdRadioButtonUnchecked, MdFilterList, MdDownload, MdCalendarToday, MdChevronLeft, MdChevronRight, MdSave, MdGridOn } from 'react-icons/md';
 import { useCourse } from '../../context/CourseContext';
 import { studentApi, attendanceApi } from '../../services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const Attendance = () => {
     const { selectedCourse } = useCourse();
@@ -38,68 +39,6 @@ const Attendance = () => {
         };
     }, [showCalendar]);
 
-    // Fetch enrolled students and existing attendance for the selected date
-    useEffect(() => {
-        const fetchData = async () => {
-            if (!courseAssignmentId) return;
-
-            try {
-                setLoading(true);
-
-                // Fetch enrolled students
-                const enrolledRes = await studentApi.getEnrolledStudents(courseAssignmentId);
-                const enrolledStudents = enrolledRes.success ? (enrolledRes.data || []) : [];
-
-                // Format date for API (YYYY-MM-DD)
-                const dateStr = formatDateForApi(selectedDate);
-
-                // Fetch existing attendance for this date
-                let existingAttendance = [];
-                try {
-                    const attendanceRes = await attendanceApi.getByCourse(courseAssignmentId, { date: dateStr });
-                    if (attendanceRes.success) {
-                        existingAttendance = attendanceRes.data || [];
-                    }
-                } catch (err) {
-                    // No existing attendance — that's fine, default all to present
-                }
-
-                // Build attendance map from existing records
-                const attendanceMap = {};
-                existingAttendance.forEach(record => {
-                    attendanceMap[record.student_id] = {
-                        status: record.status || 'present',
-                        remarks: record.remarks || ''
-                    };
-                });
-
-                // Merge enrolled students with attendance data
-                const mergedStudents = enrolledStudents.map(student => {
-                    const existing = attendanceMap[student.id];
-                    const fullName = `${student.first_name} ${student.last_name}`;
-                    const initials = `${(student.first_name || '')[0] || ''}${(student.last_name || '')[0] || ''}`.toUpperCase();
-
-                    return {
-                        id: student.id,
-                        name: fullName,
-                        studentId: student.student_id_number,
-                        initials: initials,
-                        status: existing ? existing.status : 'present',
-                        remarks: existing ? existing.remarks : ''
-                    };
-                });
-
-                setStudents(mergedStudents);
-            } catch (err) {
-                console.error('Error fetching attendance data:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, [courseAssignmentId, selectedDate]);
-
     // Format date for API calls (YYYY-MM-DD)
     const formatDateForApi = (date) => {
         const year = date.getFullYear();
@@ -107,6 +46,63 @@ const Attendance = () => {
         const day = date.getDate().toString().padStart(2, '0');
         return `${year}-${month}-${day}`;
     };
+
+    const dateStr = formatDateForApi(selectedDate);
+    const queryClient = useQueryClient();
+
+    // Fetch enrolled students
+    const { data: enrolledStudents = [], isLoading: loadingStudents } = useQuery({
+        queryKey: ['enrolledStudents', courseAssignmentId],
+        enabled: !!courseAssignmentId,
+        queryFn: async () => {
+            const res = await studentApi.getEnrolledStudents(courseAssignmentId);
+            return res.success ? (res.data || []) : [];
+        }
+    });
+
+    // Fetch existing attendance
+    const { data: existingAttendance = [], isLoading: loadingAttendance } = useQuery({
+        queryKey: ['attendanceRecords', courseAssignmentId, dateStr],
+        enabled: !!courseAssignmentId && !!dateStr,
+        queryFn: async () => {
+            const res = await attendanceApi.getByCourse(courseAssignmentId, { date: dateStr });
+            return res.success ? (res.data || []) : [];
+        }
+    });
+
+    // Sync to local state
+    useEffect(() => {
+        if (loadingStudents || loadingAttendance) {
+            setLoading(true);
+            return;
+        }
+
+        const attendanceMap = {};
+        existingAttendance.forEach(record => {
+            attendanceMap[record.student_id] = {
+                status: record.status || 'present',
+                remarks: record.remarks || ''
+            };
+        });
+
+        const mergedStudents = enrolledStudents.map(student => {
+            const existing = attendanceMap[student.id];
+            const fullName = `${student.first_name} ${student.last_name}`;
+            const initials = `${(student.first_name || '')[0] || ''}${(student.last_name || '')[0] || ''}`.toUpperCase();
+
+            return {
+                id: student.id,
+                name: fullName,
+                studentId: student.student_id_number,
+                initials: initials,
+                status: existing ? existing.status : 'present',
+                remarks: existing ? existing.remarks : ''
+            };
+        });
+
+        setStudents(mergedStudents);
+        setLoading(false);
+    }, [enrolledStudents, existingAttendance, loadingStudents, loadingAttendance]);
 
     // Format date for display
     const formatDate = (date) => {
@@ -225,36 +221,37 @@ const Attendance = () => {
     };
 
     // Save attendance to database
-    const handleSaveAttendance = async () => {
-        if (!courseAssignmentId || students.length === 0) return;
-
-        try {
-            setSaving(true);
-            setSaveMessage(null);
-
-            const dateStr = formatDateForApi(selectedDate);
-            const records = students.map(student => ({
-                student_id: student.id,
-                status: student.status,
-                remarks: student.remarks || ''
-            }));
-
-            const response = await attendanceApi.saveCourseAttendance(courseAssignmentId, {
-                date: dateStr,
-                records: records
-            });
-
-            if (response.success) {
-                setSaveMessage({ type: 'success', text: response.message || 'Attendance saved successfully!' });
-            } else {
-                setSaveMessage({ type: 'error', text: response.message || 'Failed to save attendance' });
-            }
-        } catch (err) {
+    const saveAttendanceMutation = useMutation({
+        mutationFn: (payload) => attendanceApi.saveCourseAttendance(courseAssignmentId, payload),
+        onSuccess: (response) => {
+            setSaveMessage({ type: 'success', text: response.message || 'Attendance saved successfully!' });
+            queryClient.invalidateQueries({ queryKey: ['attendanceRecords', courseAssignmentId, dateStr] });
+        },
+        onError: (err) => {
             console.error('Error saving attendance:', err);
             setSaveMessage({ type: 'error', text: 'Failed to save attendance. Please try again.' });
-        } finally {
+        },
+        onSettled: () => {
             setSaving(false);
         }
+    });
+
+    const handleSaveAttendance = () => {
+        if (!courseAssignmentId || students.length === 0) return;
+
+        setSaving(true);
+        setSaveMessage(null);
+
+        const records = students.map(student => ({
+            student_id: student.id,
+            status: student.status,
+            remarks: student.remarks || ''
+        }));
+
+        saveAttendanceMutation.mutate({
+            date: dateStr,
+            records: records
+        });
     };
 
     // Reset attendance (cancel unsaved changes by refetching)

@@ -1,36 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MdPerson, MdEdit, MdDelete, MdAdd, MdSearch, MdFilterList, MdCheckCircle, MdCancel } from 'react-icons/md';
 import { authApi } from '../../services/api';
+import { toast } from 'react-toastify';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const ManageUsers = () => {
-    const [users, setUsers] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterRole, setFilterRole] = useState('all');
 
-    useEffect(() => {
-        fetchUsers();
-    }, [filterRole, searchTerm]);
-
-    const fetchUsers = async () => {
-        setLoading(true);
-        try {
+    const { data: users = [], isLoading: loading } = useQuery({
+        queryKey: ['users', filterRole, searchTerm],
+        queryFn: async () => {
             const filters = {};
             if (filterRole && filterRole !== 'all') filters.role = filterRole;
             if (searchTerm) filters.search = searchTerm;
 
             const response = await authApi.getAllUsers(filters);
-
-            if (response.success) {
-                setUsers(response.data);
-            }
-        } catch (error) {
-            console.error('Error fetching users:', error);
-        } finally {
-            setLoading(false);
+            if (response.success) return response.data || [];
+            throw new Error('Failed to load users');
         }
-    };
+    });
 
     const roleLabels = {
         deptadmin: 'Department Admin',
@@ -42,32 +33,26 @@ const ManageUsers = () => {
         faculty: 'from-pink-500 to-rose-600'
     };
 
-    const handleDelete = async (userId) => {
-        if (window.confirm('Are you sure you want to delete this user?')) {
-            try {
-                const response = await authApi.deleteUser(userId);
+    const deleteMutation = useMutation({
+        mutationFn: (userId) => authApi.deleteUser(userId),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+        onError: () => toast.error('Failed to delete user')
+    });
 
-                if (response.success) {
-                    fetchUsers();
-                }
-            } catch (error) {
-                console.error('Error deleting user:', error);
-                alert('Failed to delete user');
-            }
+    const handleDelete = (userId) => {
+        if (window.confirm('Are you sure you want to delete this user?')) {
+            deleteMutation.mutate(userId);
         }
     };
 
-    const handleToggleActive = async (userId) => {
-        try {
-            const response = await authApi.toggleUserStatus(userId);
+    const toggleMutation = useMutation({
+        mutationFn: (userId) => authApi.toggleUserStatus(userId),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+        onError: () => toast.error('Failed to update user status')
+    });
 
-            if (response.success) {
-                fetchUsers();
-            }
-        } catch (error) {
-            console.error('Error toggling user status:', error);
-            alert('Failed to update user status');
-        }
+    const handleToggleActive = (userId) => {
+        toggleMutation.mutate(userId);
     };
 
     const stats = [
@@ -223,7 +208,8 @@ const ManageUsers = () => {
                                             <td className="px-6 py-4">
                                                 <button
                                                     onClick={() => handleToggleActive(user.id)}
-                                                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-colors ${user.is_active
+                                                    disabled={toggleMutation.isPending && toggleMutation.variables === user.id}
+                                                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${user.is_active
                                                         ? 'bg-green-100 text-green-700 hover:bg-green-200'
                                                         : 'bg-red-100 text-red-700 hover:bg-red-200'
                                                         }`}
@@ -251,7 +237,8 @@ const ManageUsers = () => {
                                                     </button>
                                                     <button
                                                         onClick={() => handleDelete(user.id)}
-                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                        disabled={deleteMutation.isPending && deleteMutation.variables === user.id}
+                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                                                         title="Delete user"
                                                     >
                                                         <MdDelete className="w-5 h-5" />

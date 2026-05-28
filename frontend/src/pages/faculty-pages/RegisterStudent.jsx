@@ -3,12 +3,15 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { MdPerson, MdSchool, MdEmail, MdBadge, MdPhone, MdDescription, MdAdd, MdChevronRight, MdFileUpload, MdClose } from 'react-icons/md';
 import { toast } from 'react-toastify';
 import { studentApi } from '../../services/api';
+import OverlayLoader from '../../components/common/OverlayLoader';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 const RegisterStudent = () => {
     const navigate = useNavigate();
     const { assignmentId } = useParams();
     const fileInputRef = useRef(null);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -52,33 +55,48 @@ const RegisterStudent = () => {
         fileInputRef.current?.click();
     };
 
-    const handleFileChange = async (e) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            try {
-                const response = await studentApi.facultyImportStudents(assignmentId, file);
-                if (response.success) {
-                    const imported = response.data?.imported || 0;
-                    const skipped = response.data?.skipped || 0;
-                    
-                    if (skipped > 0) {
-                        const firstError = response.data?.errors?.[0]?.error || 'Unknown error';
-                        toast.warn(`Imported ${imported} students. Skipped ${skipped}. First error: ${firstError}`);
-                    } else {
-                        toast.success(`Imported and enrolled ${imported} students successfully!`);
-                    }
-                    navigate(-1);
-                }
-            } catch (error) {
-                console.error('Import error:', error);
-                toast.error(error.response?.data?.message || 'Failed to import students');
+    const queryClient = useQueryClient();
+
+    const importMutation = useMutation({
+        mutationFn: (file) => studentApi.facultyImportStudents(assignmentId, file),
+        onSuccess: (response) => {
+            const imported = response.data?.imported || 0;
+            const skipped = response.data?.skipped || 0;
+            
+            if (skipped > 0) {
+                const firstError = response.data?.errors?.[0]?.error || 'Unknown error';
+                toast.warn(`Imported ${imported} students. Skipped ${skipped}. First error: ${firstError}`);
+            } else {
+                toast.success(`Imported and enrolled ${imported} students successfully!`);
+            }
+            queryClient.invalidateQueries({ queryKey: ['enrolledStudents', assignmentId] });
+            navigate(-1);
+        },
+        onError: (error) => {
+            console.error('Import error:', error);
+            toast.error(error.response?.data?.message || 'Failed to import students');
+        },
+        onSettled: () => {
+            setIsImporting(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
             }
         }
-        e.target.value = '';
+    });
+
+    const handleFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setIsImporting(true);
+            importMutation.mutate(file);
+        } else {
+            e.target.value = '';
+        }
     };
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+            <OverlayLoader isLoading={isImporting} text="Importing and enrolling students..." />
             {/* Breadcrumbs */}
             <div className="flex items-center text-sm text-gray-500 mb-4">
                 <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">

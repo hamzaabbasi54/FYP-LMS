@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { MdPerson, MdEmail, MdBusiness, MdPhone, MdSave, MdCheckCircle, MdDelete, MdSearch, MdAdd, MdAdminPanelSettings, MdSupervisedUserCircle, MdArrowDropDown } from 'react-icons/md';
 import { authApi } from '../../services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const ManageDeptAdmins = () => {
+    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('list'); // 'list' or 'create'
 
     // --- Create Form State ---
@@ -13,107 +15,102 @@ const ManageDeptAdmins = () => {
         faculty: '',
         department: ''
     });
-    const [faculties, setFaculties] = useState([]);
-    const [departments, setDepartments] = useState([]);
-    const [formLoading, setFormLoading] = useState(false);
     const [formSuccess, setFormSuccess] = useState('');
     const [formError, setFormError] = useState('');
 
-    // --- User List State ---
-    const [admins, setAdmins] = useState([]);
-    const [listLoading, setListLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
-    useEffect(() => {
-        fetchFaculties();
-        fetchAdmins();
-    }, []);
-
-    useEffect(() => {
-        if (formData.faculty) {
-            fetchDepartments(formData.faculty);
-        } else {
-            setDepartments([]);
-            setFormData(prev => ({ ...prev, department: '' }));
+    // Fetch Faculties
+    const { data: faculties = [] } = useQuery({
+        queryKey: ['faculties'],
+        queryFn: async () => {
+            const res = await authApi.getFaculties();
+            if (res.success) return res.data || [];
+            throw new Error('Failed to load faculties');
         }
+    });
+
+    // Fetch Departments (Dependent Query)
+    const { data: departments = [] } = useQuery({
+        queryKey: ['departments', formData.faculty],
+        queryFn: async () => {
+            const res = await authApi.getDepartments(formData.faculty);
+            if (res.success) return res.data || [];
+            throw new Error('Failed to load departments');
+        },
+        enabled: !!formData.faculty
+    });
+
+    // Reset department when faculty changes
+    useEffect(() => {
+        setFormData(prev => ({ ...prev, department: '' }));
     }, [formData.faculty]);
 
-    const fetchFaculties = async () => {
-        try {
-            const res = await authApi.getFaculties();
-            if (res.success) setFaculties(res.data);
-        } catch (e) { console.error(e); }
-    };
-
-    const fetchDepartments = async (faculty) => {
-        try {
-            const res = await authApi.getDepartments(faculty);
-            if (res.success) setDepartments(res.data);
-        } catch (e) { console.error(e); }
-    };
-
-    const fetchAdmins = async () => {
-        setListLoading(true);
-        try {
+    // Fetch Admins
+    const { data: admins = [], isLoading: listLoading } = useQuery({
+        queryKey: ['deptAdmins'],
+        queryFn: async () => {
             const res = await authApi.getAllUsers({ role: 'deptadmin' });
-            if (res.success) setAdmins(res.data);
-        } catch (e) { console.error(e); }
-        finally { setListLoading(false); }
-    };
+            if (res.success) return res.data || [];
+            throw new Error('Failed to load admins');
+        }
+    });
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = async (e) => {
+    const createMutation = useMutation({
+        mutationFn: (payload) => authApi.createAccount(payload),
+        onSuccess: (res) => {
+            setFormSuccess(res.message || `Department Admin account created for ${formData.fullName}. An invite email has been sent.`);
+            setFormData({ fullName: '', email: '', phoneNumber: '', faculty: '', department: '' });
+            queryClient.invalidateQueries({ queryKey: ['deptAdmins'] });
+            setTimeout(() => setFormSuccess(''), 5000);
+        },
+        onError: (err) => {
+            setFormError(err.response?.data?.message || 'Failed to create account.');
+        }
+    });
+
+    const handleSubmit = (e) => {
         e.preventDefault();
-        setFormLoading(true);
         setFormError('');
         setFormSuccess('');
 
-        try {
-            const payload = {
-                fullName: formData.fullName,
-                email: formData.email,
-                role: 'deptadmin',
-                department: formData.department,
-                faculty: formData.faculty,
-                phoneNumber: formData.phoneNumber,
-                permissions: [],
-                isActive: true
-            };
-            const res = await authApi.createAccount(payload);
-            if (res.success) {
-                setFormSuccess(res.message || `Department Admin account created for ${formData.fullName}. An invite email has been sent.`);
-                setFormData({ fullName: '', email: '', phoneNumber: '', faculty: '', department: '' });
-                fetchAdmins(); // refresh list
-                setTimeout(() => setFormSuccess(''), 5000);
-            }
-        } catch (err) {
-            setFormError(err.response?.data?.message || 'Failed to create account.');
-        } finally {
-            setFormLoading(false);
-        }
+        const payload = {
+            fullName: formData.fullName,
+            email: formData.email,
+            role: 'deptadmin',
+            department: formData.department,
+            faculty: formData.faculty,
+            phoneNumber: formData.phoneNumber,
+            permissions: [],
+            isActive: true
+        };
+        createMutation.mutate(payload);
     };
 
-    const handleDelete = async (userId) => {
+    const deleteMutation = useMutation({
+        mutationFn: (userId) => authApi.deleteUser(userId),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['deptAdmins'] }),
+        onError: () => alert('Failed to delete admin.')
+    });
+
+    const handleDelete = (userId) => {
         if (!window.confirm('Are you sure you want to delete this department admin?')) return;
-        try {
-            const res = await authApi.deleteUser(userId);
-            if (res.success) fetchAdmins();
-        } catch (e) {
-            alert('Failed to delete admin.');
-        }
+        deleteMutation.mutate(userId);
     };
 
-    const handleToggle = async (userId) => {
-        try {
-            const res = await authApi.toggleUserStatus(userId);
-            if (res.success) fetchAdmins();
-        } catch (e) {
-            alert('Failed to toggle status.');
-        }
+    const toggleMutation = useMutation({
+        mutationFn: (userId) => authApi.toggleUserStatus(userId),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['deptAdmins'] }),
+        onError: () => alert('Failed to toggle status.')
+    });
+
+    const handleToggle = (userId) => {
+        toggleMutation.mutate(userId);
     };
 
     const filteredAdmins = admins.filter(a =>
@@ -296,11 +293,11 @@ const ManageDeptAdmins = () => {
 
                             <button
                                 type="submit"
-                                disabled={formLoading}
+                                disabled={createMutation.isPending}
                                 className="flex items-center justify-center gap-2 w-full md:w-auto px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all duration-200 disabled:opacity-50"
                             >
                                 <MdSave className="w-5 h-5" />
-                                {formLoading ? 'Creating...' : 'Create & Send Invite Email'}
+                                {createMutation.isPending ? 'Creating...' : 'Create & Send Invite Email'}
                             </button>
                         </form>
                     </div>
@@ -360,7 +357,8 @@ const ManageDeptAdmins = () => {
                                                     <td className="px-6 py-4">
                                                         <button
                                                             onClick={() => handleToggle(admin.id)}
-                                                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                                                            disabled={toggleMutation.isPending && toggleMutation.variables === admin.id}
+                                                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
                                                                 admin.is_active
                                                                     ? 'bg-green-100 text-green-700 hover:bg-green-200'
                                                                     : 'bg-red-100 text-red-700 hover:bg-red-200'
@@ -372,7 +370,8 @@ const ManageDeptAdmins = () => {
                                                     <td className="px-6 py-4">
                                                         <button
                                                             onClick={() => handleDelete(admin.id)}
-                                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                            disabled={deleteMutation.isPending && deleteMutation.variables === admin.id}
+                                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                                                             title="Delete admin"
                                                         >
                                                             <MdDelete className="w-5 h-5" />

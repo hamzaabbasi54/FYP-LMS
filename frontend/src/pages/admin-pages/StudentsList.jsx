@@ -3,27 +3,28 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MdArrowBack, MdSearch, MdFileDownload, MdFileUpload, MdPersonAdd, MdClose, MdEmail, MdDelete } from 'react-icons/md';
 import { studentApi } from '../../services/api';
 import { toast } from 'react-toastify';
+import OverlayLoader from '../../components/common/OverlayLoader';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 
 const StudentList = () => {
+    const queryClient = useQueryClient();
     const { id } = useParams();
     const navigate = useNavigate();
     const fileInputRef = useRef(null);
     const [showAddModal, setShowAddModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [students, setStudents] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [newStudent, setNewStudent] = useState({
         name: '', email: '', roll_number: '', contact_number: '', cgpa: '',
         matric_marks: '', fsc_marks: '', background: ''
     });
     const [showImportModal, setShowImportModal] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
     const [selectedStudents, setSelectedStudents] = useState(new Set());
     const [deleting, setDeleting] = useState(false);
 
     // Pagination & Search
     const [page, setPage] = useState(1);
     const [limit] = useState(10);
-    const [pagination, setPagination] = useState(null);
     const [debouncedSearch, setDebouncedSearch] = useState('');
 
     useEffect(() => {
@@ -31,58 +32,59 @@ const StudentList = () => {
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    useEffect(() => {
-        fetchStudents();
-    }, [id, page, debouncedSearch]);
-
-    const fetchStudents = async () => {
-        try {
-            setLoading(true);
-            const response = await studentApi.getAll({ 
+    const { data, isLoading: loading } = useQuery({
+        queryKey: ['students', id, page, debouncedSearch],
+        queryFn: async () => {
+            const response = await studentApi.getAll({
                 batch_id: id,
                 page,
                 limit,
                 search: debouncedSearch
             });
             if (response.success) {
-                setStudents(response.data || []);
-                setPagination(response.pagination);
+                return {
+                    students: response.data || [],
+                    pagination: response.pagination
+                };
             }
-        } catch (error) {
-            console.error('Error fetching students:', error);
-            toast.error('Failed to load students');
-        } finally {
-            setLoading(false);
-        }
-    };
+            throw new Error('Failed to load students');
+        },
+        placeholderData: keepPreviousData
+    });
 
-    const handleAddStudent = async (e) => {
+    const students = data?.students || [];
+    const pagination = data?.pagination || null;
+
+    const addStudentMutation = useMutation({
+        mutationFn: (studentData) => studentApi.create(studentData),
+        onSuccess: () => {
+            toast.success('Student added successfully!');
+            setShowAddModal(false);
+            setNewStudent({ name: '', email: '', roll_number: '', contact_number: '', cgpa: '', matric_marks: '', fsc_marks: '', background: '' });
+            queryClient.invalidateQueries({ queryKey: ['students', id] });
+        },
+        onError: (error) => {
+            toast.error(error.response?.data?.message || 'Failed to add student');
+        }
+    });
+
+    const handleAddStudent = (e) => {
         e.preventDefault();
         const nameParts = newStudent.name.split(' ');
         const firstName = nameParts[0];
         const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Doe';
-        try {
-            const response = await studentApi.create({
-                first_name: firstName,
-                last_name: lastName,
-                email: newStudent.email,
-                phone: newStudent.contact_number,
-                cgpa: parseFloat(newStudent.cgpa) || 0,
-                matric_marks: parseFloat(newStudent.matric_marks) || null,
-                fsc_marks: parseFloat(newStudent.fsc_marks) || null,
-                background: newStudent.background || null,
-                batch_id: parseInt(id)
-            });
-            if (response.success) {
-                toast.success('Student added successfully!');
-                setShowAddModal(false);
-                setNewStudent({ name: '', email: '', roll_number: '', contact_number: '', cgpa: '', matric_marks: '', fsc_marks: '', background: '' });
-                fetchStudents();
-            }
-        } catch (error) {
-            console.error('Error adding student:', error);
-            toast.error(error.response?.data?.message || 'Failed to add student');
-        }
+        
+        addStudentMutation.mutate({
+            first_name: firstName,
+            last_name: lastName,
+            email: newStudent.email,
+            phone: newStudent.contact_number,
+            cgpa: parseFloat(newStudent.cgpa) || 0,
+            matric_marks: parseFloat(newStudent.matric_marks) || null,
+            fsc_marks: parseFloat(newStudent.fsc_marks) || null,
+            background: newStudent.background || null,
+            batch_id: parseInt(id)
+        });
     };
 
     const handleImportClick = () => setShowImportModal(true);
@@ -91,27 +93,33 @@ const StudentList = () => {
         fileInputRef.current?.click();
     };
 
-    const handleFileChange = async (e) => {
+    const importMutation = useMutation({
+        mutationFn: (file) => studentApi.import(id, file),
+        onSuccess: (response) => {
+            const imported = response.data?.imported || 0;
+            const skipped = response.data?.skipped || 0;
+            
+            if (skipped > 0) {
+                const firstError = response.data?.errors?.[0]?.error || 'Unknown error';
+                toast.warn(`Imported ${imported} students. Skipped ${skipped}. First error: ${firstError}`);
+            } else {
+                toast.success(`Imported ${imported} students successfully!`);
+            }
+            queryClient.invalidateQueries({ queryKey: ['students', id] });
+        },
+        onError: (error) => {
+            toast.error(error.response?.data?.message || 'Failed to import students');
+        },
+        onSettled: () => {
+            setIsImporting(false);
+        }
+    });
+
+    const handleFileChange = (e) => {
         const file = e.target.files?.[0];
         if (file) {
-            try {
-                const response = await studentApi.import(id, file);
-                if (response.success) {
-                    const imported = response.data?.imported || 0;
-                    const skipped = response.data?.skipped || 0;
-                    
-                    if (skipped > 0) {
-                        const firstError = response.data?.errors?.[0]?.error || 'Unknown error';
-                        toast.warn(`Imported ${imported} students. Skipped ${skipped}. First error: ${firstError}`);
-                    } else {
-                        toast.success(`Imported ${imported} students successfully!`);
-                    }
-                    fetchStudents();
-                }
-            } catch (error) {
-                console.error('Import error:', error);
-                toast.error(error.response?.data?.message || 'Failed to import students');
-            }
+            setIsImporting(true);
+            importMutation.mutate(file);
         }
         e.target.value = '';
     };
@@ -162,29 +170,32 @@ const StudentList = () => {
         setSelectedStudents(newSet);
     };
 
-    const handleBulkDelete = async () => {
-        if (selectedStudents.size === 0) return;
-        if (!window.confirm(`Are you sure you want to delete ${selectedStudents.size} students? This cannot be undone.`)) return;
-
-        setDeleting(true);
-        try {
-            const ids = Array.from(selectedStudents);
-            const response = await studentApi.bulkDelete(ids);
-            if (response.success) {
-                toast.success(response.message || 'Students deleted successfully');
-                setSelectedStudents(new Set());
-                fetchStudents();
-            }
-        } catch (error) {
+    const bulkDeleteMutation = useMutation({
+        mutationFn: (ids) => studentApi.bulkDelete(ids),
+        onSuccess: (response) => {
+            toast.success(response.message || 'Students deleted successfully');
+            setSelectedStudents(new Set());
+            queryClient.invalidateQueries({ queryKey: ['students', id] });
+        },
+        onError: (error) => {
             console.error('Bulk delete error:', error);
             toast.error(error.response?.data?.message || 'Failed to delete students');
-        } finally {
-            setDeleting(false);
-        }
+        },
+        onMutate: () => setDeleting(true),
+        onSettled: () => setDeleting(false)
+    });
+
+    const handleBulkDelete = () => {
+        if (selectedStudents.size === 0) return;
+        if (!window.confirm(`Are you sure you want to delete ${selectedStudents.size} students? This cannot be undone.`)) return;
+        
+        const ids = Array.from(selectedStudents);
+        bulkDeleteMutation.mutate(ids);
     };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+            <OverlayLoader isLoading={isImporting} text="Importing students to batch..." />
             <div className="p-8 max-w-7xl mx-auto">
                 <div className="mb-6">
                     <Link to={`/admin-managebatches/${id}`} className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm">

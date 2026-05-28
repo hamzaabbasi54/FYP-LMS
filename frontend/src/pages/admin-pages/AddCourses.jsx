@@ -4,10 +4,12 @@ import { MdAdd, MdSave, MdRefresh, MdArrowBack, MdClose, MdFileUpload, MdFileDow
 import { Link } from 'react-router-dom';
 import { courseApi, authApi } from '../../services/api';
 import { toast } from 'react-toastify';
+import OverlayLoader from '../../components/common/OverlayLoader';
 
 const AddCourse = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
     const [departments, setDepartments] = useState([]);
     const [faculties, setFaculties] = useState([]);
     const [selectedFaculty, setSelectedFaculty] = useState('');
@@ -182,7 +184,7 @@ const AddCourse = () => {
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        setLoading(true);
+        setIsImporting(true);
         try {
             const response = await courseApi.import(file);
             if (response.success) {
@@ -192,7 +194,7 @@ const AddCourse = () => {
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to import courses');
         } finally {
-            setLoading(false);
+            setIsImporting(false);
             e.target.value = '';
         }
     };
@@ -201,6 +203,7 @@ const AddCourse = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+            <OverlayLoader isLoading={isImporting} text="Importing courses..." />
             <div className="p-6 max-w-7xl mx-auto">
                 <div className="mb-6">
                     <Link to="/admin-managecourses" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm">

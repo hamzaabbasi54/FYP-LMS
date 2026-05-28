@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MdSearch, MdAdd, MdMenuBook, MdDelete, MdSchool, MdLibraryBooks, MdGroups } from 'react-icons/md';
 import { curriculumApi } from '../../services/api';
 import { toast } from 'react-toastify';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const ManageCurricula = () => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -19,13 +20,11 @@ const ManageCurricula = () => {
     
     const isDeptAdmin = user.role === 'deptadmin';
 
+    const queryClient = useQueryClient();
+
     const [searchQuery, setSearchQuery] = useState('');
-    const [curricula, setCurricula] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [newCurriculum, setNewCurriculum] = useState({ name: '', department_id: isDeptAdmin ? (deptId || '') : '', description: '' });
-    const [departments, setDepartments] = useState([]);
-    const [creating, setCreating] = useState(false);
     const [deletingId, setDeletingId] = useState(null);
 
     const colorPalette = [
@@ -37,72 +36,67 @@ const ManageCurricula = () => {
         "from-cyan-500 to-sky-600"
     ];
 
-    useEffect(() => {
-        fetchCurricula();
-        fetchDepartments();
-    }, []);
-
-    const fetchCurricula = async () => {
-        try {
-            setLoading(true);
+    const { data: curricula = [], isLoading: loading } = useQuery({
+        queryKey: ['curricula'],
+        queryFn: async () => {
             const response = await curriculumApi.getAll();
-            if (response.success) {
-                setCurricula(response.data || []);
-            }
-        } catch (error) {
-            console.error('Error fetching curricula:', error);
-            toast.error('Failed to load curricula');
-        } finally {
-            setLoading(false);
+            if (response.success) return response.data || [];
+            throw new Error('Failed to fetch curricula');
         }
-    };
+    });
 
-    const fetchDepartments = async () => {
-        try {
+    const { data: departments = [] } = useQuery({
+        queryKey: ['departments'],
+        queryFn: async () => {
             const { departmentApi } = await import('../../services/api');
             const res = await departmentApi.getAll();
-            if (res.success) setDepartments(res.data || []);
-        } catch (err) {
-            console.error('Error fetching departments:', err);
+            if (res.success) return res.data || [];
+            return [];
         }
-    };
+    });
 
-    const handleDelete = async (id, e) => {
+    const deleteMutation = useMutation({
+        mutationFn: (id) => curriculumApi.delete(id),
+        onSuccess: () => {
+            toast.success('Curriculum deleted successfully');
+            queryClient.invalidateQueries({ queryKey: ['curricula'] });
+        },
+        onError: (error) => {
+            console.error('Error deleting curriculum:', error);
+            toast.error('Failed to delete curriculum');
+        },
+        onSettled: () => setDeletingId(null)
+    });
+
+    const handleDelete = (id, e) => {
         e.preventDefault();
         e.stopPropagation();
         if (window.confirm('Are you sure you want to delete this curriculum? All semester-course mappings will be removed.')) {
             setDeletingId(id);
-            try {
-                await curriculumApi.delete(id);
-                toast.success('Curriculum deleted successfully');
-                fetchCurricula();
-            } catch (error) {
-                console.error('Error deleting curriculum:', error);
-                toast.error('Failed to delete curriculum');
-            } finally {
-                setDeletingId(null);
-            }
+            deleteMutation.mutate(id);
         }
     };
 
-    const handleCreate = async () => {
+    const createMutation = useMutation({
+        mutationFn: (data) => curriculumApi.create(data),
+        onSuccess: () => {
+            toast.success('Curriculum created with 8 semesters!');
+            setShowCreateDialog(false);
+            setNewCurriculum({ name: '', department_id: isDeptAdmin ? (deptId || '') : '', description: '' });
+            queryClient.invalidateQueries({ queryKey: ['curricula'] });
+        },
+        onError: (error) => {
+            console.error('Error creating curriculum:', error);
+            toast.error(error.response?.data?.message || 'Failed to create curriculum');
+        }
+    });
+
+    const handleCreate = () => {
         if (!newCurriculum.name || !newCurriculum.department_id) {
             toast.error('Name and department are required');
             return;
         }
-        setCreating(true);
-        try {
-            await curriculumApi.create(newCurriculum);
-            toast.success('Curriculum created with 8 semesters!');
-            setShowCreateDialog(false);
-            setNewCurriculum({ name: '', department_id: isDeptAdmin ? (deptId || '') : '', description: '' });
-            fetchCurricula();
-        } catch (error) {
-            console.error('Error creating curriculum:', error);
-            toast.error(error.response?.data?.message || 'Failed to create curriculum');
-        } finally {
-            setCreating(false);
-        }
+        createMutation.mutate(newCurriculum);
     };
 
     const filteredCurricula = curricula.filter(c =>
@@ -251,7 +245,7 @@ const ManageCurricula = () => {
                                 <div className="w-2 h-6 bg-gradient-to-b from-indigo-500 to-blue-600 rounded-full"></div>
                                 <h2 className="text-xl font-bold text-slate-800">Create New Curriculum</h2>
                             </div>
-                            <button onClick={() => setShowCreateDialog(false)} disabled={creating} className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50">
+                            <button onClick={() => setShowCreateDialog(false)} disabled={createMutation.isPending} className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50">
                                 <span className="text-slate-500 text-xl">&times;</span>
                             </button>
                         </div>
@@ -303,15 +297,15 @@ const ManageCurricula = () => {
                             </div>
                         </div>
                         <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200 bg-slate-50">
-                            <button onClick={() => setShowCreateDialog(false)} disabled={creating} className="px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 border border-slate-300 rounded-xl hover:bg-white transition-all disabled:opacity-50">
+                            <button onClick={() => setShowCreateDialog(false)} disabled={createMutation.isPending} className="px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 border border-slate-300 rounded-xl hover:bg-white transition-all disabled:opacity-50">
                                 Cancel
                             </button>
                             <button
                                 onClick={handleCreate}
-                                disabled={!newCurriculum.name || !newCurriculum.department_id || creating}
+                                disabled={!newCurriculum.name || !newCurriculum.department_id || createMutation.isPending}
                                 className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-indigo-500/25 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <MdAdd className="w-4 h-4" /> {creating ? 'Creating...' : 'Create Curriculum'}
+                                <MdAdd className="w-4 h-4" /> {createMutation.isPending ? 'Creating...' : 'Create Curriculum'}
                             </button>
                         </div>
                     </div>
