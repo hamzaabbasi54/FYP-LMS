@@ -132,6 +132,7 @@ CREATE TABLE plos (
     department_id INT NOT NULL,
     plo_number INT NOT NULL,
     description TEXT NOT NULL,
+    status ENUM('active', 'completed') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -140,8 +141,7 @@ CREATE TABLE plos (
 
     CONSTRAINT fk_plos_dept
         FOREIGN KEY (department_id) REFERENCES departments(id)
-        ON DELETE CASCADE ON UPDATE CASCADE,
-    status ENUM('active', 'completed') DEFAULT 'active'
+        ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 11.5 BATCH_PLOS (Junction Table for Batch-scoped PLOs)
@@ -153,16 +153,6 @@ CREATE TABLE batch_plos (
     CONSTRAINT fk_batch_plo_plo FOREIGN KEY (plo_id) REFERENCES plos(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 11.6 BATCH_CLO_PLO_MAPPING (Junction Table for batch-scoped CLO-PLO mapping)
-CREATE TABLE batch_clo_plo_mapping (
-    batch_id INT NOT NULL,
-    clo_id INT NOT NULL,
-    plo_id INT NOT NULL,
-    PRIMARY KEY (batch_id, clo_id, plo_id),
-    CONSTRAINT fk_bcpm_batch FOREIGN KEY (batch_id) REFERENCES batches(id) ON DELETE CASCADE,
-    CONSTRAINT fk_bcpm_clo FOREIGN KEY (clo_id) REFERENCES clos(id) ON DELETE CASCADE,
-    CONSTRAINT fk_bcpm_plo FOREIGN KEY (plo_id) REFERENCES plos(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 6. SEMESTERS
 CREATE TABLE semesters (
@@ -231,6 +221,17 @@ CREATE TABLE clos (
     CONSTRAINT fk_clos_course
         FOREIGN KEY (course_id) REFERENCES courses(id)
         ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 11.6 BATCH_CLO_PLO_MAPPING (Junction Table for batch-scoped CLO-PLO mapping)
+CREATE TABLE batch_clo_plo_mapping (
+    batch_id INT NOT NULL,
+    clo_id INT NOT NULL,
+    plo_id INT NOT NULL,
+    PRIMARY KEY (batch_id, clo_id, plo_id),
+    CONSTRAINT fk_bcpm_batch FOREIGN KEY (batch_id) REFERENCES batches(id) ON DELETE CASCADE,
+    CONSTRAINT fk_bcpm_clo FOREIGN KEY (clo_id) REFERENCES clos(id) ON DELETE CASCADE,
+    CONSTRAINT fk_bcpm_plo FOREIGN KEY (plo_id) REFERENCES plos(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Removed global CLO_PLO_MAPPING
