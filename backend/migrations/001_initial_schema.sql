@@ -14,12 +14,13 @@ DROP TABLE IF EXISTS parents;
 DROP TABLE IF EXISTS students;
 DROP TABLE IF EXISTS syllabi;
 DROP TABLE IF EXISTS assessment_clo_mapping;
-DROP TABLE IF EXISTS clo_plo_mapping;
+DROP TABLE IF EXISTS batch_clo_plo_mapping;
 DROP TABLE IF EXISTS clos;
 DROP TABLE IF EXISTS courses;
 DROP TABLE IF EXISTS semesters;
 DROP TABLE IF EXISTS plos;
 DROP TABLE IF EXISTS batches;
+DROP TABLE IF EXISTS batch_plos;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS departments;
@@ -131,6 +132,7 @@ CREATE TABLE plos (
     department_id INT NOT NULL,
     plo_number INT NOT NULL,
     description TEXT NOT NULL,
+    status ENUM('active', 'completed') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -141,6 +143,16 @@ CREATE TABLE plos (
         FOREIGN KEY (department_id) REFERENCES departments(id)
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 11.5 BATCH_PLOS (Junction Table for Batch-scoped PLOs)
+CREATE TABLE batch_plos (
+    batch_id INT NOT NULL,
+    plo_id INT NOT NULL,
+    PRIMARY KEY (batch_id, plo_id),
+    CONSTRAINT fk_batch_plo_batch FOREIGN KEY (batch_id) REFERENCES batches(id) ON DELETE CASCADE,
+    CONSTRAINT fk_batch_plo_plo FOREIGN KEY (plo_id) REFERENCES plos(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 -- 6. SEMESTERS
 CREATE TABLE semesters (
@@ -211,21 +223,20 @@ CREATE TABLE clos (
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 8.5. CLO_PLO_MAPPING (Junction Table)
-CREATE TABLE clo_plo_mapping (
+-- 11.6 BATCH_CLO_PLO_MAPPING (Junction Table for batch-scoped CLO-PLO mapping)
+CREATE TABLE batch_clo_plo_mapping (
+    batch_id INT NOT NULL,
     clo_id INT NOT NULL,
     plo_id INT NOT NULL,
-    PRIMARY KEY (clo_id, plo_id),
-    
-    CONSTRAINT fk_mapping_clo
-        FOREIGN KEY (clo_id) REFERENCES clos(id)
-        ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT fk_mapping_plo
-        FOREIGN KEY (plo_id) REFERENCES plos(id)
-        ON DELETE CASCADE ON UPDATE CASCADE
+    PRIMARY KEY (batch_id, clo_id, plo_id),
+    CONSTRAINT fk_bcpm_batch FOREIGN KEY (batch_id) REFERENCES batches(id) ON DELETE CASCADE,
+    CONSTRAINT fk_bcpm_clo FOREIGN KEY (clo_id) REFERENCES clos(id) ON DELETE CASCADE,
+    CONSTRAINT fk_bcpm_plo FOREIGN KEY (plo_id) REFERENCES plos(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 8.6 COURSE_CLO_MAPPING (Junction Table - Many-to-Many between courses and CLOs)
+-- Removed global CLO_PLO_MAPPING
+
+-- 14. ASSESSMENT_CLO_MAPPING (Junction Table - Many-to-Many between courses and CLOs)
 CREATE TABLE course_clo_mapping (
     course_id INT NOT NULL,
     clo_id INT NOT NULL,

@@ -20,8 +20,11 @@ const upload = multer({ dest: getUploadDir() });
 // GET all courses (paginated, with department name)
 router.get('/', async (req, res) => {
     try {
-        const { department_id, search } = req.query;
+        const { department_id: queryDeptId, search } = req.query;
         const { page, limit, offset } = parsePagination(req.query);
+
+        // Force department scope for dept admins
+        const department_id = (req.user.role === 'deptadmin') ? req.user.department_id : queryDeptId;
 
         let whereClause = 'WHERE 1=1';
         const params = [];
@@ -113,6 +116,17 @@ router.post('/clos/add', isAdmin, async (req, res) => {
             return res.status(400).json({ success: false, message: 'CLO title must be in CLO-X format (e.g. CLO-1, CLO-2)' });
         }
         const cloNumber = parseInt(title.split('-')[1]);
+
+        // Check for duplicate standalone CLO with same title
+        const [existing] = await conn.query(
+            'SELECT id FROM clos WHERE title = ? AND course_id IS NULL',
+            [title]
+        );
+        if (existing.length > 0) {
+            await conn.rollback();
+            return res.status(400).json({ success: false, message: `CLO with title '${title}' already exists` });
+        }
+
         const [result] = await conn.query(
             'INSERT INTO clos (course_id, clo_number, title, description, cognitive_level) VALUES (NULL, ?, ?, ?, ?)',
             [cloNumber, title, description || null, cognitive_level || null]
@@ -125,6 +139,27 @@ router.post('/clos/add', isAdmin, async (req, res) => {
         res.status(500).json({ success: false, message: 'Error adding CLO' });
     } finally {
         conn.release();
+    }
+});
+
+// PUT update individual CLO
+router.put('/clos/:id', isAdmin, async (req, res) => {
+    try {
+        const { title, description, cognitive_level } = req.body;
+        if (!title) {
+            return res.status(400).json({ success: false, message: 'CLO title is required' });
+        }
+        const [result] = await pool.query(
+            'UPDATE clos SET title = ?, description = ?, cognitive_level = ? WHERE id = ?',
+            [title, description || null, cognitive_level || null, req.params.id]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'CLO not found' });
+        }
+        res.json({ success: true, message: 'CLO updated successfully' });
+    } catch (error) {
+        console.error('Update CLO error:', error);
+        res.status(500).json({ success: false, message: 'Error updating CLO' });
     }
 });
 
@@ -143,25 +178,41 @@ router.post('/clos/import', upload.single('file'), async (req, res) => {
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             try {
-                // Expect: course_code, clo_number, title, description, cognitive_level
-                if (!row.course_code || !row.clo_number) {
+                // Expect: clo_number, description, cognitive_level (course_code is removed as CLOs are independent)
+                if (!row.clo_number && !row.title) {
                     skipped++;
-                    errors.push({ row: i + 2, error: 'Missing course_code or clo_number' });
+                    errors.push({ row: i + 2, error: 'Missing clo_number or title' });
                     continue;
                 }
-                const [[course]] = await conn.query('SELECT id FROM courses WHERE code = ?', [row.course_code.toUpperCase()]);
-                if (!course) {
-                    skipped++;
-                    errors.push({ row: i + 2, error: `Course ${row.course_code} not found` });
-                    continue;
+                
+                let title = row.title;
+                let cloNum = parseInt(row.clo_number);
+                
+                if (!title && cloNum) {
+                    title = `CLO-${cloNum}`;
+                } else if (title && !cloNum) {
+                    const match = title.match(/^CLO-(\d+)$/i);
+                    if (match) {
+                        cloNum = parseInt(match[1]);
+                        title = title.toUpperCase();
+                    } else {
+                        skipped++;
+                        errors.push({ row: i + 2, error: 'CLO title must be in format CLO-X (e.g., CLO-1)' });
+                        continue;
+                    }
                 }
-                const cloNum = parseInt(row.clo_number);
-                const title = `CLO-${cloNum}`;
+                
+                if (!title || !cloNum) {
+                     skipped++;
+                     errors.push({ row: i + 2, error: 'Invalid CLO format' });
+                     continue;
+                }
+
                 await conn.query(
                     `INSERT INTO clos (course_id, clo_number, title, description, cognitive_level)
-                     VALUES (?, ?, ?, ?, ?)
-                     ON DUPLICATE KEY UPDATE title = VALUES(title), description = VALUES(description), cognitive_level = VALUES(cognitive_level)`,
-                    [course.id, cloNum, title, row.description || null, row.cognitive_level || null]
+                     VALUES (NULL, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE description = VALUES(description), cognitive_level = VALUES(cognitive_level)`,
+                    [cloNum, title, row.description || null, row.cognitive_level || null]
                 );
                 imported++;
             } catch (err) {
@@ -184,9 +235,9 @@ router.post('/clos/import', upload.single('file'), async (req, res) => {
 router.get('/clos/export', async (req, res) => {
     try {
         const [clos] = await pool.query(
-            `SELECT c.code as course_code, cl.clo_number, cl.title, cl.description, cl.cognitive_level
-             FROM clos cl JOIN courses c ON cl.course_id = c.id
-             ORDER BY c.code, cl.clo_number`
+            `SELECT cl.clo_number, cl.title, cl.description, cl.cognitive_level
+             FROM clos cl 
+             ORDER BY cl.title, cl.clo_number`
         );
         if (clos.length === 0) {
             return res.status(404).json({ success: false, message: 'No CLOs to export' });
@@ -198,6 +249,20 @@ router.get('/clos/export', async (req, res) => {
     } catch (error) {
         console.error('Export CLOs error:', error);
         res.status(500).json({ success: false, message: 'Error exporting CLOs' });
+    }
+});
+
+// DELETE CLO by ID
+router.delete('/clos/:cloId', isAdmin, async (req, res) => {
+    try {
+        const [result] = await pool.query('DELETE FROM clos WHERE id = ?', [req.params.cloId]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'CLO not found' });
+        }
+        res.json({ success: true, message: 'CLO deleted successfully' });
+    } catch (error) {
+        console.error('Delete CLO error:', error);
+        res.status(500).json({ success: false, message: 'Error deleting CLO' });
     }
 });
 
@@ -306,6 +371,31 @@ router.get('/export', async (req, res) => {
 
 // =================================================================
 
+// GET weekly schedule for logged-in faculty (real data from class_schedules)
+router.get('/my-schedule', async (req, res) => {
+    try {
+        const [schedule] = await pool.query(
+            `SELECT cs.id, cs.day_of_week, cs.start_time, cs.end_time, cs.shift,
+                    c.id as course_id, c.title as course_name, c.code as course_code, c.credit_hours,
+                    b.id as batch_id, b.name as batch_name,
+                    (SELECT COUNT(*) FROM enrollments e
+                     JOIN course_assignments ca2 ON e.course_assignment_id = ca2.id
+                     JOIN semesters s2 ON ca2.semester_id = s2.id
+                     WHERE ca2.course_id = cs.course_id AND s2.batch_id = cs.batch_id) as student_count
+             FROM class_schedules cs
+             JOIN courses c ON cs.course_id = c.id
+             JOIN batches b ON cs.batch_id = b.id
+             WHERE cs.faculty_id = ?
+             ORDER BY FIELD(cs.day_of_week, 'monday','tuesday','wednesday','thursday','friday','saturday','sunday'),
+                      cs.start_time`,
+            [req.user.id]
+        );
+        res.json({ success: true, data: schedule });
+    } catch (error) {
+        console.error('Get faculty schedule error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching schedule' });
+    }
+});
 
 // GET courses assigned to logged in faculty
 router.get('/assigned', async (req, res) => {
@@ -609,6 +699,68 @@ router.put('/:id/clos', isAdmin, async (req, res) => {
         await conn.rollback();
         console.error('Update CLOs error:', error);
         res.status(500).json({ success: false, message: 'Error updating CLOs' });
+    } finally {
+        conn.release();
+    }
+});
+
+// POST add a single CLO to a course
+router.post('/:id/clos/single', isAdmin, async (req, res) => {
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+        const { title, description, cognitive_level } = req.body;
+        const courseId = req.params.id;
+        
+        if (!title) {
+            return res.status(400).json({ success: false, message: 'CLO title is required' });
+        }
+        
+        const cloPattern = /^CLO-\d+$/;
+        if (!cloPattern.test(title)) {
+            return res.status(400).json({ success: false, message: 'CLO title must be in CLO-X format (e.g. CLO-1, CLO-2)' });
+        }
+        const cloNumber = parseInt(title.split('-')[1]);
+
+        // Insert directly mapping to course
+        const [result] = await conn.query(
+            'INSERT INTO clos (course_id, clo_number, title, description, cognitive_level) VALUES (?, ?, ?, ?, ?)',
+            [courseId, cloNumber, title, description || null, cognitive_level || null]
+        );
+        
+        await conn.commit();
+        res.status(201).json({ success: true, message: 'CLO added to course', data: { id: result.insertId } });
+    } catch (error) {
+        await conn.rollback();
+        console.error('Add single CLO error:', error);
+        res.status(500).json({ success: false, message: 'Error adding CLO to course' });
+    } finally {
+        conn.release();
+    }
+});
+
+// POST map existing CLOs to a course
+router.post('/:id/clos/map', isAdmin, async (req, res) => {
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+        const courseId = req.params.id;
+        const { clo_ids } = req.body;
+        
+        if (!clo_ids || !Array.isArray(clo_ids) || clo_ids.length === 0) {
+            return res.status(400).json({ success: false, message: 'clo_ids array is required and cannot be empty' });
+        }
+
+        // Use IGNORE to avoid duplicate key errors if already mapped
+        const cloValues = clo_ids.map(cloId => [courseId, cloId]);
+        await conn.query('INSERT IGNORE INTO course_clo_mapping (course_id, clo_id) VALUES ?', [cloValues]);
+        
+        await conn.commit();
+        res.status(200).json({ success: true, message: 'CLOs mapped to course successfully' });
+    } catch (error) {
+        await conn.rollback();
+        console.error('Map CLOs error:', error);
+        res.status(500).json({ success: false, message: 'Error mapping CLOs to course' });
     } finally {
         conn.release();
     }

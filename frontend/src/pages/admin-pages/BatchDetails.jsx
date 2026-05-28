@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MdArrowBack, MdPeople, MdAccessTime, MdArrowForward, MdMenuBook, MdAdd, MdDelete, MdClose, MdSearch, MdCheckCircle, MdSchool, MdLibraryBooks, MdInfo } from 'react-icons/md';
-import { batchApi, curriculumApi, courseApi } from '../../services/api';
+import { MdArrowBack, MdPeople, MdAccessTime, MdArrowForward, MdMenuBook, MdAdd, MdDelete, MdClose, MdSearch, MdCheckCircle, MdSchool, MdLibraryBooks, MdInfo, MdSchedule } from 'react-icons/md';
+import { batchApi, curriculumApi, courseApi, obeApi, departmentApi } from '../../services/api';
 import { toast } from 'react-toastify';
 
 const BatchDetails = () => {
@@ -21,6 +21,12 @@ const BatchDetails = () => {
     const [courseType, setCourseType] = useState('core');
     const [addingCourses, setAddingCourses] = useState(false);
     const [removingCourseId, setRemovingCourseId] = useState(null);
+
+    // PLO Modal
+    const [showPloModal, setShowPloModal] = useState(false);
+    const [allPlos, setAllPlos] = useState([]);
+    const [selectedPloIds, setSelectedPloIds] = useState([]);
+    const [savingPlos, setSavingPlos] = useState(false);
 
     const semColors = [
         'from-indigo-500 to-blue-600', 'from-violet-500 to-purple-600',
@@ -115,6 +121,45 @@ const BatchDetails = () => {
         finally { setRemovingCourseId(null); }
     };
 
+    // Check if course is already in batch
+    const isCourseInBatch = (courseId) => {
+        if (!batchCourseData?.semesters) return false;
+        return batchCourseData.semesters.some(sem => 
+            sem.courses && sem.courses.some(c => c.course_id === courseId)
+        );
+    };
+
+    const handleOpenPloModal = async () => {
+        try {
+            const res = await departmentApi.getAllPLOs();
+            if (res.success) {
+                setAllPlos(res.data || []);
+                const currentPloIds = (batchData?.plos || []).map(p => p.id);
+                setSelectedPloIds(currentPloIds);
+                setShowPloModal(true);
+            }
+        } catch(e) {
+            toast.error('Failed to load PLOs');
+        }
+    };
+
+    const handleSaveBatchPlos = async () => {
+        try {
+            setSavingPlos(true);
+            const res = await batchApi.updateAllPLOs(id, selectedPloIds);
+            if (res.success) {
+                toast.success('Batch PLOs updated successfully');
+                fetchBatchDetails(); // Refresh to get updated PLOs
+            }
+        } catch(e) {
+            console.error(e);
+            toast.error('Failed to save PLOs');
+        } finally {
+            setSavingPlos(false);
+            setShowPloModal(false);
+        }
+    };
+
     const getExistingCourseIds = () => {
         if (!batchCourseData?.semesters) return new Set();
         const ids = new Set();
@@ -199,6 +244,42 @@ const BatchDetails = () => {
                         );
                         return s.link ? <Link key={i} to={s.link}>{card}</Link> : <div key={i}>{card}</div>;
                     })}
+                </div>
+
+                {/* PLOs Section */}
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 mb-8 flex items-center justify-between shadow-sm">
+                    <div>
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="w-2 h-6 bg-gradient-to-b from-violet-500 to-purple-600 rounded-full"></div>
+                            <h3 className="text-xl font-bold text-slate-800">Program Learning Outcomes (PLOs)</h3>
+                        </div>
+                        <p className="text-sm text-slate-500 ml-5">
+                            {batchData.plos && batchData.plos.length > 0 
+                                ? `${batchData.plos.length} PLOs attached to this batch` 
+                                : 'No PLOs attached to this batch'}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        {batchData.plos && batchData.plos.length > 0 && (
+                            <div className="flex -space-x-2">
+                                {batchData.plos.slice(0, 5).map(plo => (
+                                    <div key={plo.id} className="w-10 h-10 rounded-full border-2 border-white bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-sm" title={plo.description}>
+                                        <span className="text-xs font-bold text-white text-center leading-none">
+                                            PLO<br/>{plo.plo_number}
+                                        </span>
+                                    </div>
+                                ))}
+                                {batchData.plos.length > 5 && (
+                                    <div className="w-10 h-10 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center shadow-sm text-slate-600 text-xs font-bold">
+                                        +{batchData.plos.length - 5}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        <button onClick={handleOpenPloModal} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors">
+                            Manage PLOs
+                        </button>
+                    </div>
                 </div>
 
                 {/* Curriculum Assignment */}
@@ -291,7 +372,7 @@ const BatchDetails = () => {
                                             <div className="space-y-2">
                                                 {coreCourses.map(c => (
                                                     <div key={c.course_id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100 hover:bg-white hover:shadow-md transition-all group">
-                                                        <div className="flex items-center gap-4">
+                                                        <Link to={`/admin-managebatches/${id}/course/${c.course_id}`} className="flex items-center gap-4 flex-1 cursor-pointer">
                                                             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${semColors[(activeSemester-1) % semColors.length]} flex items-center justify-center shadow-sm`}>
                                                                 <MdMenuBook className="w-5 h-5 text-white" />
                                                             </div>
@@ -302,11 +383,17 @@ const BatchDetails = () => {
                                                                 </div>
                                                                 <p className="text-xs text-slate-400 mt-0.5">{c.credit_hours} Credits</p>
                                                             </div>
+                                                        </Link>
+                                                        <div className="flex items-center gap-1">
+                                                            <Link to={`/admin-managebatches/${id}/course/${c.course_id}`}
+                                                                className="p-2 text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-all opacity-0 group-hover:opacity-100" title="Set Schedule">
+                                                                <MdSchedule className="w-5 h-5" />
+                                                            </Link>
+                                                            <button onClick={() => handleRemoveCourse(c.course_id)} disabled={removingCourseId === c.course_id}
+                                                                className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50">
+                                                                <MdDelete className="w-5 h-5" />
+                                                            </button>
                                                         </div>
-                                                        <button onClick={() => handleRemoveCourse(c.course_id)} disabled={removingCourseId === c.course_id}
-                                                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50">
-                                                            <MdDelete className="w-5 h-5" />
-                                                        </button>
                                                     </div>
                                                 ))}
                                             </div>
@@ -322,7 +409,7 @@ const BatchDetails = () => {
                                             <div className="space-y-2">
                                                 {electiveCourses.map(c => (
                                                     <div key={c.course_id} className="flex items-center justify-between p-4 bg-amber-50/50 rounded-xl border border-amber-100 hover:bg-white hover:shadow-md transition-all group">
-                                                        <div className="flex items-center gap-4">
+                                                        <Link to={`/admin-managebatches/${id}/course/${c.course_id}`} className="flex items-center gap-4 flex-1 cursor-pointer">
                                                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-sm">
                                                                 <MdMenuBook className="w-5 h-5 text-white" />
                                                             </div>
@@ -334,11 +421,17 @@ const BatchDetails = () => {
                                                                 </div>
                                                                 <p className="text-xs text-slate-400 mt-0.5">{c.credit_hours} Credits</p>
                                                             </div>
+                                                        </Link>
+                                                        <div className="flex items-center gap-1">
+                                                            <Link to={`/admin-managebatches/${id}/course/${c.course_id}`}
+                                                                className="p-2 text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-all opacity-0 group-hover:opacity-100" title="Set Schedule">
+                                                                <MdSchedule className="w-5 h-5" />
+                                                            </Link>
+                                                            <button onClick={() => handleRemoveCourse(c.course_id)} disabled={removingCourseId === c.course_id}
+                                                                className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50">
+                                                                <MdDelete className="w-5 h-5" />
+                                                            </button>
                                                         </div>
-                                                        <button onClick={() => handleRemoveCourse(c.course_id)} disabled={removingCourseId === c.course_id}
-                                                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50">
-                                                            <MdDelete className="w-5 h-5" />
-                                                        </button>
                                                     </div>
                                                 ))}
                                             </div>
@@ -414,6 +507,65 @@ const BatchDetails = () => {
                                 className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-xl font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all">
                                 <MdAdd className="w-4 h-4" />
                                 {addingCourses ? 'Adding...' : `Add ${selectedCourses.length} as ${courseType}`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Manage PLOs Modal */}
+            {showPloModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100">
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-800">Manage Batch PLOs</h2>
+                                <p className="text-sm text-slate-500">Select which PLOs apply to this specific batch</p>
+                            </div>
+                            <button onClick={() => setShowPloModal(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
+                                <MdClose className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto flex-1">
+                            {allPlos.length === 0 ? (
+                                <p className="text-center text-slate-500 py-8">No PLOs defined for your department. Please add them globally first.</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {allPlos.map(plo => {
+                                        const isSelected = selectedPloIds.includes(plo.id);
+                                        return (
+                                            <div key={plo.id} 
+                                                onClick={() => {
+                                                    if (isSelected) {
+                                                        setSelectedPloIds(prev => prev.filter(id => id !== plo.id));
+                                                    } else {
+                                                        setSelectedPloIds(prev => [...prev, plo.id]);
+                                                    }
+                                                }}
+                                                className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                                    isSelected ? 'border-violet-500 bg-violet-50/50' : 'border-slate-100 bg-white hover:border-slate-200'
+                                                }`}
+                                            >
+                                                <div className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${
+                                                    isSelected ? 'border-violet-500 bg-violet-500 text-white' : 'border-slate-300 bg-white text-transparent'
+                                                }`}>
+                                                    <MdCheckCircle className="w-4 h-4" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-slate-800 text-sm">PLO {plo.plo_number}</h4>
+                                                    <p className="text-sm text-slate-600 mt-1">{plo.description}</p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-6 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-2xl">
+                            <button onClick={() => setShowPloModal(false)} className="px-5 py-2.5 text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl font-medium text-sm transition-colors">
+                                Cancel
+                            </button>
+                            <button onClick={handleSaveBatchPlos} disabled={savingPlos} className="px-5 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl font-medium text-sm hover:shadow-lg transition-all disabled:opacity-50">
+                                {savingPlos ? 'Saving...' : 'Save PLOs'}
                             </button>
                         </div>
                     </div>

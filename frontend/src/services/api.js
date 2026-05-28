@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -9,6 +9,34 @@ const api = axios.create({
         'Content-Type': 'application/json',
     },
 });
+
+// Helper to get absolute file URLs
+export const getFileUrl = (path) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    
+    // If the API is hosted on a different domain (e.g., Vercel frontend + Heroku backend),
+    // VITE_API_URL will be absolute (e.g., https://api.myfyp.com/api).
+    // We extract the origin to construct the file URL.
+    if (API_BASE_URL.startsWith('http')) {
+        try {
+            const url = new URL(API_BASE_URL);
+            return `${url.origin}${path}`;
+        } catch (e) {
+            console.error("Invalid API_BASE_URL", e);
+        }
+    }
+    
+    // For local dev where backend is 3000, we force it to 3000 to bypass Vite SPA fallback
+    const isDev = window.location.hostname === 'localhost';
+    if (isDev && path.startsWith('/uploads')) {
+        return `http://localhost:3000${path}`;
+    }
+    
+    // If hosted on the same domain (e.g., via Nginx proxying both /api and /uploads),
+    // it will return the relative path.
+    return path;
+};
 
 // Add token to requests if available
 api.interceptors.request.use(
@@ -175,6 +203,14 @@ export const batchApi = {
         return response.data;
     },
     // Semesters
+    getSemesters: async (batchId) => {
+        const response = await api.get(`/batches/${batchId}/semesters`);
+        return response.data;
+    },
+    getPLOs: async (batchId) => {
+        const response = await api.get(`/batches/${batchId}/plos`);
+        return response.data;
+    },
     getSemester: async (batchId, semId) => {
         const response = await api.get(`/batches/${batchId}/semesters/${semId}`);
         return response.data;
@@ -196,8 +232,8 @@ export const batchApi = {
         const response = await api.post(`/batches/${batchId}/plos`, data);
         return response.data;
     },
-    updateAllPLOs: async (batchId, plos) => {
-        const response = await api.put(`/batches/${batchId}/plos`, { plos });
+    updateAllPLOs: async (batchId, ploIds) => {
+        const response = await api.post(`/batches/${batchId}/plos`, { plo_ids: ploIds });
         return response.data;
     },
     deletePLO: async (batchId, ploId) => {
@@ -216,7 +252,42 @@ export const batchApi = {
     removeBatchCourse: async (batchId, semesterNumber, courseId) => {
         const response = await api.delete(`/batches/${batchId}/semesters/${semesterNumber}/courses/${courseId}`);
         return response.data;
-    }
+    },
+    // Class Schedule
+    getCourseDetailsForBatch: async (batchId, courseId) => {
+        const response = await api.get(`/batches/${batchId}/courses/${courseId}/details`);
+        return response.data;
+    },
+    getCourseSchedule: async (batchId, courseId) => {
+        const response = await api.get(`/batches/${batchId}/courses/${courseId}/schedule`);
+        return response.data;
+    },
+    saveCourseSchedule: async (batchId, courseId, data) => {
+        const response = await api.put(`/batches/${batchId}/courses/${courseId}/schedule`, data);
+        return response.data;
+    },
+    // Faculty & Content
+    assignFaculty: async (batchId, semesterNumber, courseId, facultyId) => {
+        const response = await api.post(`/batches/${batchId}/semesters/${semesterNumber}/courses/${courseId}/assign`, { faculty_id: facultyId });
+        return response.data;
+    },
+    uploadCourseFile: async (batchId, semesterNumber, courseId, file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post(`/batches/${batchId}/semesters/${semesterNumber}/courses/${courseId}/upload`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
+    // CLO-PLO Mapping
+    getCLOPLOMappings: async (batchId) => {
+        const response = await api.get(`/batches/${batchId}/clo-mappings`);
+        return response.data;
+    },
+    saveCLOPLOMappings: async (batchId, courseId, mappings) => {
+        const response = await api.post(`/batches/${batchId}/clo-mappings`, { course_id: courseId, mappings });
+        return response.data;
+    },
 };
 
 // ============================================
@@ -275,6 +346,27 @@ export const courseApi = {
         const response = await api.get('/courses/assignments', { params });
         return response.data;
     },
+    // CLO Management
+    getAllClos: async () => {
+        const response = await api.get('/courses/clos/all');
+        return response.data;
+    },
+    mapClosToCourse: async (courseId, cloIds) => {
+        const response = await api.post(`/courses/${courseId}/clos/map`, { clo_ids: cloIds });
+        return response.data;
+    },
+    addSingleClo: async (courseId, data) => {
+        const response = await api.post(`/courses/${courseId}/clos/single`, data);
+        return response.data;
+    },
+    updateClo: async (cloId, data) => {
+        const response = await api.put(`/courses/clos/${cloId}`, data);
+        return response.data;
+    },
+    deleteClo: async (cloId) => {
+        const response = await api.delete(`/courses/clos/${cloId}`);
+        return response.data;
+    },
     getAssignmentDetails: async (assignmentId) => {
         const response = await api.get(`/courses/assignments/${assignmentId}`);
         return response.data;
@@ -303,6 +395,11 @@ export const courseApi = {
     // Syllabus
     updateSyllabus: async (courseId, data) => {
         const response = await api.put(`/courses/${courseId}/syllabus`, data);
+        return response.data;
+    },
+    // Faculty weekly schedule
+    getMySchedule: async () => {
+        const response = await api.get('/courses/my-schedule');
         return response.data;
     },
     // All courses list (no pagination, for pickers)
@@ -337,6 +434,10 @@ export const courseApi = {
         link.click();
         link.remove();
         window.URL.revokeObjectURL(url);
+    },
+    deleteGlobalCLO: async (cloId) => {
+        const response = await api.delete(`/courses/clos/${cloId}`);
+        return response.data;
     }
 };
 
@@ -374,11 +475,23 @@ export const studentApi = {
         const response = await api.delete(`/students/${id}`);
         return response.data;
     },
+    bulkDelete: async (studentIds) => {
+        const response = await api.post('/students/bulk-delete', { student_ids: studentIds });
+        return response.data;
+    },
     import: async (batchId, file) => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('batch_id', batchId);
         const response = await api.post('/students/import', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
+    facultyImportStudents: async (assignmentId, file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post(`/students/import/course/${assignmentId}`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
         return response.data;
@@ -474,6 +587,24 @@ export const gradeApi = {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
         return response.data;
+    },
+    importGradesPreview: async (assessmentId, file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post(`/assessments/${assessmentId}/grades/import-preview`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    }
+};
+
+// ============================================
+// OBE API
+// ============================================
+export const obeApi = {
+    getReports: async () => {
+        const response = await api.get('/obe/reports');
+        return response.data;
     }
 };
 
@@ -551,6 +682,37 @@ export const departmentApi = {
     getPLOs: async (departmentId) => {
         const response = await api.get(`/departments/${departmentId}/plos`);
         return response.data;
+    },
+    getAllPLOs: async () => {
+        const response = await api.get('/departments/plos/all');
+        return response.data;
+    },
+    addPLO: async (data) => {
+        const response = await api.post('/departments/plos/add', data);
+        return response.data;
+    },
+    deletePLO: async (ploId) => {
+        const response = await api.delete(`/departments/plos/${ploId}`);
+        return response.data;
+    },
+    importPLOs: async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post('/departments/plos/import', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
+    exportPLOs: async () => {
+        const response = await api.get('/departments/plos/export', { responseType: 'blob' });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'plos_export.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
     }
 };
 

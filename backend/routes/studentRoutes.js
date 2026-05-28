@@ -28,6 +28,10 @@ router.get('/', async (req, res) => {
         let whereClause = 'WHERE 1=1';
         const params = [];
         if (batch_id) { whereClause += ' AND s.batch_id = ?'; params.push(batch_id); }
+        // Force department scope for dept admins
+        if (req.user.role === 'deptadmin' && req.user.department_id) {
+            whereClause += ' AND b.department_id = ?'; params.push(req.user.department_id);
+        }
         if (search) {
             whereClause += ' AND (s.first_name LIKE ? OR s.last_name LIKE ? OR s.student_id_number LIKE ? OR s.email LIKE ?)';
             const term = `%${search}%`;
@@ -36,7 +40,7 @@ router.get('/', async (req, res) => {
 
         // Count total
         const [[{ total }]] = await pool.query(
-            `SELECT COUNT(*) as total FROM students s ${whereClause}`, params
+            `SELECT COUNT(*) as total FROM students s LEFT JOIN batches b ON s.batch_id = b.id ${whereClause}`, params
         );
 
         // Get paginated data
@@ -198,6 +202,24 @@ router.delete('/:id', isAdmin, async (req, res) => {
     }
 });
 
+// POST bulk delete students
+router.post('/bulk-delete', isAdmin, async (req, res) => {
+    try {
+        const { student_ids } = req.body;
+        if (!student_ids || !Array.isArray(student_ids) || student_ids.length === 0) {
+            return res.status(400).json({ success: false, message: 'No student IDs provided' });
+        }
+        
+        const placeholders = student_ids.map(() => '?').join(',');
+        const [result] = await pool.query(`DELETE FROM students WHERE id IN (${placeholders})`, student_ids);
+        
+        res.json({ success: true, message: `${result.affectedRows} students deleted successfully` });
+    } catch (error) {
+        console.error('Bulk delete students error:', error);
+        res.status(500).json({ success: false, message: 'Error deleting students' });
+    }
+});
+
 // ===================== EXCEL IMPORT =====================
 
 // POST bulk import students from Excel
@@ -290,6 +312,122 @@ router.post('/import', isAdmin, upload.single('file'), async (req, res) => {
         await conn.rollback();
         console.error('Import students error:', error);
         res.status(500).json({ success: false, message: 'Error importing students' });
+    } finally {
+        conn.release();
+    }
+});
+
+// POST bulk import students and enroll them into a course assignment (Faculty)
+router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ success: false, message: 'Excel file is required. Upload as form-data with key "file".' });
+    }
+
+    const { assignmentId } = req.params;
+
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+
+        // Verify assignment and get batch_id
+        const [assignments] = await conn.query(
+            `SELECT ca.id, s.batch_id 
+             FROM course_assignments ca
+             JOIN semesters s ON ca.semester_id = s.id
+             WHERE ca.id = ?`,
+            [assignmentId]
+        );
+
+        if (assignments.length === 0) {
+            await conn.rollback();
+            return res.status(404).json({ success: false, message: 'Course assignment not found' });
+        }
+
+        const batchId = assignments[0].batch_id;
+
+        const rows = parseExcel(req.file.path);
+
+        if (rows.length === 0) {
+            return res.status(400).json({ success: false, message: 'Excel file is empty' });
+        }
+
+        // Validate required columns
+        const requiredCols = ['first_name', 'last_name', 'email'];
+        const missingCols = requiredCols.filter(col => !(col in rows[0]));
+        if (missingCols.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: `Missing required columns: ${missingCols.join(', ')}`,
+                expected_columns: ['first_name', 'last_name', 'email', 'phone', 'parent_name', 'parent_email', 'parent_phone', 'matric_marks', 'fsc_marks', 'background']
+            });
+        }
+
+        let imported = 0;
+        let skipped = 0;
+        const errors = [];
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            try {
+                // Auto-generate student ID
+                const year = new Date().getFullYear();
+                const [countResult] = await conn.query(
+                    "SELECT COUNT(*) as count FROM students WHERE student_id_number LIKE ?", [`U${year}%`]
+                );
+                const nextNum = (countResult[0].count + 1).toString().padStart(3, '0');
+                const studentIdNumber = `U${year}${nextNum}`;
+
+                const [result] = await conn.query(
+                    `INSERT INTO students (student_id_number, first_name, last_name, email, phone, batch_id, matric_marks, fsc_marks, background)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE 
+                        id = LAST_INSERT_ID(id),
+                        first_name = VALUES(first_name), 
+                        last_name = VALUES(last_name), 
+                        phone = VALUES(phone), 
+                        batch_id = VALUES(batch_id),
+                        matric_marks = VALUES(matric_marks),
+                        fsc_marks = VALUES(fsc_marks),
+                        background = VALUES(background)`,
+                    [studentIdNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', batchId, row.matric_marks || null, row.fsc_marks || null, row.background || null]
+                );
+
+                const studentId = result.insertId;
+
+                // Insert parent if provided
+                if (row.parent_name && studentId) {
+                    await conn.query(
+                        'INSERT INTO parents (student_id, name, email, phone) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email), phone = VALUES(phone)',
+                        [studentId, row.parent_name, row.parent_email || null, row.parent_phone || null]
+                    );
+                }
+
+                // Enroll student in the course assignment
+                if (studentId) {
+                    await conn.query(
+                        `INSERT INTO enrollments (student_id, course_assignment_id) VALUES (?, ?)
+                         ON DUPLICATE KEY UPDATE student_id = VALUES(student_id)`,
+                        [studentId, assignmentId]
+                    );
+                }
+
+                imported++;
+            } catch (err) {
+                skipped++;
+                errors.push({ row: i + 2, error: err.message });
+            }
+        }
+
+        await conn.commit();
+        res.json({
+            success: true,
+            message: `Import complete: ${imported} added and enrolled, ${skipped} skipped`,
+            data: { imported, skipped, errors: errors.slice(0, 20) }
+        });
+    } catch (error) {
+        await conn.rollback();
+        console.error('Import and enroll students error:', error);
+        res.status(500).json({ success: false, message: 'Error importing and enrolling students' });
     } finally {
         conn.release();
     }

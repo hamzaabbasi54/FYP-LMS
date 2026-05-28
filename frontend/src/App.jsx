@@ -9,7 +9,6 @@ import FacultyMainLayout from "./components/layout/faculty/FacultyMainLayout.jsx
 
 // Auth Pages
 import Login from "./pages/login/Login.jsx";
-import Signup from "./pages/login/Signup.jsx";
 import ForgotPassword from "./pages/login/ForgotPassword.jsx";
 import ResetPassword from "./pages/login/ResetPassword.jsx";
 import SetPassword from "./pages/login/SetPassword.jsx";
@@ -26,9 +25,11 @@ import Settings from "./pages/admin-pages/Settings.jsx";
 import AddCourses from "./pages/admin-pages/AddCourses.jsx";
 import CourseDetails from "./pages/admin-pages/CourseDetails.jsx";
 import ManageCLOs from "./pages/admin-pages/ManageCLOs.jsx";
+import ManagePLOs from "./pages/admin-pages/ManagePLOs.jsx";
 import AddFaculty from './pages/admin-pages/AddFaculty.jsx';
 import AddBatch from './pages/admin-pages/AddBatch.jsx';
 import BatchDetails from "./pages/admin-pages/BatchDetails.jsx";
+import BatchCourseSchedule from "./pages/admin-pages/BatchCourseSchedule.jsx";
 import StudentsList from './pages/admin-pages/StudentsList.jsx';
 import StudentDetails from './pages/admin-pages/StudentDetails.jsx';
 import SemesterCourses from "./pages/admin-pages/SemesterCourses.jsx";
@@ -38,6 +39,8 @@ import OBEReports from './pages/admin-pages/OBEReports.jsx';
 import ExternalLinks from './pages/admin-pages/ExternalLinks.jsx';
 import ManageCurricula from './pages/admin-pages/ManageCurricula.jsx';
 import CurriculumDetails from './pages/admin-pages/CurriculumDetails.jsx';
+import ManageDeptAdmins from './pages/admin-pages/ManageDeptAdmins.jsx';
+import SuperAdminPanel from './pages/admin-pages/SuperAdminPanel.jsx';
 
 // Faculty Pages
 import FacultyDashboard from "./pages/faculty-pages/Dashboard.jsx";
@@ -67,21 +70,24 @@ function App() {
             <Routes>
                 {/* Authentication Routes */}
                 <Route path="/" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/set-password" element={<SetPassword />} />
 
+                {/* Super Admin — Standalone page, no sidebar */}
+                <Route element={<ProtectedRoute allowedRoles={['super_admin']} />}>
+                    <Route path="/admin-dashboard" element={<SuperAdminPanel />} />
+                </Route>
+
                 {/* Department Admin Protected Routes */}
-                <Route element={<ProtectedRoute allowedRole="deptadmin" />}>
+                <Route element={<ProtectedRoute allowedRoles={['deptadmin']} />}>
                     <Route element={<AdminMainLayout />}>
-                        <Route path="/admin-dashboard" element={<Dashboard />} />
+                        <Route path="/deptadmin-dashboard" element={<Dashboard />} />
 
                         {/* User Management Routes */}
                         <Route path="/admin-createaccount" element={<CreateAccount />} />
                         <Route path="/admin-manageusers" element={<ManageUsers />} />
-
-                        <Route path="/admin-courseassignment" element={<CourseAssignment />} />
+                        <Route path="/admin-manage-dept-admins" element={<ManageDeptAdmins />} />
 
                         <Route path="/admin-managebatches" element={<ManageBatches />} />
                         <Route path="/admin-managebatches/addbatch" element={<AddBatch />} />
@@ -89,6 +95,7 @@ function App() {
                         <Route path="/admin-managebatches/:id/students" element={<StudentsList />} />
                         <Route path="/admin-managebatches/:id/students/:studentId" element={<StudentDetails />} />
                         <Route path="/admin-managebatches/:id/semester/:semesterId" element={<SemesterCourses />} />
+                        <Route path="/admin-managebatches/:batchId/course/:courseId" element={<BatchCourseSchedule />} />
 
                         <Route path="/admin-managefaculty" element={<ManageFaculty />} />
                         <Route path="/admin-managefaculty/addfaculty" element={<AddFaculty />} />
@@ -100,6 +107,7 @@ function App() {
                         <Route path="/admin-managecourses" element={<ManageCourses />} />
                         <Route path="/admin-managecourses/admin-addcourses" element={<AddCourses />} />
                         <Route path="/admin-managecourses/clos" element={<ManageCLOs />} />
+                        <Route path="/admin-managecourses/plos" element={<ManagePLOs />} />
                         <Route path="/admin-managecourses/:id" element={<CourseDetails />} />
 
                         <Route path="/admin-obe" element={<OBEReports />} />

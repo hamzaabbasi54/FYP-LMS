@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { MdPerson, MdSchool, MdEmail, MdBadge, MdPhone, MdDescription, MdAdd, MdChevronRight } from 'react-icons/md';
+import { MdPerson, MdSchool, MdEmail, MdBadge, MdPhone, MdDescription, MdAdd, MdChevronRight, MdFileUpload, MdClose } from 'react-icons/md';
+import { toast } from 'react-toastify';
+import { studentApi } from '../../services/api';
 
 const RegisterStudent = () => {
     const navigate = useNavigate();
-    const { courseId, batchId } = useParams();
+    const { assignmentId } = useParams();
+    const fileInputRef = useRef(null);
+    const [showImportModal, setShowImportModal] = useState(false);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -42,6 +46,37 @@ const RegisterStudent = () => {
         navigate(-1);
     };
 
+    const handleImportClick = () => setShowImportModal(true);
+    const triggerFileInput = () => {
+        setShowImportModal(false);
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            try {
+                const response = await studentApi.facultyImportStudents(assignmentId, file);
+                if (response.success) {
+                    const imported = response.data?.imported || 0;
+                    const skipped = response.data?.skipped || 0;
+                    
+                    if (skipped > 0) {
+                        const firstError = response.data?.errors?.[0]?.error || 'Unknown error';
+                        toast.warn(`Imported ${imported} students. Skipped ${skipped}. First error: ${firstError}`);
+                    } else {
+                        toast.success(`Imported and enrolled ${imported} students successfully!`);
+                    }
+                    navigate(-1);
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                toast.error(error.response?.data?.message || 'Failed to import students');
+            }
+        }
+        e.target.value = '';
+    };
+
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
             {/* Breadcrumbs */}
@@ -65,7 +100,8 @@ const RegisterStudent = () => {
                         Fill in the information below to manually enroll a student into the course. To add multiple students, use the CSV import tool.
                     </p>
                 </div>
-                <button className="flex items-center justify-center px-5 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm whitespace-nowrap">
+                <input type="file" accept=".csv,.xlsx,.xls" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+                <button type="button" onClick={handleImportClick} className="flex items-center justify-center px-5 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm whitespace-nowrap">
                     <MdDescription className="w-5 h-5 mr-2" />
                     Import CSV
                 </button>
@@ -283,6 +319,48 @@ const RegisterStudent = () => {
                     </button>
                 </div>
             </form>
+
+            {/* Import Modal */}
+            {showImportModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+                        <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-emerald-50 to-teal-50">
+                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                <MdFileUpload className="w-5 h-5 text-emerald-500" /> Import Students
+                            </h3>
+                            <button onClick={() => setShowImportModal(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg">
+                                <MdClose className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <h4 className="font-semibold text-slate-800 mb-2">Excel File Format Requirements</h4>
+                            <p className="text-sm text-slate-600 mb-4">Please ensure your Excel file (.xlsx or .csv) contains the following column headers exactly as shown:</p>
+                            
+                            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6">
+                                <ul className="text-sm text-slate-600 space-y-2 font-mono">
+                                    <li><span className="font-bold text-emerald-600">first_name</span> (Required)</li>
+                                    <li><span className="font-bold text-emerald-600">last_name</span> (Required)</li>
+                                    <li><span className="font-bold text-emerald-600">email</span> (Required, Unique)</li>
+                                    <li><span className="text-slate-500">phone</span> (Optional)</li>
+                                    <li><span className="text-slate-500">parent_name</span> (Optional)</li>
+                                    <li><span className="text-slate-500">parent_email</span> (Optional)</li>
+                                    <li><span className="text-slate-500">parent_phone</span> (Optional)</li>
+                                    <li><span className="text-slate-500">matric_marks</span> (Optional, Number)</li>
+                                    <li><span className="text-slate-500">fsc_marks</span> (Optional, Number)</li>
+                                    <li><span className="text-slate-500">background</span> (Optional: 'pre-med', 'pre-engineering', or 'ics')</li>
+                                </ul>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button onClick={() => setShowImportModal(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 font-medium">Cancel</button>
+                                <button onClick={triggerFileInput} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:shadow-lg font-medium flex items-center justify-center gap-2">
+                                    <MdFileUpload className="w-5 h-5" /> Select File
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -311,7 +311,33 @@ router.get('/:id/grades', async (req, res) => {
             [req.params.id, limit, offset]
         );
 
-        res.json(paginatedResponse(grades, total, page, limit));
+        // Fetch question grades for these students
+        let questionGradesMap = {};
+        if (grades.length > 0) {
+            const studentIds = grades.map(g => g.student_id);
+            const [qGrades] = await pool.query(
+                `SELECT qg.student_id, qg.question_id, qg.score, aq.question_number
+                 FROM question_grades qg
+                 JOIN assessment_questions aq ON qg.question_id = aq.id
+                 WHERE qg.assessment_id = ? AND qg.student_id IN (?)`,
+                [req.params.id, studentIds]
+            );
+
+            qGrades.forEach(qg => {
+                if (!questionGradesMap[qg.student_id]) {
+                    questionGradesMap[qg.student_id] = {};
+                }
+                questionGradesMap[qg.student_id][`q${qg.question_number}`] = qg.score;
+            });
+        }
+
+        // Attach question scores safely (default to empty object)
+        const enrichedGrades = grades.map(g => ({
+            ...g,
+            question_scores: questionGradesMap[g.student_id] || {}
+        }));
+
+        res.json(paginatedResponse(enrichedGrades, total, page, limit));
     } catch (error) {
         console.error('Get grades error:', error);
         res.status(500).json({ success: false, message: 'Error fetching grades' });
@@ -345,22 +371,61 @@ router.post('/:id/grades', async (req, res) => {
             return res.status(400).json({ success: false, message: 'grades array is required' });
         }
 
+        // Fetch questions to validate scores and map question_number to id
+        const [questions] = await conn.query(
+            'SELECT id, question_number, max_marks FROM assessment_questions WHERE assessment_id = ?',
+            [req.params.id]
+        );
+
         for (const grade of grades) {
+            // Validate question scores if provided
+            let finalScore = grade.score;
+            
+            if (grade.question_scores && questions.length > 0) {
+                let computedScore = 0;
+                for (const q of questions) {
+                    const qScore = grade.question_scores[`q${q.question_number}`];
+                    if (qScore !== undefined && qScore !== null && qScore !== '') {
+                        const parsedScore = parseFloat(qScore);
+                        if (!isNaN(parsedScore)) {
+                            // Validate against max marks
+                            if (parsedScore < 0 || parsedScore > parseFloat(q.max_marks)) {
+                                throw new Error(`Score for Question ${q.question_number} exceeds maximum allowed marks.`);
+                            }
+                            computedScore += parsedScore;
+                            
+                            // Insert/Update question grade
+                            await conn.query(
+                                `INSERT INTO question_grades (assessment_id, student_id, question_id, score)
+                                 VALUES (?, ?, ?, ?)
+                                 ON DUPLICATE KEY UPDATE score = VALUES(score)`,
+                                [req.params.id, grade.student_id, q.id, parsedScore]
+                            );
+                        }
+                    }
+                }
+                // Override the total score with the computed sum if questions exist
+                finalScore = computedScore;
+            }
+
             await conn.query(
                 `INSERT INTO grades (assessment_id, student_id, score, remarks, graded_by, graded_at)
                  VALUES (?, ?, ?, ?, ?, NOW())
                  ON DUPLICATE KEY UPDATE
                  score = VALUES(score), remarks = VALUES(remarks), graded_by = VALUES(graded_by), graded_at = NOW()`,
-                [req.params.id, grade.student_id, grade.score, grade.remarks || null, req.user.id]
+                [req.params.id, grade.student_id, finalScore, grade.remarks || null, req.user.id]
             );
         }
+
+        // Update assessment status to graded
+        await conn.query(`UPDATE assessments SET status = 'graded' WHERE id = ?`, [req.params.id]);
 
         await conn.commit();
         res.json({ success: true, message: `${grades.length} grades saved` });
     } catch (error) {
         await conn.rollback();
         console.error('Save grades error:', error);
-        res.status(500).json({ success: false, message: 'Error saving grades' });
+        res.status(500).json({ success: false, message: error.message || 'Error saving grades' });
     } finally {
         conn.release();
     }
@@ -440,6 +505,124 @@ router.get('/:id/grades/template', async (req, res) => {
 });
 
 // ===================== GRADES EXCEL IMPORT (QUESTION-LEVEL) =====================
+
+// POST preview grades from Excel (calculates CLO without saving)
+router.post('/:id/grades/import-preview', upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ success: false, message: 'Excel file required.' });
+    }
+
+    const conn = await pool.getConnection();
+    try {
+        // Validation and Authorization
+        const [authCheck] = await conn.query(
+            `SELECT ca.faculty_id 
+             FROM assessments a 
+             JOIN course_assignments ca ON a.course_assignment_id = ca.id 
+             WHERE a.id = ?`, [req.params.id]
+        );
+        if (authCheck.length === 0) return res.status(404).json({ success: false, message: 'Assessment not found' });
+        if (req.user.role === 'faculty' && authCheck[0].faculty_id !== req.user.id) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        const [assessmentRows] = await conn.query(
+            `SELECT a.*, ca.course_assignment_id as ca_id FROM assessments a
+             JOIN course_assignments ca ON a.course_assignment_id = ca.id
+             WHERE a.id = ?`, [req.params.id]
+        );
+        const assessment = assessmentRows[0];
+
+        const [questions] = await conn.query(
+            `SELECT aq.*, c.clo_number, c.title as clo_title 
+             FROM assessment_questions aq 
+             LEFT JOIN clos c ON aq.clo_id = c.id 
+             WHERE aq.assessment_id = ? ORDER BY aq.question_number`, [req.params.id]
+        );
+
+        const rows = parseExcel(req.file.path);
+        const previewData = [];
+        const errors = [];
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            try {
+                const regNum = row['Registration Number'] || row['student_id_number'] || row['Reg No'] || row['registration_number'];
+                if (!regNum) continue;
+
+                const [students] = await conn.query(
+                    `SELECT s.id, s.first_name, s.last_name FROM students s
+                     JOIN enrollments e ON s.id = e.student_id
+                     WHERE s.student_id_number = ? AND e.course_assignment_id = ?`,
+                    [regNum, assessment.course_assignment_id]
+                );
+
+                if (students.length === 0) {
+                    errors.push({ row: i + 2, student: regNum, error: 'Student not found or not enrolled' });
+                    continue;
+                }
+
+                const student = students[0];
+                let totalScore = 0;
+                const cloAchievements = {}; // Track CLO performance for this student
+
+                if (questions.length > 0) {
+                    for (const q of questions) {
+                        const colKey = Object.keys(row).find(k => k.startsWith(`Q${q.question_number}`));
+                        if (colKey !== undefined && row[colKey] !== '' && row[colKey] !== undefined) {
+                            const qScore = parseFloat(row[colKey]);
+                            if (!isNaN(qScore) && qScore >= 0 && qScore <= parseFloat(q.max_marks)) {
+                                totalScore += qScore;
+                                
+                                // Calculate CLO % if question is mapped
+                                if (q.clo_id) {
+                                    if (!cloAchievements[q.clo_id]) {
+                                        cloAchievements[q.clo_id] = { clo_number: q.clo_number, score: 0, max: 0 };
+                                    }
+                                    cloAchievements[q.clo_id].score += qScore;
+                                    cloAchievements[q.clo_id].max += parseFloat(q.max_marks);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    const scoreKey = Object.keys(row).find(k => k.startsWith('Total Score') || k === 'score');
+                    if (scoreKey && row[scoreKey] !== '' && row[scoreKey] !== undefined) {
+                        totalScore = parseFloat(row[scoreKey]);
+                    }
+                }
+
+                // Format CLO achievements for preview
+                const formattedCLOs = Object.values(cloAchievements).map(c => ({
+                    clo_number: c.clo_number,
+                    percentage: Math.round((c.score / c.max) * 100)
+                }));
+
+                previewData.push({
+                    student_id_number: regNum,
+                    student_name: `${student.first_name} ${student.last_name}`,
+                    total_score: totalScore,
+                    max_score: assessment.max_score,
+                    clos: formattedCLOs,
+                    remarks: row['Remarks'] || ''
+                });
+
+            } catch (err) {
+                errors.push({ row: i + 2, error: err.message });
+            }
+        }
+
+        res.json({
+            success: true,
+            data: { preview: previewData, errors: errors.slice(0, 10) }
+        });
+    } catch (error) {
+        console.error('Preview error:', error);
+        res.status(500).json({ success: false, message: 'Error generating preview' });
+    } finally {
+        conn.release();
+    }
+});
 
 // POST import grades from Excel (supports question-level columns)
 router.post('/:id/grades/import', upload.single('file'), async (req, res) => {

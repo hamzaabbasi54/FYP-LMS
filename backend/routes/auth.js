@@ -14,7 +14,6 @@ import { sendInviteEmail, sendPasswordResetEmail } from '../utils/email.js';
 const router = express.Router();
 
 // Public routes
-router.post('/signup', signup);
 router.post('/login', login);
 
 // Protected route
@@ -100,55 +99,102 @@ router.get('/departments', async (req, res) => {
 
 // POST /api/auth/create-account — Admin creates a user and sends an invite email
 router.post('/create-account', verifyToken, isAdmin, async (req, res) => {
+    const conn = await pool.getConnection();
     try {
-        const { fullName, email, role, department, faculty, phoneNumber, permissions, isActive } = req.body;
+        await conn.beginTransaction();
 
-        // Validate required fields (password is no longer needed — user sets it via invite link)
+        const { fullName, email, role, department, faculty, phoneNumber, permissions, isActive, employment_type = 'permanent' } = req.body;
+
+        // Validate required fields
         if (!fullName || !email || !role) {
-            return res.status(400).json({
-                success: false,
-                message: 'Full name, email, and role are required'
-            });
+            await conn.rollback();
+            return res.status(400).json({ success: false, message: 'Full name, email, and role are required' });
         }
 
-        // Validate role
-        if (!['deptadmin', 'faculty'].includes(role)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Role must be deptadmin or faculty'
-            });
+        // --- ROLE HIERARCHY ENFORCEMENT ---
+        if (req.user.role === 'super_admin' && role !== 'deptadmin') {
+            await conn.rollback();
+            return res.status(403).json({ success: false, message: 'Super Admins can only create Department Admins.' });
+        }
+        if (req.user.role === 'deptadmin' && role !== 'faculty') {
+            await conn.rollback();
+            return res.status(403).json({ success: false, message: 'Department Admins can only create Faculty members.' });
         }
 
-        // Check duplicate email
-        const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email.toLowerCase()]);
-        if (existing.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Email already registered'
-            });
-        }
-
-        // Resolve department_id from department name (if provided)
+        // Resolve department_id
         let departmentId = null;
         let facultyId = null;
 
-        if (department) {
-            const [deptRows] = await pool.query(
-                'SELECT id, faculty_id FROM departments WHERE name = ?', [department]
-            );
+        // If deptadmin, force the target department to be their own department
+        let targetDepartmentName = department;
+        if (req.user.role === 'deptadmin') {
+            // Find deptadmin's department
+            const [deptadminRows] = await conn.query('SELECT department_id FROM users WHERE id = ?', [req.user.id]);
+            if (deptadminRows.length > 0 && deptadminRows[0].department_id) {
+                departmentId = deptadminRows[0].department_id;
+            } else {
+                await conn.rollback();
+                return res.status(400).json({ success: false, message: 'Your admin account is not linked to a department.' });
+            }
+        } else if (department) {
+            const [deptRows] = await conn.query('SELECT id, faculty_id FROM departments WHERE name = ?', [department]);
             if (deptRows.length > 0) {
                 departmentId = deptRows[0].id;
                 facultyId = deptRows[0].faculty_id;
             }
         }
 
-        // Generate a secure random invite token
+        if (!departmentId) {
+            await conn.rollback();
+            return res.status(400).json({ success: false, message: 'Valid department is required.' });
+        }
+
+        // Check if email already exists
+        const [existing] = await conn.query('SELECT id, role, full_name FROM users WHERE email = ?', [email.toLowerCase()]);
+        
+        if (existing.length > 0) {
+            const existingUser = existing[0];
+            
+            // If we are creating a deptadmin and email exists, fail.
+            if (role === 'deptadmin') {
+                await conn.rollback();
+                return res.status(400).json({ success: false, message: 'Email already registered as a different role.' });
+            }
+
+            // If we are creating a faculty, and existing is faculty, add them to user_departments
+            if (role === 'faculty') {
+                if (existingUser.role !== 'faculty') {
+                    await conn.rollback();
+                    return res.status(400).json({ success: false, message: 'Email is already registered under a non-faculty role.' });
+                }
+
+                // Check if already in this department
+                const [userDepts] = await conn.query('SELECT * FROM user_departments WHERE user_id = ? AND department_id = ?', [existingUser.id, departmentId]);
+                if (userDepts.length > 0) {
+                    await conn.rollback();
+                    return res.status(400).json({ success: false, message: 'Faculty member is already associated with this department.' });
+                }
+
+                // Associate faculty with this new department
+                await conn.query(
+                    'INSERT INTO user_departments (user_id, department_id, employment_type, is_primary) VALUES (?, ?, ?, false)',
+                    [existingUser.id, departmentId, employment_type]
+                );
+
+                await conn.commit();
+                return res.status(200).json({
+                    success: true,
+                    message: `Existing faculty member ${existingUser.full_name} has been successfully added to this department as a ${employment_type} faculty.`
+                });
+            }
+        }
+
+        // --- CREATE NEW USER ---
         const inviteToken = crypto.randomBytes(32).toString('hex');
         const hashedToken = crypto.createHash('sha256').update(inviteToken).digest('hex');
         const inviteExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-        // Insert user WITHOUT a password — they will set it via the invite link
-        const [result] = await pool.query(
+        const [result] = await conn.query(
             `INSERT INTO users (full_name, email, password, role, faculty_id, department_id, phone_number, status, is_active, approved_by, invite_token, invite_expires)
              VALUES (?, ?, '', ?, ?, ?, ?, 'approved', ?, ?, ?, ?)`,
             [
@@ -165,32 +211,37 @@ router.post('/create-account', verifyToken, isAdmin, async (req, res) => {
             ]
         );
 
-        // Fire-and-forget: send invite email with password-set link
+        const newUserId = result.insertId;
+
+        // If faculty, also insert into user_departments
+        if (role === 'faculty') {
+            await conn.query(
+                'INSERT INTO user_departments (user_id, department_id, employment_type, is_primary) VALUES (?, ?, ?, true)',
+                [newUserId, departmentId, employment_type]
+            );
+        }
+
+        await conn.commit();
+
+        // Fire-and-forget email
         sendInviteEmail({
             fullName: fullName.trim(),
             email: email.toLowerCase(),
             role,
-            inviteToken  // raw token (NOT the hashed one) — included in the URL
-        }).catch(() => {}); // errors already logged inside sendInviteEmail
+            inviteToken
+        }).catch(() => {});
 
         res.status(201).json({
             success: true,
             message: `Account created for ${fullName}. An invite email will be sent to ${email.toLowerCase()}.`,
-            data: {
-                id: result.insertId,
-                full_name: fullName.trim(),
-                email: email.toLowerCase(),
-                role,
-                status: 'approved',
-                is_active: isActive !== false
-            }
+            data: { id: newUserId, full_name: fullName.trim(), email: email.toLowerCase(), role }
         });
     } catch (error) {
+        await conn.rollback();
         console.error('Create account error:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Error creating account'
-        });
+        res.status(500).json({ success: false, message: error.message || 'Error creating account' });
+    } finally {
+        conn.release();
     }
 });
 
@@ -211,6 +262,19 @@ router.get('/users', verifyToken, isAdmin, async (req, res) => {
             whereClause += ' AND (u.full_name LIKE ? OR u.email LIKE ?)';
             const term = `%${search}%`;
             params.push(term, term);
+        }
+
+        if (req.user.role === 'deptadmin') {
+            // Dept admin can only see faculty members in their department
+            const deptId = req.user.department_id;
+            if (deptId) {
+                whereClause += ' AND u.role = ?';
+                params.push('faculty');
+                whereClause += ' AND (u.department_id = ? OR u.id IN (SELECT user_id FROM user_departments WHERE department_id = ?))';
+                params.push(deptId, deptId);
+                whereClause += ' AND u.id != ?';
+                params.push(req.user.id);
+            }
         }
 
         const [users] = await pool.query(

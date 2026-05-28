@@ -19,6 +19,7 @@ import assessmentRoutes from './routes/assessmentRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import parentRoutes from './routes/parentRoutes.js';
+import obeRoutes from './routes/obeRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import curriculumRoutes from './routes/curriculumRoutes.js';
 
@@ -36,6 +37,8 @@ app.use(cors({
 
 // Middleware
 app.use(express.json());
+import path from 'path';
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Connect to MySQL database
 connectDb();
@@ -70,6 +73,7 @@ app.use('/api/attendance', attendanceRoutes);
 
 // Parent routes (protected)
 app.use('/api/parents', parentRoutes);
+app.use('/api/obe', obeRoutes);
 
 // Curriculum routes (protected)
 app.use('/api/curricula', curriculumRoutes);

@@ -1,114 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MdExpandMore, MdExpandLess, MdTrendingUp, MdCheckCircle, MdWarning, MdSchool, MdBook, MdCloudDownload } from 'react-icons/md';
+import { obeApi } from '../../services/api';
+import { toast } from 'react-toastify';
 
 const OBEReports = () => {
     const [expandedBatch, setExpandedBatch] = useState(null);
     const [expandedSemester, setExpandedSemester] = useState(null);
+    const [batches, setBatches] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Mock data for batches with PLO achievements
-    const batches = [
-        {
-            id: 1,
-            name: 'Batch 2023-2027',
-            year: 'Year 1',
-            totalPLOs: 12,
-            overallAchievement: 78,
-            plos: [
-                { id: 'PLO-1', name: 'Engineering Knowledge', achievement: 85, status: 'good' },
-                { id: 'PLO-2', name: 'Problem Analysis', achievement: 72, status: 'average' },
-                { id: 'PLO-3', name: 'Design/Development', achievement: 68, status: 'average' },
-                { id: 'PLO-4', name: 'Investigation', achievement: 90, status: 'good' },
-                { id: 'PLO-5', name: 'Modern Tool Usage', achievement: 75, status: 'good' },
-                { id: 'PLO-6', name: 'Engineering & Society', achievement: 82, status: 'good' },
-            ],
-            semesters: [
-                {
-                    id: 1,
-                    name: 'Fall 2023',
-                    achievement: 76,
-                    clos: [
-                        { id: 'CLO-1', course: 'CS-101', name: 'Understand programming fundamentals', achievement: 88, plo: 'PLO-1' },
-                        { id: 'CLO-2', course: 'CS-101', name: 'Apply problem-solving techniques', achievement: 75, plo: 'PLO-2' },
-                        { id: 'CLO-3', course: 'MA-102', name: 'Apply discrete mathematics', achievement: 70, plo: 'PLO-1' },
-                        { id: 'CLO-4', course: 'MA-102', name: 'Solve logical problems', achievement: 65, plo: 'PLO-2' },
-                    ]
-                },
-                {
-                    id: 2,
-                    name: 'Spring 2024',
-                    achievement: 80,
-                    clos: [
-                        { id: 'CLO-5', course: 'CS-102', name: 'Design data structures', achievement: 82, plo: 'PLO-3' },
-                        { id: 'CLO-6', course: 'CS-102', name: 'Implement algorithms', achievement: 78, plo: 'PLO-4' },
-                        { id: 'CLO-7', course: 'CS-103', name: 'Use modern IDEs', achievement: 85, plo: 'PLO-5' },
-                    ]
-                }
-            ]
-        },
-        {
-            id: 2,
-            name: 'Batch 2022-2026',
-            year: 'Year 2',
-            totalPLOs: 12,
-            overallAchievement: 82,
-            plos: [
-                { id: 'PLO-1', name: 'Engineering Knowledge', achievement: 88, status: 'good' },
-                { id: 'PLO-2', name: 'Problem Analysis', achievement: 80, status: 'good' },
-                { id: 'PLO-3', name: 'Design/Development', achievement: 75, status: 'good' },
-                { id: 'PLO-4', name: 'Investigation', achievement: 85, status: 'good' },
-                { id: 'PLO-5', name: 'Modern Tool Usage', achievement: 82, status: 'good' },
-                { id: 'PLO-6', name: 'Engineering & Society', achievement: 78, status: 'good' },
-            ],
-            semesters: [
-                {
-                    id: 3,
-                    name: 'Fall 2024',
-                    achievement: 84,
-                    clos: [
-                        { id: 'CLO-8', course: 'CS-201', name: 'Advanced data structures', achievement: 90, plo: 'PLO-1' },
-                        { id: 'CLO-9', course: 'CS-201', name: 'Algorithm optimization', achievement: 82, plo: 'PLO-2' },
-                        { id: 'CLO-10', course: 'CS-204', name: 'Computer architecture concepts', achievement: 80, plo: 'PLO-1' },
-                    ]
-                },
-                {
-                    id: 4,
-                    name: 'Spring 2025',
-                    achievement: 80,
-                    clos: [
-                        { id: 'CLO-11', course: 'CS-202', name: 'Database design', achievement: 85, plo: 'PLO-3' },
-                        { id: 'CLO-12', course: 'CS-202', name: 'SQL query optimization', achievement: 75, plo: 'PLO-4' },
-                    ]
-                }
-            ]
-        },
-        {
-            id: 3,
-            name: 'Batch 2021-2025',
-            year: 'Year 3',
-            totalPLOs: 12,
-            overallAchievement: 85,
-            plos: [
-                { id: 'PLO-1', name: 'Engineering Knowledge', achievement: 92, status: 'excellent' },
-                { id: 'PLO-2', name: 'Problem Analysis', achievement: 85, status: 'good' },
-                { id: 'PLO-3', name: 'Design/Development', achievement: 88, status: 'good' },
-                { id: 'PLO-4', name: 'Investigation', achievement: 82, status: 'good' },
-                { id: 'PLO-5', name: 'Modern Tool Usage', achievement: 90, status: 'excellent' },
-                { id: 'PLO-6', name: 'Engineering & Society', achievement: 75, status: 'good' },
-            ],
-            semesters: [
-                {
-                    id: 5,
-                    name: 'Fall 2024',
-                    achievement: 87,
-                    clos: [
-                        { id: 'CLO-13', course: 'CS-302', name: 'Operating system concepts', achievement: 90, plo: 'PLO-1' },
-                        { id: 'CLO-14', course: 'CS-302', name: 'Process management', achievement: 85, plo: 'PLO-2' },
-                        { id: 'CLO-15', course: 'CS-303', name: 'Software engineering practices', achievement: 88, plo: 'PLO-3' },
-                    ]
-                }
-            ]
+    useEffect(() => {
+        fetchReports();
+    }, []);
+
+    const fetchReports = async () => {
+        try {
+            setLoading(true);
+            const res = await obeApi.getReports();
+            if (res.success) {
+                setBatches(res.data || []);
+            }
+        } catch (error) {
+            console.error('Failed to fetch OBE reports:', error);
+            toast.error('Failed to fetch OBE reports');
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
 
     const getAchievementColor = (percentage) => {
         if (percentage >= 85) return 'text-green-600 bg-green-50';
@@ -145,6 +63,20 @@ const OBEReports = () => {
         alert(`Downloading CLO Report for ${batchName} - ${semesterName}...`);
     };
 
+    if (loading) {
+        return (
+            <div className="p-6 lg:p-8 space-y-6">
+                <div className="animate-pulse space-y-4">
+                    <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {[1, 2, 3].map(i => <div key={i} className="h-32 bg-gray-200 rounded-2xl"></div>)}
+                    </div>
+                    <div className="h-40 bg-gray-200 rounded-2xl mt-6"></div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="p-6 lg:p-8 space-y-6">
             {/* Header */}
@@ -176,7 +108,7 @@ const OBEReports = () => {
                 <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-5 text-white shadow-lg">
                     <div className="flex items-center justify-between mb-2">
                         <MdBook className="w-8 h-8 opacity-80" />
-                        <span className="text-3xl font-bold">12</span>
+                        <span className="text-3xl font-bold">{batches.reduce((acc, b) => acc + (b.totalPLOs || 0), 0)}</span>
                     </div>
                     <p className="text-sm opacity-90">Total PLOs</p>
                 </div>
@@ -270,7 +202,7 @@ const OBEReports = () => {
                                                             </div>
                                                             <div className="text-left">
                                                                 <p className="font-semibold text-gray-800">{semester.name}</p>
-                                                                <p className="text-xs text-gray-400">{semester.clos.length} CLOs</p>
+                                                                <p className="text-xs text-gray-400">{semester.courses?.length || 0} Courses</p>
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-3">
@@ -290,36 +222,48 @@ const OBEReports = () => {
                                                         </div>
                                                     </div>
 
-                                                    {/* CLOs */}
+                                                    {/* Courses & CLOs */}
                                                     {expandedSemester === semester.id && (
-                                                        <div className="border-t border-gray-100 p-4 bg-gray-50 space-y-2">
-                                                            {semester.clos.map((clo) => (
-                                                                <div key={clo.id} className="bg-white rounded-lg p-3 border border-gray-200">
-                                                                    <div className="flex items-start justify-between mb-2">
-                                                                        <div className="flex-1">
-                                                                            <div className="flex items-center gap-2 mb-1">
-                                                                                <span className="text-xs font-bold text-emerald-600">{clo.id}</span>
-                                                                                <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-medium">
-                                                                                    {clo.course}
-                                                                                </span>
-                                                                                <span className="text-xs px-2 py-0.5 bg-violet-100 text-violet-700 rounded-full font-medium">
-                                                                                    Maps to {clo.plo}
-                                                                                </span>
-                                                                            </div>
-                                                                            <p className="text-sm text-gray-700">{clo.name}</p>
+                                                        <div className="border-t border-gray-100 p-4 bg-gray-50 space-y-4">
+                                                            {semester.courses.map((course) => (
+                                                                <div key={course.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                                                    <div className="w-full p-3 bg-gray-100 flex items-center justify-between">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-sm font-bold text-gray-800">{course.code}</span>
+                                                                            <span className="text-sm text-gray-600">- {course.title}</span>
                                                                         </div>
-                                                                        <span className={`text-base font-bold ml-3 ${getAchievementColor(clo.achievement).split(' ')[0]}`}>
-                                                                            {clo.achievement}%
+                                                                        <span className={`text-sm font-bold px-2 py-1 rounded ${getAchievementColor(course.achievement)}`}>
+                                                                            Course Avg: {course.achievement}%
                                                                         </span>
                                                                     </div>
-                                                                    <div className="w-full bg-gray-200 rounded-full h-1.5">
-                                                                        <div
-                                                                            className={`h-1.5 rounded-full ${clo.achievement >= 85 ? 'bg-green-500' :
-                                                                                clo.achievement >= 70 ? 'bg-blue-500' :
-                                                                                    clo.achievement >= 60 ? 'bg-amber-500' : 'bg-red-500'
-                                                                                }`}
-                                                                            style={{ width: `${clo.achievement}%` }}
-                                                                        />
+                                                                    <div className="p-3 space-y-2">
+                                                                        {course.clos.map((clo) => (
+                                                                            <div key={clo.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                                                                <div className="flex items-start justify-between mb-2">
+                                                                                    <div className="flex-1">
+                                                                                        <div className="flex items-center gap-2 mb-1">
+                                                                                            <span className="text-xs font-bold text-emerald-600">{clo.id}</span>
+                                                                                            <span className="text-xs px-2 py-0.5 bg-violet-100 text-violet-700 rounded-full font-medium">
+                                                                                                Maps to {clo.plo}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <p className="text-sm text-gray-700">{clo.name}</p>
+                                                                                    </div>
+                                                                                    <span className={`text-base font-bold ml-3 ${getAchievementColor(clo.achievement).split(' ')[0]}`}>
+                                                                                        {clo.achievement}%
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                                                                    <div
+                                                                                        className={`h-1.5 rounded-full ${clo.achievement >= 85 ? 'bg-green-500' :
+                                                                                            clo.achievement >= 70 ? 'bg-blue-500' :
+                                                                                                clo.achievement >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                                                                                            }`}
+                                                                                        style={{ width: `${clo.achievement}%` }}
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
                                                                     </div>
                                                                 </div>
                                                             ))}
