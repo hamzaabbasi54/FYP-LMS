@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdSchool, MdScience, MdSettings, MdArrowForward, MdViewList, MdViewModule, MdBook, MdComputer, MdBiotech } from 'react-icons/md';
 import { useCourse } from '../../context/CourseContext';

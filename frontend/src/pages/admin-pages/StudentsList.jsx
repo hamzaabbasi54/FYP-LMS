@@ -79,6 +79,7 @@ const StudentList = () => {
             last_name: lastName,
             email: newStudent.email,
             phone: newStudent.contact_number,
+            student_id_number: newStudent.roll_number,
             cgpa: parseFloat(newStudent.cgpa) || 0,
             matric_marks: parseFloat(newStudent.matric_marks) || null,
             fsc_marks: parseFloat(newStudent.fsc_marks) || null,
@@ -368,7 +369,7 @@ const StudentList = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Roll Number</label>
                                     <input type="text" required value={newStudent.roll_number} onChange={(e) => setNewStudent({ ...newStudent, roll_number: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="U2024XXX" />
+                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="e.g. 04162213027" />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -431,9 +432,10 @@ const StudentList = () => {
                                 
                                 <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6">
                                     <ul className="text-sm text-slate-600 space-y-2 font-mono">
+                                        <li><span className="font-bold text-emerald-600">roll_number</span> (Required, Unique)</li>
                                         <li><span className="font-bold text-emerald-600">first_name</span> (Required)</li>
                                         <li><span className="font-bold text-emerald-600">last_name</span> (Required)</li>
-                                        <li><span className="font-bold text-emerald-600">email</span> (Required, Unique)</li>
+                                        <li><span className="font-bold text-emerald-600">email</span> (Required)</li>
                                         <li><span className="text-slate-500">phone</span> (Optional)</li>
                                         <li><span className="text-slate-500">parent_name</span> (Optional)</li>
                                         <li><span className="text-slate-500">parent_email</span> (Optional)</li>

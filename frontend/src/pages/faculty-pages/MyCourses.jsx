@@ -34,7 +34,7 @@ const MyCourses = () => {
     const { selectedCourse } = useCourse();
     const navigate = useNavigate();
     const { data: schedule = [], isLoading: loadingSchedule } = useQuery({
-        queryKey: ['courseSchedule', selectedCourse?.batch_id, selectedCourse?.course_id],
+        queryKey: ['courseSchedule', String(selectedCourse?.batch_id), String(selectedCourse?.course_id)],
         enabled: !!selectedCourse?.batch_id && !!selectedCourse?.course_id,
         queryFn: async () => {
             const res = await batchApi.getCourseSchedule(selectedCourse.batch_id, selectedCourse.course_id);
@@ -44,7 +44,7 @@ const MyCourses = () => {
     });
 
     const { data: files = [], isLoading: loadingFiles } = useQuery({
-        queryKey: ['courseFiles', selectedCourse?.batch_id, selectedCourse?.course_id],
+        queryKey: ['courseFiles', String(selectedCourse?.batch_id), String(selectedCourse?.course_id)],
         enabled: !!selectedCourse?.batch_id && !!selectedCourse?.course_id,
         queryFn: async () => {
             const res = await batchApi.getCourseDetailsForBatch(selectedCourse.batch_id, selectedCourse.course_id);

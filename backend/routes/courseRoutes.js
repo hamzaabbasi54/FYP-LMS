@@ -79,19 +79,27 @@ router.get('/clos/all', async (req, res) => {
              FROM clos cl ORDER BY cl.title, cl.clo_number`
         );
         for (const clo of clos) {
-            // Get mapped courses from junction table
+            // Get mapped courses from both junction table and direct course_id
             const [courses] = await pool.query(
-                `SELECT c.id, c.title, c.code FROM course_clo_mapping ccm
-                 JOIN courses c ON ccm.course_id = c.id
-                 WHERE ccm.clo_id = ?`, [clo.id]
+                `SELECT c.id, c.title, c.code 
+                 FROM courses c
+                 LEFT JOIN course_clo_mapping ccm ON c.id = ccm.course_id AND ccm.clo_id = ?
+                 LEFT JOIN clos cl ON c.id = cl.course_id AND cl.id = ?
+                 WHERE ccm.clo_id IS NOT NULL OR cl.course_id IS NOT NULL
+                 GROUP BY c.id, c.title, c.code`, 
+                 [clo.id, clo.id]
             );
             clo.mapped_courses = courses;
-            // Get mapped PLOs
+            
+            // Get mapped PLOs from both global mappings and batch-specific mappings
             const [plos] = await pool.query(
                 `SELECT p.id, p.plo_number, p.description
-                 FROM clo_plo_mapping cpm
-                 JOIN plos p ON cpm.plo_id = p.id
-                 WHERE cpm.clo_id = ?`, [clo.id]
+                 FROM plos p
+                 LEFT JOIN clo_plo_mapping cpm ON p.id = cpm.plo_id AND cpm.clo_id = ?
+                 LEFT JOIN batch_clo_plo_mapping bcpm ON p.id = bcpm.plo_id AND bcpm.clo_id = ?
+                 WHERE cpm.clo_id IS NOT NULL OR bcpm.clo_id IS NOT NULL
+                 GROUP BY p.id, p.plo_number, p.description`, 
+                 [clo.id, clo.id]
             );
             clo.mapped_plos = plos;
         }
@@ -184,10 +192,10 @@ router.post('/clos/import', upload.single('file'), async (req, res) => {
                     errors.push({ row: i + 2, error: 'Missing clo_number or title' });
                     continue;
                 }
-                
+
                 let title = row.title;
                 let cloNum = parseInt(row.clo_number);
-                
+
                 if (!title && cloNum) {
                     title = `CLO-${cloNum}`;
                 } else if (title && !cloNum) {
@@ -201,11 +209,11 @@ router.post('/clos/import', upload.single('file'), async (req, res) => {
                         continue;
                     }
                 }
-                
+
                 if (!title || !cloNum) {
-                     skipped++;
-                     errors.push({ row: i + 2, error: 'Invalid CLO format' });
-                     continue;
+                    skipped++;
+                    errors.push({ row: i + 2, error: 'Invalid CLO format' });
+                    continue;
                 }
 
                 await conn.query(
@@ -315,11 +323,11 @@ router.post('/import', upload.single('file'), async (req, res) => {
                      credit_hours = VALUES(credit_hours), prerequisites = VALUES(prerequisites), 
                      description = VALUES(description)`,
                     [
-                        row.title, 
-                        row.code, 
-                        departmentId, 
-                        parseInt(row.credit_hours) || 3, 
-                        row.prerequisites || '', 
+                        row.title,
+                        row.code,
+                        departmentId,
+                        parseInt(row.credit_hours) || 3,
+                        row.prerequisites || '',
                         row.description || ''
                     ]
                 );
@@ -506,12 +514,12 @@ router.get('/:id', async (req, res) => {
                     COALESCE((SELECT JSON_ARRAYAGG(plo_id) FROM clo_plo_mapping WHERE clo_id = c.id), '[]') as mapped_plos
              FROM clos c WHERE c.course_id = ? ORDER BY c.clo_number`, [req.params.id]
         );
-        
+
         clos.forEach(clo => {
             if (typeof clo.mapped_plos === 'string') {
                 try {
                     clo.mapped_plos = JSON.parse(clo.mapped_plos);
-                } catch(e) {
+                } catch (e) {
                     clo.mapped_plos = [];
                 }
             }
@@ -590,7 +598,7 @@ router.post('/', isAdmin, async (req, res) => {
                 );
                 // Also create mapping
                 await conn.query('INSERT INTO course_clo_mapping (course_id, clo_id) VALUES (?, ?)', [courseId, cloResult.insertId]);
-                
+
                 if (clo.mapped_plos && Array.isArray(clo.mapped_plos) && clo.mapped_plos.length > 0) {
                     const cloId = cloResult.insertId;
                     const mappingValues = clo.mapped_plos.map(ploId => [cloId, ploId]);
@@ -682,7 +690,7 @@ router.put('/:id/clos', isAdmin, async (req, res) => {
                     'INSERT INTO clos (course_id, clo_number, title, description, cognitive_level) VALUES (?, ?, ?, ?, ?)',
                     [req.params.id, i + 1, clo.title, clo.description || null, clo.cognitive_level || null]
                 );
-                
+
                 if (clo.mapped_plos && Array.isArray(clo.mapped_plos) && clo.mapped_plos.length > 0) {
                     const cloId = cloResult.insertId;
                     const mappingValues = clo.mapped_plos.map(ploId => [cloId, ploId]);
@@ -711,11 +719,11 @@ router.post('/:id/clos/single', isAdmin, async (req, res) => {
         await conn.beginTransaction();
         const { title, description, cognitive_level } = req.body;
         const courseId = req.params.id;
-        
+
         if (!title) {
             return res.status(400).json({ success: false, message: 'CLO title is required' });
         }
-        
+
         const cloPattern = /^CLO-\d+$/;
         if (!cloPattern.test(title)) {
             return res.status(400).json({ success: false, message: 'CLO title must be in CLO-X format (e.g. CLO-1, CLO-2)' });
@@ -727,13 +735,13 @@ router.post('/:id/clos/single', isAdmin, async (req, res) => {
             'INSERT INTO clos (course_id, clo_number, title, description, cognitive_level) VALUES (?, ?, ?, ?, ?)',
             [courseId, cloNumber, title, description || null, cognitive_level || null]
         );
-        
+
         // Also insert into the course_clo_mapping junction table
         await conn.query(
             'INSERT IGNORE INTO course_clo_mapping (course_id, clo_id) VALUES (?, ?)',
             [courseId, result.insertId]
         );
-        
+
         await conn.commit();
         res.status(201).json({ success: true, message: 'CLO added to course', data: { id: result.insertId } });
     } catch (error) {
@@ -752,7 +760,7 @@ router.post('/:id/clos/map', isAdmin, async (req, res) => {
         await conn.beginTransaction();
         const courseId = req.params.id;
         const { clo_ids } = req.body;
-        
+
         if (!clo_ids || !Array.isArray(clo_ids) || clo_ids.length === 0) {
             return res.status(400).json({ success: false, message: 'clo_ids array is required and cannot be empty' });
         }
@@ -760,7 +768,7 @@ router.post('/:id/clos/map', isAdmin, async (req, res) => {
         // Use IGNORE to avoid duplicate key errors if already mapped
         const cloValues = clo_ids.map(cloId => [courseId, cloId]);
         await conn.query('INSERT IGNORE INTO course_clo_mapping (course_id, clo_id) VALUES ?', [cloValues]);
-        
+
         await conn.commit();
         res.status(200).json({ success: true, message: 'CLOs mapped to course successfully' });
     } catch (error) {
@@ -878,17 +886,17 @@ router.post('/assign', isAdmin, async (req, res) => {
     try {
         await conn.beginTransaction();
         const { course_id, course_ids, semester_id, faculty_id } = req.body;
-        
+
         // Support both single and bulk assignment
         const ids = course_ids && Array.isArray(course_ids) ? course_ids : (course_id ? [course_id] : []);
-        
+
         if (ids.length === 0 || !semester_id) {
             return res.status(400).json({ success: false, message: 'course_id (or course_ids array) and semester_id are required' });
         }
-        
+
         const results = [];
         const errors = [];
-        
+
         for (const cId of ids) {
             try {
                 const [result] = await conn.query(
@@ -913,7 +921,7 @@ router.post('/assign', isAdmin, async (req, res) => {
             );
             const courseNames = courseRows.map(c => `${c.code}: ${c.title}`).join(', ');
             const count = courseRows.length;
-            
+
             await conn.query(
                 'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
                 [

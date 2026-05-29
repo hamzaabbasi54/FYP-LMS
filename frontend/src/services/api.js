@@ -496,6 +496,10 @@ export const studentApi = {
         });
         return response.data;
     },
+    facultyRegisterStudent: async (assignmentId, data) => {
+        const response = await api.post(`/students/course/${assignmentId}/register`, data);
+        return response.data;
+    },
     export: async (batchId) => {
         const response = await api.get(`/students/export/excel`, {
             params: { batch_id: batchId },
@@ -513,7 +517,7 @@ export const studentApi = {
         return response.data;
     },
     getEnrolledStudents: async (courseAssignmentId) => {
-        const response = await api.get(`/students/enrolled/${courseAssignmentId}`);
+        const response = await api.get(`/students/enrolled/${courseAssignmentId}?limit=1000`);
         return response.data;
     }
 };

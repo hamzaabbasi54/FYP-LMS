@@ -20,8 +20,12 @@ const RegisterStudent = () => {
         studentId: '',
         phoneNumber: '',
         email: '',
-        course: 'CS101: Intro to Computer Science',
-        semester: 'Fall 2024',
+        parentName: '',
+        parentEmail: '',
+        parentPhone: '',
+        matricMarks: '',
+        fscMarks: '',
+        background: '',
         sendWelcomeEmail: true
     });
 
@@ -34,14 +38,42 @@ const RegisterStudent = () => {
         }));
     };
 
+    const queryClient = useQueryClient();
+
+    const registerMutation = useMutation({
+        mutationFn: (data) => studentApi.facultyRegisterStudent(assignmentId, data),
+        onSuccess: (response) => {
+            toast.success('Student registered successfully!');
+            queryClient.invalidateQueries({ queryKey: ['enrolledStudents', String(assignmentId)] });
+            queryClient.invalidateQueries({ queryKey: ['facultyDashboardCourses'] });
+            queryClient.invalidateQueries({ queryKey: ['facultyAssignedCourse', String(assignmentId)] });
+            navigate(-1);
+        },
+        onError: (error) => {
+            console.error('Registration error:', error);
+            toast.error(error.response?.data?.message || 'Failed to register student');
+        }
+    });
+
     // Handle form submission
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log('Form submitted:', formData);
-        // In a real app, you would send this data to an API
-        alert('Student registered successfully!');
-        // Navigate back or to student list
-        navigate(-1);
+        
+        const payload = {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            email: formData.email,
+            phone: formData.phoneNumber,
+            student_id_number: formData.studentId,
+            parent_name: formData.parentName,
+            parent_email: formData.parentEmail,
+            parent_phone: formData.parentPhone,
+            matric_marks: formData.matricMarks ? Number(formData.matricMarks) : null,
+            fsc_marks: formData.fscMarks ? Number(formData.fscMarks) : null,
+            background: formData.background || null
+        };
+
+        registerMutation.mutate(payload);
     };
 
     // Handle cancel
@@ -55,7 +87,7 @@ const RegisterStudent = () => {
         fileInputRef.current?.click();
     };
 
-    const queryClient = useQueryClient();
+
 
     const importMutation = useMutation({
         mutationFn: (file) => studentApi.facultyImportStudents(assignmentId, file),
@@ -69,7 +101,9 @@ const RegisterStudent = () => {
             } else {
                 toast.success(`Imported and enrolled ${imported} students successfully!`);
             }
-            queryClient.invalidateQueries({ queryKey: ['enrolledStudents', assignmentId] });
+            queryClient.invalidateQueries({ queryKey: ['enrolledStudents', String(assignmentId)] });
+            queryClient.invalidateQueries({ queryKey: ['facultyDashboardCourses'] });
+            queryClient.invalidateQueries({ queryKey: ['facultyAssignedCourse', String(assignmentId)] });
             navigate(-1);
         },
         onError: (error) => {
@@ -169,10 +203,10 @@ const RegisterStudent = () => {
                             />
                         </div>
 
-                        {/* Student ID */}
+                        {/* Roll Number */}
                         <div>
                             <label htmlFor="studentId" className="block text-sm font-semibold text-gray-700 mb-2">
-                                Student ID
+                                Roll Number
                             </label>
                             <div className="relative">
                                 <MdBadge className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -182,7 +216,7 @@ const RegisterStudent = () => {
                                     name="studentId"
                                     value={formData.studentId}
                                     onChange={handleChange}
-                                    placeholder="e.g. 2024-8849"
+                                    placeholder="e.g. 04162213027"
                                     className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                     required
                                 />
@@ -233,107 +267,132 @@ const RegisterStudent = () => {
                     </div>
                 </div>
 
-                {/* Enrollment Details Section */}
+                {/* Additional Information Section */}
                 <div className="mb-8 pt-8 border-t border-gray-200">
                     <div className="flex items-center gap-2 mb-6">
-                        <MdSchool className="w-5 h-5 text-gray-600" />
-                        <h2 className="text-xl font-bold text-gray-800">Enrollment Details</h2>
+                        <MdDescription className="w-5 h-5 text-gray-600" />
+                        <h2 className="text-xl font-bold text-gray-800">Additional Information</h2>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Assign Course */}
                         <div>
-                            <label htmlFor="course" className="block text-sm font-semibold text-gray-700 mb-2">
-                                Assign Course
+                            <label htmlFor="parentName" className="block text-sm font-semibold text-gray-700 mb-2">
+                                Parent Name <span className="text-gray-400 font-normal">(Optional)</span>
                             </label>
-                            <div className="relative">
-                                <select
-                                    id="course"
-                                    name="course"
-                                    value={formData.course}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm appearance-none bg-white cursor-pointer"
-                                    required
-                                >
-                                    <option value="CS101: Intro to Computer Science">CS101: Intro to Computer Science</option>
-                                    <option value="CS102: Data Structures">CS102: Data Structures</option>
-                                    <option value="CS201: Algorithms">CS201: Algorithms</option>
-                                    <option value="CS301: Database Systems">CS301: Database Systems</option>
-                                </select>
-                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Semester */}
-                        <div>
-                            <label htmlFor="semester" className="block text-sm font-semibold text-gray-700 mb-2">
-                                Semester
-                            </label>
-                            <div className="relative">
-                                <select
-                                    id="semester"
-                                    name="semester"
-                                    value={formData.semester}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm appearance-none bg-white cursor-pointer"
-                                    required
-                                >
-                                    <option value="Fall 2024">Fall 2024</option>
-                                    <option value="Spring 2024">Spring 2024</option>
-                                    <option value="Summer 2024">Summer 2024</option>
-                                    <option value="Fall 2023">Fall 2023</option>
-                                    <option value="Spring 2023">Spring 2023</option>
-                                </select>
-                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Send Welcome Email Checkbox */}
-                    <div className="mt-6">
-                        <label className="flex items-start gap-3 cursor-pointer">
                             <input
-                                type="checkbox"
-                                name="sendWelcomeEmail"
-                                checked={formData.sendWelcomeEmail}
+                                type="text"
+                                id="parentName"
+                                name="parentName"
+                                value={formData.parentName}
                                 onChange={handleChange}
-                                className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                placeholder="Parent's full name"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                             />
-                            <div className="flex-1">
-                                <span className="text-sm font-semibold text-gray-700">
-                                    Send welcome email
-                                </span>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    The student will receive an email with their temporary password and login instructions immediately.
-                                </p>
-                            </div>
-                        </label>
+                        </div>
+                        <div>
+                            <label htmlFor="parentPhone" className="block text-sm font-semibold text-gray-700 mb-2">
+                                Parent Phone <span className="text-gray-400 font-normal">(Optional)</span>
+                            </label>
+                            <input
+                                type="tel"
+                                id="parentPhone"
+                                name="parentPhone"
+                                value={formData.parentPhone}
+                                onChange={handleChange}
+                                placeholder="+1 (555) 000-0000"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label htmlFor="parentEmail" className="block text-sm font-semibold text-gray-700 mb-2">
+                                Parent Email <span className="text-gray-400 font-normal">(Optional)</span>
+                            </label>
+                            <input
+                                type="email"
+                                id="parentEmail"
+                                name="parentEmail"
+                                value={formData.parentEmail}
+                                onChange={handleChange}
+                                placeholder="parent@example.com"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="matricMarks" className="block text-sm font-semibold text-gray-700 mb-2">
+                                Matric Marks <span className="text-gray-400 font-normal">(Optional)</span>
+                            </label>
+                            <input
+                                type="number"
+                                id="matricMarks"
+                                name="matricMarks"
+                                value={formData.matricMarks}
+                                onChange={handleChange}
+                                placeholder="e.g. 950"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="fscMarks" className="block text-sm font-semibold text-gray-700 mb-2">
+                                FSc Marks <span className="text-gray-400 font-normal">(Optional)</span>
+                            </label>
+                            <input
+                                type="number"
+                                id="fscMarks"
+                                name="fscMarks"
+                                value={formData.fscMarks}
+                                onChange={handleChange}
+                                placeholder="e.g. 900"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label htmlFor="background" className="block text-sm font-semibold text-gray-700 mb-2">
+                                Academic Background <span className="text-gray-400 font-normal">(Optional)</span>
+                            </label>
+                            <select
+                                id="background"
+                                name="background"
+                                value={formData.background}
+                                onChange={handleChange}
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
+                            >
+                                <option value="">Select background...</option>
+                                <option value="pre-med">Pre-Medical</option>
+                                <option value="pre-engineering">Pre-Engineering</option>
+                                <option value="ics">ICS</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200">
+
+                {/* Form Actions */}
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200 mt-8">
                     <button
                         type="button"
                         onClick={handleCancel}
-                        className="px-6 py-2.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 shadow-sm transition-colors font-medium text-sm"
+                        disabled={registerMutation.isPending}
+                        className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
-                        className="flex items-center justify-center px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm"
+                        disabled={registerMutation.isPending}
+                        className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
                     >
-                        <MdAdd className="w-5 h-5 mr-2" />
-                        Add Student
+                        {registerMutation.isPending ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                Registering...
+                            </>
+                        ) : (
+                            <>
+                                <MdAdd className="w-5 h-5 mr-1.5" />
+                                Add Student
+                            </>
+                        )}
                     </button>
                 </div>
             </form>
@@ -356,9 +415,10 @@ const RegisterStudent = () => {
                             
                             <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6">
                                 <ul className="text-sm text-slate-600 space-y-2 font-mono">
+                                    <li><span className="font-bold text-emerald-600">roll_number</span> (Required, Unique)</li>
                                     <li><span className="font-bold text-emerald-600">first_name</span> (Required)</li>
                                     <li><span className="font-bold text-emerald-600">last_name</span> (Required)</li>
-                                    <li><span className="font-bold text-emerald-600">email</span> (Required, Unique)</li>
+                                    <li><span className="font-bold text-emerald-600">email</span> (Required)</li>
                                     <li><span className="text-slate-500">phone</span> (Optional)</li>
                                     <li><span className="text-slate-500">parent_name</span> (Optional)</li>
                                     <li><span className="text-slate-500">parent_email</span> (Optional)</li>

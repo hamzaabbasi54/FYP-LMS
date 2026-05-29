@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { MdSearch, MdAdd, MdChevronRight, MdPeople, MdEmail, MdPhone, MdMoreVert } from 'react-icons/md';
 import { useCourse } from '../../context/CourseContext';
@@ -9,10 +9,16 @@ const ManageStudents = () => {
     const { selectedCourse } = useCourse();
     const { assignmentId } = useParams();
     const [searchQuery, setSearchQuery] = useState('');
+    const [page, setPage] = useState(1);
+    const limit = 10;
     const courseAssignmentId = selectedCourse?.assignment_id || assignmentId;
 
+    useEffect(() => {
+        setPage(1);
+    }, [searchQuery]);
+
     const { data: students = [], isLoading: loading, error: queryError } = useQuery({
-        queryKey: ['enrolledStudents', courseAssignmentId],
+        queryKey: ['enrolledStudents', String(courseAssignmentId)],
         enabled: !!courseAssignmentId,
         queryFn: async () => {
             const response = await studentApi.getEnrolledStudents(courseAssignmentId);
@@ -32,6 +38,9 @@ const ManageStudents = () => {
             student.student_id_number?.toLowerCase().includes(query) ||
             student.email?.toLowerCase().includes(query);
     });
+
+    const totalPages = Math.ceil(filteredStudents.length / limit);
+    const paginatedStudents = filteredStudents.slice((page - 1) * limit, page * limit);
 
     // Generate avatar color based on student name
     const getAvatarColor = (name) => {
@@ -208,7 +217,7 @@ const ManageStudents = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                                {filteredStudents.map((student) => {
+                                {paginatedStudents.map((student) => {
                                     const fullName = `${student.first_name} ${student.last_name}`;
                                     const initials = getInitials(student.first_name, student.last_name);
                                     const avatarColor = getAvatarColor(fullName);
@@ -288,6 +297,37 @@ const ManageStudents = () => {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                )}
+                
+                {/* Pagination Controls */}
+                {!loading && !error && filteredStudents.length > 0 && (
+                    <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                        <p className="text-sm text-gray-500">
+                            Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, filteredStudents.length)} of {filteredStudents.length} students
+                        </p>
+                        
+                        {totalPages > 1 && (
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                >
+                                    Previous
+                                </button>
+                                <span className="text-sm text-gray-600 font-medium px-2">
+                                    Page {page} of {totalPages}
+                                </span>
+                                <button 
+                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={page === totalPages}
+                                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
