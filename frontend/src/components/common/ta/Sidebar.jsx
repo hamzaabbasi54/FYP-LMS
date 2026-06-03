@@ -1,16 +1,14 @@
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { MdDashboard, MdGrade, MdPeople, MdScience, MdSchool, MdLogout, MdAssignment } from 'react-icons/md';
-
+import { useAuth } from '../../../context/AuthContext';
 const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const { user, logout } = useAuth();
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/');
+        logout();
     };
 
     const NavItem = ({ icon: Icon, label, to }) => {

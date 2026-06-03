@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { MdPerson, MdSecurity, MdSave, MdLock, MdEmail, MdBadge, MdCheckCircle, MdError } from 'react-icons/md';
 import { authApi } from '../../services/api';
-
+import { useAuth } from '../../context/AuthContext';
 const Settings = () => {
-    const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || '{}'));
+    const { user, setUser } = useAuth();
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
 
     // Form states
-    const [fullName, setFullName] = useState(user.fullName || '');
+    const [fullName, setFullName] = useState(user?.fullName || '');
 
     const [passwords, setPasswords] = useState({
         currentPassword: '',
@@ -25,9 +25,6 @@ const Settings = () => {
             const userData = await authApi.getProfile();
             setUser(userData.data);
             setFullName(userData.data.fullName);
-            // Update local storage to keep it in sync
-            const lsUser = JSON.parse(localStorage.getItem('user') || '{}');
-            localStorage.setItem('user', JSON.stringify({ ...lsUser, ...userData.data }));
         } catch (error) {
             console.error('Error fetching profile:', error);
         }
@@ -42,9 +39,6 @@ const Settings = () => {
             const response = await authApi.updateProfile({ fullName });
             if (response.success) {
                 setUser(response.data);
-                // Update local storage
-                const lsUser = JSON.parse(localStorage.getItem('user') || '{}');
-                localStorage.setItem('user', JSON.stringify({ ...lsUser, ...response.data }));
 
                 setMessage({ type: 'success', text: 'Profile updated successfully' });
 

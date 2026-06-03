@@ -4,10 +4,18 @@ import jwt from 'jsonwebtoken';
 export const verifyToken = (req, res, next) => {
     try {
         let token;
-        const authHeader = req.headers.authorization;
 
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            token = authHeader.split(' ')[1];
+        // 1. Try HTTP-Only cookie first
+        if (req.cookies?.token) {
+            token = req.cookies.token;
+        }
+
+        // 2. Fall back to Authorization header (backward compat)
+        if (!token) {
+            const authHeader = req.headers.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                token = authHeader.split(' ')[1];
+            }
         }
 
         if (!token) {
@@ -17,7 +25,7 @@ export const verifyToken = (req, res, next) => {
             });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'KEY');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded;
         next();
     } catch (error) {

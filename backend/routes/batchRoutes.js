@@ -6,13 +6,20 @@
 import express from 'express';
 import pool from '../config/db.js';
 import { verifyToken, isAdmin } from '../middleware/auth.js';
+import { emitToDepartment } from '../utils/emitHelper.js';
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
+
+const uploadDir = 'uploads/course_content/';
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'uploads/course_content/');
+        cb(null, uploadDir);
     },
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -20,6 +27,7 @@ const storage = multer.diskStorage({
     }
 });
 const upload = multer({ storage: storage });
+
 
 const router = express.Router();
 router.use(verifyToken);
@@ -217,6 +225,17 @@ router.put('/:id', isAdmin, async (req, res) => {
         }
 
         await conn.commit();
+
+        // Emit real-time event to department
+        const [[batch]] = await pool.query('SELECT department_id FROM batches WHERE id = ?', [req.params.id]);
+        if (batch) {
+            emitToDepartment(batch.department_id, 'batch_updated', {
+                batchId: req.params.id,
+                message: `Batch "${name || 'batch'}" updated by Admin`,
+                updatedBy: req.user.email
+            });
+        }
+
         res.json({ success: true, message: 'Batch updated' });
     } catch (error) {
         await conn.rollback();
@@ -584,6 +603,17 @@ router.post('/:batchId/semesters/:semesterNumber/courses/:courseId/assign', isAd
         }
 
         await conn.commit();
+
+        // Emit real-time event
+        const [[batch]] = await pool.query('SELECT department_id FROM batches WHERE id = ?', [batchId]);
+        if (batch) {
+            emitToDepartment(batch.department_id, 'faculty_assigned', {
+                batchId, courseId,
+                message: 'Faculty assignment updated by Admin',
+                updatedBy: req.user.email
+            });
+        }
+
         res.json({ success: true, message: 'Faculty assigned successfully' });
     } catch (error) {
         await conn.rollback();

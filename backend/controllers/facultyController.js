@@ -45,7 +45,7 @@ export const facultySignup = async (req, res) => {
                 email: faculty.email,
                 role: faculty.role
             },
-            process.env.JWT_SECRET || 'KEY',
+            process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
 
@@ -109,7 +109,7 @@ export const facultyLogin = async (req, res) => {
                 email: faculty.email,
                 role: faculty.role
             },
-            process.env.JWT_SECRET || 'KEY',
+            process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
 

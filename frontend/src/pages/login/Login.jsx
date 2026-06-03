@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MdEmail, MdLock, MdSchool, MdVisibility, MdVisibilityOff } from 'react-icons/md';
-import { authApi } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const Login = () => {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -57,12 +58,9 @@ const Login = () => {
         if (validateForm()) {
             setLoading(true);
             try {
-                const data = await authApi.login(formData.email, formData.password, formData.role);
+                const data = await login(formData.email, formData.password, formData.role);
 
                 if (data.success) {
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.data));
-
                     // Redirect based on role
                     const redirectMap = {
                         super_admin: '/admin-dashboard',

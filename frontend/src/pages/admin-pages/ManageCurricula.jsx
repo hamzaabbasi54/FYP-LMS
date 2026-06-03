@@ -4,21 +4,13 @@ import { MdSearch, MdAdd, MdMenuBook, MdDelete, MdSchool, MdLibraryBooks, MdGrou
 import { curriculumApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../context/AuthContext';
 
 const ManageCurricula = () => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const token = localStorage.getItem('token');
+    const { user } = useAuth();
     
-    // Fallback: decode JWT to get department_id if it's missing in localStorage user object
-    let deptId = user.department_id;
-    if (!deptId && token) {
-        try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            deptId = payload.department_id;
-        } catch(e) {}
-    }
-    
-    const isDeptAdmin = user.role === 'deptadmin';
+    const deptId = user?.department_id;
+    const isDeptAdmin = user?.role === 'deptadmin';
 
     const queryClient = useQueryClient();
 

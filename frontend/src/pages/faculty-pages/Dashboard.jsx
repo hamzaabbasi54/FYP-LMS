@@ -79,7 +79,9 @@ const Dashboard = () => {
             const response = await courseApi.getAssigned();
             if (response.success) return response.data || [];
             throw new Error('Failed to load assigned courses. Please try again.');
-        }
+        },
+        refetchOnWindowFocus: true,
+        retry: 2
     });
 
     const error = queryError?.message || null;

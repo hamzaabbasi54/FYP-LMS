@@ -43,7 +43,7 @@ export const adminLogin = async (req, res) => {
                 email: admin.email,
                 role: admin.role
             },
-            process.env.JWT_SECRET || 'KEY',
+            process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
 

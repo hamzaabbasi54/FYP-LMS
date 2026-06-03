@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import { MdPeople, MdLibraryBooks, MdSchool, MdAssignmentLate, MdArrowForward, MdTrendingUp } from 'react-icons/md';
 import { approvalApi, dashboardApi } from '../../services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../context/AuthContext';
 
 const Dashboard = () => {
     const queryClient = useQueryClient();
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const { user } = useAuth();
 
     const { data: pendingFaculty = [], isLoading: loading } = useQuery({
         queryKey: ['pendingFaculty'],

@@ -2,16 +2,17 @@ import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { MdDashboard, MdBook, MdSchedule, MdPeople, MdGrade, MdMessage, MdNotifications, MdLogout, MdSchool } from 'react-icons/md';
 import { useCourse } from '../../../context/CourseContext';
+import { useAuth } from '../../../context/AuthContext';
 
 const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { selectedCourse } = useCourse();
+    const { user, logout } = useAuth();
 
-    // Get logged-in user data from localStorage
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const facultyName = user.faculty || 'Faculty';
-    const professorName = user.fullName || 'Professor';
+    // Get logged-in user data from AuthContext
+    const facultyName = user?.faculty || 'Faculty';
+    const professorName = user?.fullName || 'Professor';
     const professorInitials = professorName
         .split(' ')
         .filter(n => n.length > 0)
@@ -22,10 +23,7 @@ const Sidebar = () => {
 
     // Handle logout
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('selectedFacultyCourse');
-        navigate('/');
+        logout();
     };
 
     // The 'to' prop tells React Router where to redirect

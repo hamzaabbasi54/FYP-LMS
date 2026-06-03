@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { MdSearch, MdNotifications, MdSettings, MdArrowDropDown } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
-
+import { useAuth } from '../../../context/AuthContext';
 const Navbar = () => {
     const navigate = useNavigate();
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const { user } = useAuth();
     const [showDropdown, setShowDropdown] = useState(false);
 
     const roleLabels = {

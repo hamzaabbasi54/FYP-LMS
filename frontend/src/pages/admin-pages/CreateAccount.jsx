@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MdPerson, MdEmail, MdBusiness, MdPhone, MdSave, MdCancel, MdCheckCircle, MdArrowDropDown } from 'react-icons/md';
 import { authApi } from '../../services/api';
-
+import { useAuth } from '../../context/AuthContext';
 const CreateAccount = () => {
     const [formData, setFormData] = useState({
         fullName: '',
@@ -57,9 +57,9 @@ const CreateAccount = () => {
         }
     };
 
-    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-    const isSuperAdmin = currentUser.role === 'super_admin';
-    const isDeptAdmin = currentUser.role === 'deptadmin';
+    const { user: currentUser } = useAuth();
+    const isSuperAdmin = currentUser?.role === 'super_admin';
+    const isDeptAdmin = currentUser?.role === 'deptadmin';
 
     const roles = isSuperAdmin
         ? [{ value: 'deptadmin', label: 'Department Admin' }]

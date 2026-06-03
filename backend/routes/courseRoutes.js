@@ -9,6 +9,7 @@ import pool from '../config/db.js';
 import { verifyToken, isAdmin, isAuthenticated } from '../middleware/auth.js';
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
 import { parseExcel, generateExcel, getUploadDir } from '../utils/excel.js';
+import { emitToDepartment } from '../utils/emitHelper.js';
 
 const router = express.Router();
 router.use(verifyToken);
@@ -611,6 +612,14 @@ router.post('/', isAdmin, async (req, res) => {
         }
 
         await conn.commit();
+
+        // Emit real-time event to department
+        emitToDepartment(department_id, 'course_created', {
+            courseId, title, code: code.toUpperCase(),
+            message: `New course "${title}" created by Admin`,
+            updatedBy: req.user.email
+        });
+
         res.status(201).json({
             success: true,
             message: 'Course created',
@@ -650,6 +659,18 @@ router.put('/:id', isAdmin, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Course not found' });
         }
+
+        // Emit real-time event to department
+        const [[course]] = await pool.query('SELECT department_id, title FROM courses WHERE id = ?', [req.params.id]);
+        if (course) {
+            emitToDepartment(course.department_id, 'course_updated', {
+                courseId: req.params.id,
+                title: title || course.title,
+                message: `Course "${title || course.title}" updated by Admin`,
+                updatedBy: req.user.email
+            });
+        }
+
         res.json({ success: true, message: 'Course updated' });
     } catch (error) {
         console.error('Update course error:', error);
@@ -660,10 +681,23 @@ router.put('/:id', isAdmin, async (req, res) => {
 // DELETE course
 router.delete('/:id', isAdmin, async (req, res) => {
     try {
+        // Get department_id before deletion
+        const [[course]] = await pool.query('SELECT department_id, title FROM courses WHERE id = ?', [req.params.id]);
+
         const [result] = await pool.query('DELETE FROM courses WHERE id = ?', [req.params.id]);
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Course not found' });
         }
+
+        // Emit real-time event to department
+        if (course) {
+            emitToDepartment(course.department_id, 'course_deleted', {
+                courseId: req.params.id,
+                message: `Course "${course.title}" deleted by Admin`,
+                updatedBy: req.user.email
+            });
+        }
+
         res.json({ success: true, message: 'Course deleted' });
     } catch (error) {
         console.error('Delete course error:', error);

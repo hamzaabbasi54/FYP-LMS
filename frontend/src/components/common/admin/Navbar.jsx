@@ -1,10 +1,10 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { MdSearch, MdNotifications } from 'react-icons/md';
-
+import { useAuth } from '../../../context/AuthContext';
 const Navbar = () => {
     const location = useLocation();
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const { user } = useAuth();
 
     const getPageTitle = (pathname) => {
         if (pathname.includes('/admin-managebatches')) return 'Manage Batches';

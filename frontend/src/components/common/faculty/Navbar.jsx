@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { MdSearch, MdNotifications, MdChevronRight, MdHelp, MdAssignment, MdSchool, MdAnnouncement, MdCircle } from 'react-icons/md';
 import { useCourse } from '../../../context/CourseContext';
+import { useAuth } from '../../../context/AuthContext';
 import { notificationApi } from '../../../services/api';
 import { toast } from 'react-toastify';
 
@@ -122,8 +123,8 @@ const Navbar = () => {
     const assignmentIdMatch = location.pathname.match(/\/faculty-mycourses\/(\d+)/);
     const assignmentId = assignmentIdMatch ? assignmentIdMatch[1] : null;
 
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const professorName = user.fullName || 'Professor';
+    const { user } = useAuth();
+    const professorName = user?.fullName || 'Professor';
 
     return (
         <div className="flex flex-col h-full bg-white border-b">

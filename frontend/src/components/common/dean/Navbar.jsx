@@ -1,15 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdLogout, MdNotifications, MdPerson } from 'react-icons/md';
-
+import { useAuth } from '../../../context/AuthContext';
 const DeanNavbar = () => {
     const navigate = useNavigate();
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const { user, logout } = useAuth();
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/');
+        logout();
     };
 
     return (

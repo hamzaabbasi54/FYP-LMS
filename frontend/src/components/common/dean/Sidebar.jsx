@@ -1,15 +1,13 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { MdDashboard, MdLogout, MdAccountBalance } from 'react-icons/md';
-
+import { useAuth } from '../../../context/AuthContext';
 const DeanSidebar = () => {
     const navigate = useNavigate();
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const { user, logout } = useAuth();
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/');
+        logout();
     };
 
     const NavItem = ({ icon: Icon, label, to }) => {

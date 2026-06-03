@@ -21,6 +21,54 @@ router.get('/profile', verifyToken, getProfile);
 router.put('/profile', verifyToken, updateProfile);
 router.put('/change-password', verifyToken, changePassword);
 
+// GET /api/auth/me — Restore auth state on page refresh (reads cookie)
+router.get('/me', verifyToken, async (req, res) => {
+    try {
+        const [users] = await pool.query(
+            `SELECT u.id, u.full_name, u.email, u.role, u.phone_number, u.status, u.is_active,
+                    u.faculty_id, u.department_id,
+                    f.name as faculty_name, d.name as department_name
+             FROM users u
+             LEFT JOIN faculties f ON u.faculty_id = f.id
+             LEFT JOIN departments d ON u.department_id = d.id
+             WHERE u.id = ?`,
+            [req.user.id]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const user = users[0];
+        res.status(200).json({
+            success: true,
+            data: {
+                id: user.id,
+                fullName: user.full_name,
+                email: user.email,
+                role: user.role,
+                faculty: user.faculty_name || '',
+                department: user.department_name || '',
+                faculty_id: user.faculty_id,
+                department_id: user.department_id
+            }
+        });
+    } catch (error) {
+        console.error('Get /me error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching user' });
+    }
+});
+
+// POST /api/auth/logout — Clear the HTTP-Only cookie
+router.post('/logout', (req, res) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    });
+    res.status(200).json({ success: true, message: 'Logged out' });
+});
+
 // Get faculties list (from DB now, not hardcoded)
 router.get('/faculties', async (req, res) => {
     try {

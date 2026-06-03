@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdPerson, MdEmail, MdBusiness, MdPhone, MdSchool, MdLogout, MdCheckCircle, MdDelete, MdSearch, MdArrowDropDown, MdAdminPanelSettings } from 'react-icons/md';
 import { authApi } from '../../services/api';
-
+import { useAuth } from '../../context/AuthContext';
 const SuperAdminPanel = () => {
     const navigate = useNavigate();
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const { user, logout } = useAuth();
 
     // Form state
     const [formData, setFormData] = useState({
@@ -113,9 +113,7 @@ const SuperAdminPanel = () => {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/');
+        logout();
     };
 
     const filteredAdmins = admins.filter(a =>

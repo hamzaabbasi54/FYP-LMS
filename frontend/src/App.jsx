@@ -70,7 +70,8 @@ import Schedule from "./pages/faculty-pages/Schedule.jsx";
 import ManageStudents from "./pages/faculty-pages/ManageStudents.jsx";
 import AssessmentDetails from "./pages/faculty-pages/AssessmentDetails.jsx";
 import { CourseProvider } from "./context/CourseContext.jsx";
-
+import { AuthProvider } from "./context/AuthContext.jsx";
+import { SocketProvider } from "./context/SocketContext.jsx";
 
 // Protected Route
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -78,8 +79,10 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 function App() {
     return (
         <QueryClientProvider client={queryClient}>
-            <Routes>
-                {/* Authentication Routes */}
+            <AuthProvider>
+                <SocketProvider>
+                    <Routes>
+                        {/* Authentication Routes */}
                 <Route path="/" element={<Login />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
@@ -160,9 +163,11 @@ function App() {
                 </Route>
 
             </Routes>
-            <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
-            <ReactQueryDevtools initialIsOpen={false} />
-        </QueryClientProvider>
+                    </SocketProvider>
+                    <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
+                </AuthProvider>
+                <ReactQueryDevtools initialIsOpen={false} />
+            </QueryClientProvider>
     );
 }
 

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { courseApi, authApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import OverlayLoader from '../../components/common/OverlayLoader';
+import { useAuth } from '../../context/AuthContext';
 
 const AddCourse = () => {
     const navigate = useNavigate();
@@ -15,19 +16,10 @@ const AddCourse = () => {
     const [selectedFaculty, setSelectedFaculty] = useState('');
     const fileInputRef = React.useRef(null);
 
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const token = localStorage.getItem('token');
+    const { user } = useAuth();
     
-    // Fallback: decode JWT to get department_id if it's missing in localStorage user object
-    let deptId = user.department_id;
-    if (!deptId && token) {
-        try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            deptId = payload.department_id;
-        } catch(e) {}
-    }
-    
-    const isDeptAdmin = user.role === 'deptadmin';
+    const deptId = user?.department_id;
+    const isDeptAdmin = user?.role === 'deptadmin';
 
     const [courseData, setCourseData] = useState({
         title: '', code: '', department_id: isDeptAdmin ? (deptId || '') : '', credit_hours: '',

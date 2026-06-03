@@ -13,17 +13,15 @@ import {
     MdLogout,
     MdCalendarMonth
 } from 'react-icons/md';
-
+import { useAuth } from '../../../context/AuthContext';
 const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const permissions = user.permissions || [];
+    const { user, logout } = useAuth();
+    const permissions = user?.permissions || [];
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/');
+        logout();
     };
 
     // Check if user has any permission starting with prefix

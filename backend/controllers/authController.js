@@ -217,14 +217,21 @@ export const login = async (req, res) => {
                 faculty_id: user.faculty_id,
                 department_id: user.department_id
             },
-            process.env.JWT_SECRET || 'KEY',
+            process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
+
+        // Set HTTP-Only cookie
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
 
         res.status(200).json({
             success: true,
             message: 'Login successful',
-            token,
             data: {
                 id: user.id,
                 fullName: user.full_name,

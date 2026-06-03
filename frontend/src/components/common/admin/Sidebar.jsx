@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { MdDashboard, MdPeople, MdAssignment, MdBook, MdSchool, MdSettings, MdExpandMore, MdExpandLess, MdBuild, MdLink, MdTrackChanges, MdLogout, MdMenuBook, MdAdminPanelSettings } from 'react-icons/md';
-
+import { useAuth } from '../../../context/AuthContext';
 const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [operationsExpanded, setOperationsExpanded] = useState(true);
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const { user, logout } = useAuth();
 
     const isOperationsActive = ['/admin-managebatches', '/admin-courseassignment', '/admin-managecourses', '/admin-managefaculty', '/admin-obe', '/admin-external-links', '/admin-curricula']
         .some(path => location.pathname.startsWith(path));
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/');
+        logout();
     };
 
     const NavItem = ({ icon: Icon, label, to, indent = false }) => {
