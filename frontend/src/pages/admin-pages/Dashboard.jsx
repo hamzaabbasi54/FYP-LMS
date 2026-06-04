@@ -146,7 +146,7 @@ const Dashboard = () => {
                     {stats.map((stat, index) => (
                         <div
                             key={index}
-                            className="group relative bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-xl hover:shadow-slate-300/50 hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer"
+                            className="group relative bg-white rounded-2xl p-6 shadow-md border-2 border-slate-200 hover:shadow-xl hover:shadow-slate-300/50 hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer"
                         >
                             {/* Gradient accent */}
                             <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.color} opacity-5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:opacity-15 transition-opacity`}></div>
@@ -170,8 +170,8 @@ const Dashboard = () => {
 
                 {/* Pending Approvals */}
                 {!loading && pendingFaculty.length > 0 && (
-                    <div className="mb-10 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-slate-100 bg-blue-50/50">
+                    <div className="mb-10 bg-white rounded-2xl shadow-md border-2 border-slate-200 overflow-hidden">
+                        <div className="px-6 py-4 border-b-2 border-slate-200 bg-blue-50/50">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shadow-sm">
                                     <MdPeople className="w-5 h-5 text-blue-700" />
@@ -183,7 +183,7 @@ const Dashboard = () => {
                             </div>
                         </div>
 
-                        <div className="divide-y divide-slate-100">
+                        <div className="divide-y-2 divide-slate-100">
                             {pendingFaculty.map((faculty) => (
                                 <div key={faculty.id} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                                     <div className="flex items-center gap-4">
@@ -235,7 +235,7 @@ const Dashboard = () => {
                             <Link
                                 key={index}
                                 to={action.to}
-                                className={`group bg-white rounded-2xl p-6 border-2 border-slate-100 ${action.accent} hover:shadow-xl hover:shadow-slate-300/50 hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300`}
+                                className={`group bg-white rounded-2xl p-6 border-2 border-slate-200 ${action.accent} hover:shadow-xl hover:shadow-slate-300/50 hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300`}
                             >
                                 <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">
                                     {action.icon}

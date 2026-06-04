@@ -164,7 +164,7 @@ const SuperAdminPanel = () => {
                 </div>
 
                 {/* ========== CREATE FORM ========== */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
+                <div className="bg-white rounded-xl shadow-md border-2 border-slate-200 p-6 md:p-8">
                     <h3 className="text-lg font-semibold text-slate-800 mb-6 border-b border-slate-100 pb-4">Create New Department Admin</h3>
 
                     {formSuccess && (
@@ -272,7 +272,7 @@ const SuperAdminPanel = () => {
                 </div>
 
                 {/* ========== ADMINS LIST ========== */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-white rounded-xl shadow-md border-2 border-slate-200 overflow-hidden">
                     <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-slate-50/50">
                         <div className="flex items-center gap-3">
                             <h3 className="text-lg font-semibold text-slate-800">Existing Admins</h3>
@@ -285,7 +285,7 @@ const SuperAdminPanel = () => {
                             <input
                                 type="text" placeholder="Search admins by name, email or department..."
                                 value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 text-slate-800 placeholder-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm shadow-sm"
+                                className="w-full pl-10 pr-4 py-2.5 bg-white border-2 border-slate-300 text-slate-800 placeholder-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm shadow-sm"
                             />
                         </div>
                     </div>
