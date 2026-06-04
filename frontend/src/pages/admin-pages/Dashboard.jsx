@@ -130,8 +130,8 @@ const Dashboard = () => {
                 {/* Hero Section */}
                 <div className="mb-10">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full"></div>
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                        <div className="w-2 h-8 bg-blue-600 rounded-full"></div>
+                        <h1 className="text-3xl font-bold text-slate-800">
                             Director Dashboard
                         </h1>
                     </div>
@@ -171,10 +171,10 @@ const Dashboard = () => {
                 {/* Pending Approvals */}
                 {!loading && pendingFaculty.length > 0 && (
                     <div className="mb-10 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-amber-50 to-orange-50">
+                        <div className="px-6 py-4 border-b border-slate-100 bg-blue-50/50">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
-                                    <MdPeople className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shadow-sm">
+                                    <MdPeople className="w-5 h-5 text-blue-700" />
                                 </div>
                                 <div>
                                     <h2 className="font-bold text-slate-800">Pending Faculty Approvals</h2>
@@ -205,7 +205,7 @@ const Dashboard = () => {
                                         <button
                                             onClick={() => handleApprove(faculty.id)}
                                             disabled={approveMutation.isPending || rejectMutation.isPending}
-                                            className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-medium rounded-lg hover:shadow-lg hover:shadow-emerald-500/25 transition-all duration-200 disabled:opacity-50"
+                                            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 hover:shadow-md transition-all duration-200 disabled:opacity-50"
                                         >
                                             Approve
                                         </button>

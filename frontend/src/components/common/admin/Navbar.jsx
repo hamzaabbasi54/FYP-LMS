@@ -21,7 +21,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-full px-8 bg-white/80 backdrop-blur-xl border-b border-slate-100">
             {/* Title */}
             <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                <h1 className="text-xl font-bold text-slate-800">
                     {getPageTitle(location.pathname)}
                 </h1>
                 {user.department && (
@@ -49,8 +49,8 @@ const Navbar = () => {
 
                 {/* User */}
                 <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                        <span className="text-white font-bold text-sm">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shadow-sm">
+                        <span className="text-blue-700 font-bold text-sm">
                             {user.fullName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'AD'}
                         </span>
                     </div>
