@@ -222,7 +222,7 @@ const BatchDetails = () => {
                         { label: 'Duration', value: batchData.start_date ? `${new Date(batchData.start_date).getFullYear()} - ${batchData.end_date ? new Date(batchData.end_date).getFullYear() : '...'}` : 'N/A', icon: MdSchool, color: 'from-emerald-500 to-teal-600' },
                     ].map((s, i) => {
                         const card = (
-                            <div className={`group bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-xl transition-all ${s.link ? 'cursor-pointer' : ''}`}>
+                            <div className={`group bg-white rounded-2xl border-2 border-slate-200 p-6 hover:shadow-xl transition-all ${s.link ? 'cursor-pointer' : ''}`}>
                                 <div className="flex items-start justify-between">
                                     <div>
                                         <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${s.color} mb-4 shadow-lg`}>
@@ -240,7 +240,7 @@ const BatchDetails = () => {
                 </div>
 
                 {/* PLOs Section */}
-                <div className="bg-white rounded-2xl border border-slate-100 p-6 mb-8 flex items-center justify-between shadow-sm">
+                <div className="bg-white rounded-2xl border-2 border-slate-200 p-6 mb-8 flex items-center justify-between shadow-sm">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
                             <div className="w-2 h-6 bg-gradient-to-b from-violet-500 to-purple-600 rounded-full"></div>
@@ -276,7 +276,7 @@ const BatchDetails = () => {
                 </div>
 
                 {/* Curriculum Assignment */}
-                <div className="bg-white rounded-2xl border border-slate-100 p-6 mb-8">
+                <div className="bg-white rounded-2xl border-2 border-slate-200 p-6 mb-8">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-2 h-6 bg-gradient-to-b from-indigo-500 to-blue-600 rounded-full"></div>
                         <h3 className="text-xl font-bold text-slate-800">Curriculum</h3>
@@ -288,7 +288,7 @@ const BatchDetails = () => {
                                 value={batchData.curriculum_id || ''}
                                 onChange={(e) => handleCurriculumChange(e.target.value ? parseInt(e.target.value) : null)}
                                 disabled={assigningCurriculum}
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-slate-700 disabled:opacity-50"
+                                className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-slate-700 disabled:opacity-50"
                             >
                                 <option value="">No Curriculum</option>
                                 {curricula.map(c => <option key={c.id} value={c.id}>{c.name} ({c.department_name})</option>)}
@@ -315,12 +315,12 @@ const BatchDetails = () => {
 
                 {/* Semester Tabs + Courses (reads from batch_semester_courses) */}
                 {loadingCourses ? (
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center flex flex-col items-center justify-center">
+                    <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-12 text-center flex flex-col items-center justify-center">
                         <div className="inline-block w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
                         <p className="text-slate-500 font-medium text-sm">Loading semester details...</p>
                     </div>
                 ) : batchCourseData && (
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden">
                         {/* Semester Tabs */}
                         <div className="flex overflow-x-auto border-b border-slate-100">
                             {batchCourseData.semesters?.map((sem) => {
@@ -369,7 +369,7 @@ const BatchDetails = () => {
                                             </h4>
                                             <div className="space-y-2">
                                                 {coreCourses.map(c => (
-                                                    <div key={c.course_id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100 hover:bg-white hover:shadow-md transition-all group">
+                                                    <div key={c.course_id} className="flex items-center justify-between p-4 bg-white border-2 border-slate-300 rounded-xl shadow-sm border-2 border-slate-200 hover:bg-white hover:shadow-md transition-all group">
                                                         <Link to={`/admin-managebatches/${id}/course/${c.course_id}`} className="flex items-center gap-4 flex-1 cursor-pointer">
                                                             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${semColors[(activeSemester-1) % semColors.length]} flex items-center justify-center shadow-sm`}>
                                                                 <MdMenuBook className="w-5 h-5 text-white" />
@@ -467,7 +467,7 @@ const BatchDetails = () => {
                             <div className="relative">
                                 <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                 <input type="text" placeholder="Search courses..." value={courseSearch} onChange={(e) => setCourseSearch(e.target.value)} autoFocus
-                                    className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white" />
+                                    className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-300 rounded-xl shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white" />
                             </div>
                             {selectedCourses.length > 0 && <p className="text-sm text-indigo-600 font-medium">{selectedCourses.length} selected</p>}
                         </div>

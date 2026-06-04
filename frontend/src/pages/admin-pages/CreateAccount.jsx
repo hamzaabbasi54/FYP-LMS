@@ -158,7 +158,7 @@ const CreateAccount = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Personal Information */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                    <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-6">
                         <h2 className="text-lg font-bold text-slate-800 mb-4">Personal Information</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -173,7 +173,7 @@ const CreateAccount = () => {
                                         value={formData.fullName}
                                         onChange={handleChange}
                                         required
-                                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full pl-10 pr-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         placeholder="John Doe"
                                     />
                                 </div>
@@ -191,7 +191,7 @@ const CreateAccount = () => {
                                         value={formData.email}
                                         onChange={handleChange}
                                         required
-                                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full pl-10 pr-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         placeholder="john.doe@university.edu"
                                     />
                                 </div>
@@ -208,7 +208,7 @@ const CreateAccount = () => {
                                         name="phoneNumber"
                                         value={formData.phoneNumber}
                                         onChange={handleChange}
-                                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full pl-10 pr-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         placeholder="+1 (555) 000-0000"
                                     />
                                 </div>
@@ -219,7 +219,7 @@ const CreateAccount = () => {
                     </div>
 
                     {/* Role & Department */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                    <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-6">
                         <h2 className="text-lg font-bold text-slate-800 mb-4">Role & Department Assignment</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
@@ -233,7 +233,7 @@ const CreateAccount = () => {
                                         value={formData.role}
                                         onChange={handleChange}
                                         required
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+                                        className="w-full px-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
                                     >
                                         <option value="">-- Select Role --</option>
                                         {roles.map((role) => (
@@ -260,7 +260,7 @@ const CreateAccount = () => {
                                                 value={formData.faculty}
                                                 onChange={handleChange}
                                                 required
-                                                className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+                                                className="w-full pl-10 pr-10 py-2.5 border-2 border-slate-300 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
                                             >
                                                 <option value="">Select Faculty</option>
                                                 {faculties.map((fac) => (
@@ -283,7 +283,7 @@ const CreateAccount = () => {
                                                 onChange={handleChange}
                                                 required
                                                 disabled={!formData.faculty}
-                                                className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white disabled:bg-slate-50 disabled:cursor-not-allowed"
+                                                className="w-full pl-10 pr-10 py-2.5 border-2 border-slate-300 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white disabled:bg-slate-50 disabled:cursor-not-allowed"
                                             >
                                                 <option value="">
                                                     {formData.faculty ? 'Select Department' : 'Select Faculty First'}
@@ -311,7 +311,7 @@ const CreateAccount = () => {
                                             value={formData.employment_type}
                                             onChange={handleChange}
                                             required
-                                            className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+                                            className="w-full pl-10 pr-10 py-2.5 border-2 border-slate-300 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
                                         >
                                             <option value="permanent">Permanent</option>
                                             <option value="visiting">Visiting</option>

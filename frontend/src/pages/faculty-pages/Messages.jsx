@@ -229,7 +229,7 @@ const Messages = () => {
     // Render
     // ============================================
     return (
-        <div className="h-[calc(100vh-120px)] flex bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="h-[calc(100vh-120px)] flex bg-white rounded-2xl border-2 border-slate-300 shadow-sm shadow-sm overflow-hidden">
             {/* ========== LEFT: Contact List ========== */}
             <div className={`w-full md:w-[340px] lg:w-[380px] flex-shrink-0 border-r border-slate-100 flex flex-col bg-white ${showMobileChat ? 'hidden md:flex' : 'flex'}`}>
                 {/* Header */}

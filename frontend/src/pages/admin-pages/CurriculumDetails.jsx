@@ -199,7 +199,7 @@ const CurriculumDetails = () => {
                         { label: 'Total Credits', value: totalCredits, icon: MdMenuBook, color: 'from-violet-500 to-purple-600' },
                         { label: 'Batches Using', value: curriculum.assigned_batches?.length || 0, icon: MdGroups, color: 'from-amber-500 to-orange-600' },
                     ].map((stat, i) => (
-                        <div key={i} className="bg-white rounded-2xl border border-slate-100 p-5 hover:shadow-lg transition-all">
+                        <div key={i} className="bg-white rounded-2xl border-2 border-slate-200 p-5 hover:shadow-lg transition-all">
                             <div className="flex items-start gap-4">
                                 <div className={`inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br ${stat.color} shadow-lg`}>
                                     <stat.icon className="w-5 h-5 text-white" />
@@ -214,7 +214,7 @@ const CurriculumDetails = () => {
                 </div>
 
                 {/* Semester Tabs */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden">
                     {/* Tab Header */}
                     <div className="flex overflow-x-auto border-b border-slate-100 scrollbar-hide">
                         {curriculum.semesters?.map((sem) => {
@@ -285,7 +285,7 @@ const CurriculumDetails = () => {
                                         </h4>
                                         <div className="space-y-2">
                                             {coreCourses.map((course) => (
-                                                <div key={course.course_id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100 hover:bg-white hover:shadow-md transition-all group">
+                                                <div key={course.course_id} className="flex items-center justify-between p-4 bg-white border-2 border-slate-300 rounded-xl shadow-sm border-2 border-slate-200 hover:bg-white hover:shadow-md transition-all group">
                                                     <div className="flex items-center gap-4">
                                                         <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${semesterColors[(activeSemester - 1) % semesterColors.length]} flex items-center justify-center shadow-sm`}>
                                                             <MdMenuBook className="w-5 h-5 text-white" />
@@ -354,7 +354,7 @@ const CurriculumDetails = () => {
                                 <Link
                                     key={batch.id}
                                     to={`/admin-managebatches/${batch.id}`}
-                                    className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-all"
+                                    className="px-4 py-2 bg-white border-2 border-slate-300 shadow-sm rounded-xl text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-all"
                                 >
                                     {batch.name}
                                 </Link>
@@ -394,7 +394,7 @@ const CurriculumDetails = () => {
                             <div className="relative">
                                 <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                 <input type="text" placeholder="Search courses..." value={courseSearch} onChange={(e) => setCourseSearch(e.target.value)} autoFocus
-                                    className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all" />
+                                    className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-300 rounded-xl shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all" />
                             </div>
                             {selectedCourses.length > 0 && <p className="text-sm text-indigo-600 font-medium">{selectedCourses.length} selected</p>}
                         </div>

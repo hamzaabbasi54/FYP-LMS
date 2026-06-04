@@ -121,7 +121,7 @@ const ManageCourses = () => {
                 </div>
 
                 {/* Search & Filters */}
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-8">
+                <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-4 mb-8">
                     <div className="flex flex-col md:flex-row gap-4">
                         <div className="flex-1 relative">
                             <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -130,7 +130,7 @@ const ManageCourses = () => {
                                 placeholder="Search by course name or code..."
                                 value={searchQuery}
                                 onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                                className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all"
+                                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-300 rounded-xl shadow-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all"
                             />
                         </div>
                         <div className="relative">
@@ -138,7 +138,7 @@ const ManageCourses = () => {
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                className="pl-10 pr-8 py-3 bg-slate-50 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none min-w-[160px]"
+                                className="pl-10 pr-8 py-3 bg-white border-2 border-slate-300 rounded-xl shadow-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none min-w-[160px]"
                             >
                                 <option value="all">All Status</option>
                                 <option value="active">Active</option>
@@ -174,7 +174,7 @@ const ManageCourses = () => {
                             {filteredCourses.map((course, index) => (
                                 <div
                                     key={course.id}
-                                    className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:shadow-slate-300/50 transition-all duration-300 hover:-translate-y-1"
+                                    className="group bg-white rounded-2xl shadow-sm border-2 border-slate-200 overflow-hidden hover:shadow-xl hover:shadow-slate-300/50 transition-all duration-300 hover:-translate-y-1"
                                 >
                                     <div className={`bg-gradient-to-r ${colorPalette[index % colorPalette.length]} p-5`}>
                                         <div className="flex items-center justify-between">
@@ -230,7 +230,7 @@ const ManageCourses = () => {
                                 <button
                                     onClick={() => setPage(p => Math.max(1, p - 1))}
                                     disabled={page === 1}
-                                    className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="p-2 rounded-lg bg-white border-2 border-slate-300 shadow-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     <MdChevronLeft className="w-5 h-5" />
                                 </button>
@@ -240,7 +240,7 @@ const ManageCourses = () => {
                                 <button
                                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                     disabled={page === totalPages}
-                                    className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="p-2 rounded-lg bg-white border-2 border-slate-300 shadow-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     <MdChevronRight className="w-5 h-5" />
                                 </button>

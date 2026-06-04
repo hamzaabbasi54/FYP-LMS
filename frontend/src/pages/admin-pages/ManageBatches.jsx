@@ -89,7 +89,7 @@ const ManageBatches = () => {
                 </div>
 
                 {/* Search Bar */}
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-8">
+                <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-4 mb-8">
                     <div className="relative">
                         <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
@@ -97,7 +97,7 @@ const ManageBatches = () => {
                             placeholder="Search batches by name or department..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all"
+                            className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-300 rounded-xl shadow-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all"
                         />
                     </div>
                 </div>
@@ -141,7 +141,7 @@ const ManageBatches = () => {
                             <Link
                                 key={batch.id}
                                 to={`/admin-managebatches/${batch.id}`}
-                                className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:shadow-slate-300/50 transition-all duration-300 hover:-translate-y-1"
+                                className="group bg-white rounded-2xl shadow-sm border-2 border-slate-200 overflow-hidden hover:shadow-xl hover:shadow-slate-300/50 transition-all duration-300 hover:-translate-y-1"
                             >
                                 {/* Card Header */}
                                 <div className={`bg-gradient-to-r ${colorPalette[index % colorPalette.length]} p-6`}>

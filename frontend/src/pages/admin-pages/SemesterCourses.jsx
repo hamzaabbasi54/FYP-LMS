@@ -203,7 +203,7 @@ const SemesterCourses = () => {
                         ))}
                     </div>
                 ) : filteredCourses.length === 0 ? (
-                    <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
+                    <div className="text-center py-16 bg-white rounded-2xl border-2 border-slate-200">
                         <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <MdBook className="w-8 h-8 text-slate-400" />
                         </div>
@@ -266,7 +266,7 @@ const SemesterCourses = () => {
                                         placeholder="Search available courses..."
                                         value={modalSearchQuery}
                                         onChange={(e) => setModalSearchQuery(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                                        className="w-full pl-10 pr-4 py-2.5 bg-white border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
                                     />
                                 </div>
                             </div>
@@ -278,7 +278,7 @@ const SemesterCourses = () => {
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {filteredAvailableCourses.map(course => (
-                                            <div key={course.id} className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all group">
+                                            <div key={course.id} className="flex items-center justify-between p-4 bg-white border-2 border-slate-300 shadow-sm rounded-xl hover:border-blue-300 hover:shadow-md transition-all group">
                                                 <div>
                                                     <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-bold mb-1">
                                                         {course.code}
@@ -302,7 +302,7 @@ const SemesterCourses = () => {
                                 )}
                             </div>
                             <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
-                                <button onClick={() => setIsAssignModalOpen(false)} className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors">
+                                <button onClick={() => setIsAssignModalOpen(false)} className="px-6 py-2.5 bg-white border-2 border-slate-300 shadow-sm text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors">
                                     Done
                                 </button>
                             </div>
@@ -333,7 +333,7 @@ const SemesterCourses = () => {
                                 ) : courseDetails ? (
                                     <div className="space-y-5">
                                         {/* Faculty Status */}
-                                        <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                                        <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border-2 border-slate-300 shadow-sm">
                                             <MdPerson className="w-6 h-6 text-slate-500" />
                                             <div className="flex-1">
                                                 <p className="text-xs text-slate-500 font-medium">Assigned Faculty</p>
@@ -402,7 +402,7 @@ const SemesterCourses = () => {
                                 )}
                             </div>
                             <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
-                                <button onClick={closeCourseDetails} className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors">
+                                <button onClick={closeCourseDetails} className="px-6 py-2.5 bg-white border-2 border-slate-300 shadow-sm text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors">
                                     Close
                                 </button>
                             </div>
@@ -431,7 +431,7 @@ const SemesterCourses = () => {
                                         placeholder="Search faculty..."
                                         value={facultySearch}
                                         onChange={(e) => setFacultySearch(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-sm"
+                                        className="w-full pl-10 pr-4 py-2.5 bg-white border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-sm"
                                     />
                                 </div>
                             </div>
@@ -446,7 +446,7 @@ const SemesterCourses = () => {
                                                 key={fac.id}
                                                 onClick={() => handleAssignFaculty(fac.id)}
                                                 disabled={assignFacultyMutation.isPending}
-                                                className="w-full flex items-center gap-3 p-4 rounded-xl bg-white border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 transition-all text-left disabled:opacity-50"
+                                                className="w-full flex items-center gap-3 p-4 rounded-xl bg-white border-2 border-slate-300 shadow-sm hover:border-emerald-400 hover:bg-emerald-50 transition-all text-left disabled:opacity-50"
                                             >
                                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center flex-shrink-0">
                                                     <span className="text-white text-xs font-bold">{getInitials(name)}</span>

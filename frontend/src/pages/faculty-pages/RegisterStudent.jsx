@@ -718,7 +718,7 @@ const RegisterStudent = () => {
                             </div>
 
                             <div className="flex gap-3">
-                                <button onClick={() => setShowImportModal(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 font-medium">Cancel</button>
+                                <button onClick={() => setShowImportModal(false)} className="flex-1 px-4 py-2.5 border-2 border-slate-300 shadow-sm text-slate-700 rounded-xl hover:bg-slate-50 font-medium">Cancel</button>
                                 <button onClick={triggerFileInput} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:shadow-lg font-medium flex items-center justify-center gap-2">
                                     <MdFileUpload className="w-5 h-5" /> Select File
                                 </button>

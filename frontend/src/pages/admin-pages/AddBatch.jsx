@@ -146,14 +146,14 @@ const AddBatch = () => {
                     <p className="text-slate-500 ml-5 mt-1">Create a new student cohort</p>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden">
                     <form onSubmit={handleSubmit}>
                         <div className="p-6 space-y-6">
                             {/* Batch Name */}
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-2">Batch Name <span className="text-red-500">*</span></label>
                                 <input type="text" name="batchName" value={formData.batchName} onChange={handleChange}
-                                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50"
+                                    className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50"
                                     placeholder="e.g., Batch 2026-2030" />
                             </div>
 
@@ -162,7 +162,7 @@ const AddBatch = () => {
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-700 mb-2">Faculty <span className="text-red-500">*</span></label>
                                     <select value={selectedFaculty} onChange={(e) => { setSelectedFaculty(e.target.value); setFormData({...formData, department_id: ''}); }}
-                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50">
+                                        className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50">
                                         <option value="">Select Faculty...</option>
                                         {faculties.map(fac => <option key={fac.id} value={fac.name}>{fac.name}</option>)}
                                     </select>
@@ -174,7 +174,7 @@ const AddBatch = () => {
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-700 mb-2">Department <span className="text-red-500">*</span></label>
                                     <select name="department_id" value={formData.department_id} onChange={handleChange} disabled={!selectedFaculty}
-                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50 disabled:bg-slate-100">
+                                        className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50 disabled:bg-slate-100">
                                         <option value="">{selectedFaculty ? 'Select Department...' : 'Select Faculty first'}</option>
                                         {departments.map(dept => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
                                     </select>
@@ -182,7 +182,7 @@ const AddBatch = () => {
                             ) : (
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-700 mb-2">Department</label>
-                                    <div className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-600 font-medium">
+                                    <div className="w-full px-4 py-3 bg-slate-100 border-2 border-slate-300 shadow-sm rounded-xl text-sm text-slate-600 font-medium">
                                         {user.department || 'Your Department'}
                                     </div>
                                 </div>
@@ -193,12 +193,12 @@ const AddBatch = () => {
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-700 mb-2">Start Date <span className="text-red-500">*</span></label>
                                     <input type="date" name="startDate" value={formData.startDate} onChange={handleChange}
-                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50" />
+                                        className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-700 mb-2">End Date <span className="text-red-500">*</span></label>
                                     <input type="date" name="endDate" value={formData.endDate} onChange={handleChange}
-                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50" />
+                                        className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50" />
                                 </div>
                             </div>
                         </div>
@@ -236,7 +236,7 @@ const AddBatch = () => {
                             )}
 
                             {/* Available PLOs picker */}
-                            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                            <div className="bg-white rounded-xl border-2 border-slate-300 shadow-sm overflow-hidden">
                                 <div className="p-3 border-b border-slate-100">
                                     <div className="relative">
                                         <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -245,7 +245,7 @@ const AddBatch = () => {
                                             placeholder="Search PLOs..."
                                             value={ploSearch}
                                             onChange={(e) => setPloSearch(e.target.value)}
-                                            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all"
+                                            className="w-full pl-9 pr-4 py-2 bg-slate-50 border-2 border-slate-300 shadow-sm rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all"
                                         />
                                     </div>
                                 </div>
@@ -306,7 +306,7 @@ const AddBatch = () => {
 
                         {/* Actions */}
                         <div className="p-6 border-t border-slate-100 flex justify-end gap-3">
-                            <button type="button" onClick={() => navigate('/admin-managebatches')} className="px-6 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
+                            <button type="button" onClick={() => navigate('/admin-managebatches')} className="px-6 py-2.5 border-2 border-slate-300 shadow-sm text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
                             <button type="submit" disabled={loading} className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-emerald-500/25 transition-all disabled:opacity-50">
                                 {loading ? 'Creating...' : 'Create Batch'}
                             </button>

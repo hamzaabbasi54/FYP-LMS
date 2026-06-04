@@ -140,7 +140,7 @@ const SuperAdminPanel = () => {
                         </div>
                         <button
                             onClick={handleLogout}
-                            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 hover:text-red-600 hover:bg-red-50 hover:border-red-100 rounded-lg transition-all duration-200 text-sm font-medium"
+                            className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-slate-300 shadow-sm text-slate-600 hover:text-red-600 hover:bg-red-50 hover:border-red-100 rounded-lg transition-all duration-200 text-sm font-medium"
                         >
                             <MdLogout className="w-4 h-4" />
                             Logout

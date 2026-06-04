@@ -122,7 +122,7 @@ const ManageCurricula = () => {
                 </div>
 
                 {/* Search Bar */}
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-8">
+                <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-4 mb-8">
                     <div className="relative">
                         <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
@@ -130,7 +130,7 @@ const ManageCurricula = () => {
                             placeholder="Search curricula by name or department..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all"
+                            className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-300 rounded-xl shadow-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all"
                         />
                     </div>
                 </div>
@@ -174,7 +174,7 @@ const ManageCurricula = () => {
                             <Link
                                 key={curr.id}
                                 to={`/admin-curricula/${curr.id}`}
-                                className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:shadow-slate-300/50 transition-all duration-300 hover:-translate-y-1"
+                                className="group bg-white rounded-2xl shadow-sm border-2 border-slate-200 overflow-hidden hover:shadow-xl hover:shadow-slate-300/50 transition-all duration-300 hover:-translate-y-1"
                             >
                                 {/* Card Header */}
                                 <div className={`bg-gradient-to-r ${colorPalette[index % colorPalette.length]} p-6`}>
@@ -249,7 +249,7 @@ const ManageCurricula = () => {
                                     value={newCurriculum.name}
                                     onChange={(e) => setNewCurriculum(prev => ({ ...prev, name: e.target.value }))}
                                     placeholder="e.g., BS Physics 2024"
-                                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-700"
+                                    className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-700"
                                 />
                             </div>
                             {!isDeptAdmin ? (
@@ -258,7 +258,7 @@ const ManageCurricula = () => {
                                     <select
                                         value={newCurriculum.department_id}
                                         onChange={(e) => setNewCurriculum(prev => ({ ...prev, department_id: e.target.value }))}
-                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-700"
+                                        className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-700"
                                     >
                                         <option value="">Select Department</option>
                                         {departments.map(dept => (
@@ -269,7 +269,7 @@ const ManageCurricula = () => {
                             ) : (
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-slate-700">Department</label>
-                                    <div className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-600 font-medium">
+                                    <div className="w-full px-4 py-3 bg-slate-100 border-2 border-slate-300 shadow-sm rounded-xl text-sm text-slate-600 font-medium">
                                         {user.department || 'Your Department'}
                                     </div>
                                 </div>
@@ -281,7 +281,7 @@ const ManageCurricula = () => {
                                     onChange={(e) => setNewCurriculum(prev => ({ ...prev, description: e.target.value }))}
                                     placeholder="Brief description of this curriculum..."
                                     rows={3}
-                                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-700 resize-none"
+                                    className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-700 resize-none"
                                 />
                             </div>
                             <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-sm text-indigo-700">

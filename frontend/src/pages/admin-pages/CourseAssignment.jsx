@@ -118,7 +118,7 @@ const CourseAssignment = () => {
 
                 {/* Selection Preview */}
                 {(selectedCourseIds.length > 0 || selectedFacultyId) && (
-                    <div className="mb-6 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="mb-6 p-4 bg-white rounded-2xl border-2 border-slate-200 shadow-sm">
                         <div className="flex items-center justify-center gap-4">
                             <div className={`px-4 py-2 rounded-xl ${selectedCourseIds.length > 0 ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
                                 {selectedCourseIds.length > 0 ? `${selectedCourseIds.length} course(s) selected` : 'Select courses'}
@@ -132,7 +132,7 @@ const CourseAssignment = () => {
                 )}
 
                 {/* Main Card */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden">
                     <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
                         {/* Left: Courses */}
                         <div className="p-6">
@@ -143,7 +143,7 @@ const CourseAssignment = () => {
                             <div className="relative mb-4">
                                 <MdSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                                 <input type="text" placeholder="Search courses..." value={courseSearch} onChange={(e) => setCourseSearch(e.target.value)}
-                                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" />
+                                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border-2 border-slate-300 shadow-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" />
                             </div>
                             <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                                 {loading ? (
@@ -189,7 +189,7 @@ const CourseAssignment = () => {
                             <div className="relative mb-4">
                                 <MdSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                                 <input type="text" placeholder="Search faculty..." value={facultySearch} onChange={(e) => setFacultySearch(e.target.value)}
-                                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+                                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border-2 border-slate-300 shadow-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
                             </div>
                             <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                                 {loading ? (

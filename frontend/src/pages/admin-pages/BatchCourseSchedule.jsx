@@ -404,7 +404,7 @@ const BatchCourseSchedule = () => {
 
                 {/* Course Info Card */}
                 {courseData && (
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-8">
+                    <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6 mb-8">
                         <div className="flex flex-wrap items-start gap-6">
                             {/* Course icon + info */}
                             <div className="flex items-start gap-4 flex-1 min-w-[280px]">
@@ -422,7 +422,7 @@ const BatchCourseSchedule = () => {
                             {/* Meta pills */}
                             <div className="flex flex-wrap gap-3">
                                 {courseData.batch && (
-                                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                                    <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 rounded-xl shadow-sm border-2 border-slate-200">
                                         <MdSchool className="w-4 h-4 text-slate-400" />
                                         <div>
                                             <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Batch</p>
@@ -430,7 +430,7 @@ const BatchCourseSchedule = () => {
                                         </div>
                                     </div>
                                 )}
-                                <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                                <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 rounded-xl shadow-sm border-2 border-slate-200">
                                     <MdSchedule className="w-4 h-4 text-slate-400" />
                                     <div>
                                         <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Days Active</p>
@@ -470,7 +470,7 @@ const BatchCourseSchedule = () => {
                                         <div className="flex-1">
                                             <label className="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Select Faculty</label>
                                             <select value={selectedFaculty} onChange={(e) => setSelectedFaculty(e.target.value)}
-                                                className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none bg-white">
+                                                className="w-full px-4 py-2 border-2 border-slate-300 shadow-sm rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none bg-white">
                                                 <option value="">-- Choose Faculty --</option>
                                                 {facultyList.map(f => (
                                                     <option key={f.id} value={f.id}>{f.full_name || f.fullName} ({f.department || 'No Dept'})</option>
@@ -493,7 +493,7 @@ const BatchCourseSchedule = () => {
                                     <div className="flex-1">
                                         <label className="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Upload File (PDF/Word)</label>
                                         <input type="file" onChange={(e) => setUploadFile(e.target.files[0])}
-                                            className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:bg-slate-100 file:text-slate-700 cursor-pointer" />
+                                            className="w-full px-3 py-1.5 border-2 border-slate-300 shadow-sm rounded-lg text-sm file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:bg-slate-100 file:text-slate-700 cursor-pointer" />
                                     </div>
                                     <button onClick={handleUploadFile} disabled={uploading || !uploadFile} className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors disabled:opacity-50">
                                         {uploading ? 'Uploading...' : 'Upload'}
@@ -503,7 +503,7 @@ const BatchCourseSchedule = () => {
                                 {courseData.files && courseData.files.length > 0 ? (
                                     <div className="space-y-2 max-h-32 overflow-y-auto">
                                         {courseData.files.map(f => (
-                                            <div key={f.id} className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-sm">
+                                            <div key={f.id} className="flex items-center justify-between px-3 py-2 bg-slate-50 border-2 border-slate-200 rounded-lg text-sm">
                                                 <span className="text-slate-700 truncate mr-3 flex-1">{f.file_name}</span>
                                                 <a href={getFileUrl(f.file_path)} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex-shrink-0 text-xs font-medium">View</a>
                                             </div>
@@ -532,7 +532,7 @@ const BatchCourseSchedule = () => {
                             {courseData.clos && courseData.clos.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {courseData.clos.map(clo => (
-                                        <div key={clo.id} className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                                        <div key={clo.id} className="p-4 bg-white border-2 border-slate-300 shadow-sm rounded-xl shadow-sm hover:shadow-md transition-shadow">
                                             <div className="flex items-start justify-between mb-2">
                                                 <div className="flex items-center gap-2">
                                                     <h4 className="font-bold text-slate-800 text-sm">{clo.title}</h4>
@@ -558,7 +558,7 @@ const BatchCourseSchedule = () => {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="p-6 bg-slate-50 border border-slate-100 rounded-xl text-center">
+                                <div className="p-6 bg-slate-50 border-2 border-slate-200 rounded-xl text-center">
                                     <MdCheckCircle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                                     <p className="text-sm text-slate-500 font-medium">No CLOs attached to this course.</p>
                                     <button onClick={openAddCloModal} className="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
@@ -586,7 +586,7 @@ const BatchCourseSchedule = () => {
                                     ) : (
                                         <div className="space-y-4">
                                             {courseData.clos.map(clo => (
-                                                <div key={clo.id} className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                                                <div key={clo.id} className="bg-slate-50 border-2 border-slate-300 shadow-sm rounded-xl p-4">
                                                     <div className="flex flex-col md:flex-row md:items-start gap-4">
                                                         <div className="flex-1">
                                                             <h4 className="font-bold text-slate-800 text-sm">CLO {clo.clo_number}: {clo.title}</h4>
@@ -596,7 +596,7 @@ const BatchCourseSchedule = () => {
                                                             <label className="block text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-2">Map to PLOs:</label>
                                                             <div className="relative">
                                                                 <div 
-                                                                    className="flex min-h-[38px] w-full flex-wrap items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 cursor-pointer hover:border-indigo-400 transition-colors"
+                                                                    className="flex min-h-[38px] w-full flex-wrap items-center gap-1.5 rounded-lg border-2 border-slate-300 shadow-sm bg-white px-3 py-1.5 cursor-pointer hover:border-indigo-400 transition-colors"
                                                                     onClick={() => setOpenPloDropdowns(prev => ({...prev, [clo.id]: !prev[clo.id]}))}
                                                                 >
                                                                     {(() => {
@@ -630,7 +630,7 @@ const BatchCourseSchedule = () => {
                                                                 </div>
 
                                                                 {openPloDropdowns[clo.id] && (
-                                                                    <div className="absolute z-10 mt-1 w-full rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 border border-slate-100">
+                                                                    <div className="absolute z-10 mt-1 w-full rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 border-2 border-slate-200">
                                                                         <div className="max-h-60 overflow-y-auto py-1">
                                                                             {batchPlos.map(plo => {
                                                                                 const isMapped = (cloMappings[clo.id] || []).includes(plo.id);
@@ -675,7 +675,7 @@ const BatchCourseSchedule = () => {
                 )}
 
                 {/* Weekly Schedule Section */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden">
                     {/* Section header */}
                     <div className="flex items-center justify-between p-6 border-b border-slate-100">
                         <div className="flex items-center gap-3">
@@ -740,7 +740,7 @@ const BatchCourseSchedule = () => {
                                                             type="time"
                                                             value={entry.start_time}
                                                             onChange={(e) => updateDay(day.key, 'start_time', e.target.value)}
-                                                            className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 outline-none bg-white"
+                                                            className="w-full pl-9 pr-3 py-2 border-2 border-slate-300 shadow-sm rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 outline-none bg-white"
                                                         />
                                                     </div>
                                                 </div>
@@ -756,7 +756,7 @@ const BatchCourseSchedule = () => {
                                                             type="time"
                                                             value={entry.end_time}
                                                             onChange={(e) => updateDay(day.key, 'end_time', e.target.value)}
-                                                            className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 outline-none bg-white"
+                                                            className="w-full pl-9 pr-3 py-2 border-2 border-slate-300 shadow-sm rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 outline-none bg-white"
                                                         />
                                                     </div>
                                                 </div>
@@ -800,7 +800,7 @@ const BatchCourseSchedule = () => {
 
                         {/* Summary */}
                         {activeDayCount > 0 && (
-                            <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                            <div className="mt-6 p-4 bg-white border-2 border-slate-300 rounded-xl shadow-sm border-2 border-slate-200">
                                 <h4 className="text-sm font-bold text-slate-700 mb-3">Schedule Summary</h4>
                                 <div className="space-y-2">
                                     {DAYS.filter(d => schedule[d.key].active).map(d => {
@@ -827,7 +827,7 @@ const BatchCourseSchedule = () => {
                         )}
 
                         {activeDayCount === 0 && (
-                            <div className="mt-6 text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                            <div className="mt-6 text-center py-12 bg-white border-2 border-slate-300 rounded-xl shadow-sm border-2 border-dashed border-slate-200">
                                 <MdSchedule className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                                 <p className="text-slate-400 text-sm">Click on a day above to set its class time</p>
                             </div>
@@ -874,7 +874,7 @@ const BatchCourseSchedule = () => {
                                         <p className="text-sm text-slate-500 italic text-center py-4">No unmapped CLOs available.</p>
                                     ) : (
                                         globalClos.filter(g => !courseData?.clos?.some(c => c.id === g.id)).map(clo => (
-                                            <label key={clo.id} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                                            <label key={clo.id} className="flex items-start gap-3 p-3 rounded-xl border-2 border-slate-300 shadow-sm hover:bg-slate-50 cursor-pointer">
                                                 <input 
                                                     type="checkbox" 
                                                     className="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
@@ -893,7 +893,7 @@ const BatchCourseSchedule = () => {
                                     )}
                                 </div>
                                 <div className="mt-auto flex gap-3">
-                                    <button type="button" onClick={() => setIsCloModalOpen(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-colors">
+                                    <button type="button" onClick={() => setIsCloModalOpen(false)} className="flex-1 px-4 py-2.5 border-2 border-slate-300 shadow-sm text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-colors">
                                         Cancel
                                     </button>
                                     <button type="button" onClick={handleMapSelectedClos} disabled={savingClo || selectedGlobalClos.length === 0} className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50">
@@ -912,7 +912,7 @@ const BatchCourseSchedule = () => {
                                             placeholder="e.g. CLO-1"
                                             value={cloForm.title}
                                             onChange={(e) => setCloForm({...cloForm, title: e.target.value})}
-                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                                            className="w-full px-4 py-2 bg-slate-50 border-2 border-slate-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                                         />
                                         <p className="text-xs text-slate-500 mt-1">Must be in format CLO-X (e.g., CLO-1, CLO-2)</p>
                                     </div>
@@ -923,7 +923,7 @@ const BatchCourseSchedule = () => {
                                             placeholder="What will students learn?"
                                             value={cloForm.description}
                                             onChange={(e) => setCloForm({...cloForm, description: e.target.value})}
-                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none"
+                                            className="w-full px-4 py-2 bg-slate-50 border-2 border-slate-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none"
                                         ></textarea>
                                     </div>
                                     <div>
@@ -931,7 +931,7 @@ const BatchCourseSchedule = () => {
                                         <select
                                             value={cloForm.cognitive_level}
                                             onChange={(e) => setCloForm({...cloForm, cognitive_level: e.target.value})}
-                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                                            className="w-full px-4 py-2 bg-slate-50 border-2 border-slate-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                                         >
                                             <option value="C1">C1 - Knowledge</option>
                                             <option value="C2">C2 - Comprehension</option>
@@ -944,7 +944,7 @@ const BatchCourseSchedule = () => {
                                 </div>
 
                                 <div className="mt-8 flex gap-3">
-                                    <button type="button" onClick={() => setIsCloModalOpen(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-colors">
+                                    <button type="button" onClick={() => setIsCloModalOpen(false)} className="flex-1 px-4 py-2.5 border-2 border-slate-300 shadow-sm text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-colors">
                                         Cancel
                                     </button>
                                     <button type="submit" disabled={savingClo} className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">

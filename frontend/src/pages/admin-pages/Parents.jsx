@@ -82,10 +82,10 @@ const Parents = () => {
                         <button onClick={() => setShowAddModal(true)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300">
                             <MdPersonAdd className="w-5 h-5" /> Add
                         </button>
-                        <button onClick={handleImportClick} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                        <button onClick={handleImportClick} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 shadow-sm text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
                             <MdFileUpload className="w-5 h-5 text-emerald-500" /> Import
                         </button>
-                        <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                        <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 shadow-sm text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
                             <MdFileDownload className="w-5 h-5 text-blue-500" /> Export
                         </button>
                     </div>
@@ -103,7 +103,7 @@ const Parents = () => {
                                 setSearchQuery(e.target.value);
                                 setPage(1); // Reset page on search
                             }}
-                            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all shadow-sm"
+                            className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-300 shadow-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all shadow-sm"
                         />
                     </div>
                     <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-xl">
@@ -127,7 +127,7 @@ const Parents = () => {
                     <>
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
                             {parents.map((parent) => (
-                                <div key={parent.id} className="bg-white rounded-2xl border border-slate-100 p-5 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300">
+                                <div key={parent.id} className="bg-white rounded-2xl border-2 border-slate-200 p-5 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300">
                                     {/* Student Info */}
                                     <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100">
                                         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
@@ -176,7 +176,7 @@ const Parents = () => {
                                 <button
                                     onClick={() => setPage(p => Math.max(1, p - 1))}
                                     disabled={page === 1}
-                                    className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="p-2 rounded-lg bg-white border-2 border-slate-300 shadow-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     <MdChevronLeft className="w-5 h-5" />
                                 </button>
@@ -186,7 +186,7 @@ const Parents = () => {
                                 <button
                                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                     disabled={page === totalPages}
-                                    className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="p-2 rounded-lg bg-white border-2 border-slate-300 shadow-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     <MdChevronRight className="w-5 h-5" />
                                 </button>
@@ -209,30 +209,30 @@ const Parents = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Student Name</label>
                                     <input type="text" required value={newParent.studentName} onChange={(e) => setNewParent({ ...newParent, studentName: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="Enter student name" />
+                                        className="w-full px-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="Enter student name" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Student ID</label>
                                     <input type="text" required value={newParent.studentId} onChange={(e) => setNewParent({ ...newParent, studentId: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="U2024XXX" />
+                                        className="w-full px-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="U2024XXX" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Parent Name</label>
                                     <input type="text" required value={newParent.parentName} onChange={(e) => setNewParent({ ...newParent, parentName: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="Enter parent name" />
+                                        className="w-full px-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="Enter parent name" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
                                     <input type="email" required value={newParent.email} onChange={(e) => setNewParent({ ...newParent, email: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="parent@email.com" />
+                                        className="w-full px-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="parent@email.com" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Phone</label>
                                     <input type="tel" value={newParent.phone} onChange={(e) => setNewParent({ ...newParent, phone: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="+1 XXX-XXX-XXXX" />
+                                        className="w-full px-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="+1 XXX-XXX-XXXX" />
                                 </div>
                                 <div className="flex gap-3 pt-2">
-                                    <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium">
+                                    <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2.5 border-2 border-slate-300 shadow-sm text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium">
                                         Cancel
                                     </button>
                                     <button type="submit" className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-xl hover:shadow-lg transition-all font-medium">

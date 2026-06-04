@@ -105,7 +105,7 @@ const ManageUsers = () => {
                     {stats.map((stat, index) => (
                         <div
                             key={index}
-                            className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-xl hover:shadow-slate-300/50 transition-all duration-300"
+                            className="bg-white rounded-2xl p-6 shadow-sm border-2 border-slate-200 hover:shadow-xl hover:shadow-slate-300/50 transition-all duration-300"
                         >
                             <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} mb-3 shadow-lg`}>
                                 <MdPerson className="w-6 h-6 text-white" />
@@ -117,7 +117,7 @@ const ManageUsers = () => {
                 </div>
 
                 {/* Filters */}
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+                <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-6 mb-6">
                     <div className="flex flex-col md:flex-row gap-4">
                         <div className="flex-1 relative">
                             <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -126,7 +126,7 @@ const ManageUsers = () => {
                                 placeholder="Search by name or email..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full pl-10 pr-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                         </div>
                         <div className="relative">
@@ -134,7 +134,7 @@ const ManageUsers = () => {
                             <select
                                 value={filterRole}
                                 onChange={(e) => setFilterRole(e.target.value)}
-                                className="pl-10 pr-8 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none min-w-[200px]"
+                                className="pl-10 pr-8 py-2.5 border-2 border-slate-300 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none min-w-[200px]"
                             >
                                 <option value="all">All Roles</option>
                                 <option value="deptadmin">Department Admin</option>
@@ -145,7 +145,7 @@ const ManageUsers = () => {
                 </div>
 
                 {/* Users Table */}
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">

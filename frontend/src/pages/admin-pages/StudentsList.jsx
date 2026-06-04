@@ -225,10 +225,10 @@ const StudentList = () => {
                         <button onClick={() => setShowAddModal(true)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/25 transition-all">
                             <MdPersonAdd className="w-5 h-5" /> Add
                         </button>
-                        <button onClick={handleImportClick} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                        <button onClick={handleImportClick} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 shadow-sm text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
                             <MdFileUpload className="w-5 h-5 text-emerald-500" /> Import
                         </button>
-                        <button onClick={handleExport} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                        <button onClick={handleExport} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 shadow-sm text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
                             <MdFileDownload className="w-5 h-5 text-blue-500" /> Export
                         </button>
                     </div>
@@ -239,12 +239,12 @@ const StudentList = () => {
                     <div className="relative max-w-md">
                         <MdSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                         <input type="text" placeholder="Search by name, ID, or email..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" />
+                            className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-300 shadow-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" />
                     </div>
                 </div>
 
                 {/* Students Table */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
@@ -326,7 +326,7 @@ const StudentList = () => {
                                 <button 
                                     onClick={() => setPage(p => Math.max(1, p - 1))}
                                     disabled={!pagination.hasPrev}
-                                    className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                    className="px-3 py-1.5 border-2 border-slate-300 shadow-sm rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                 >
                                     Previous
                                 </button>
@@ -336,7 +336,7 @@ const StudentList = () => {
                                 <button 
                                     onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
                                     disabled={!pagination.hasNext}
-                                    className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                    className="px-3 py-1.5 border-2 border-slate-300 shadow-sm rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                 >
                                     Next
                                 </button>
@@ -359,45 +359,45 @@ const StudentList = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Full Name</label>
                                     <input type="text" required value={newStudent.name} onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="Enter name" />
+                                        className="w-full px-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="Enter name" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
                                     <input type="email" required value={newStudent.email} onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="student@university.edu" />
+                                        className="w-full px-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="student@university.edu" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Roll Number</label>
                                     <input type="text" required value={newStudent.roll_number} onChange={(e) => setNewStudent({ ...newStudent, roll_number: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="e.g. 04162213027" />
+                                        className="w-full px-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="e.g. 04162213027" />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 mb-1.5">Contact</label>
                                         <input type="tel" value={newStudent.contact_number} onChange={(e) => setNewStudent({ ...newStudent, contact_number: e.target.value })}
-                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="+1 XXX-XXX" />
+                                            className="w-full px-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="+1 XXX-XXX" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 mb-1.5">CGPA</label>
                                         <input type="number" step="0.01" min="0" max="4" value={newStudent.cgpa} onChange={(e) => setNewStudent({ ...newStudent, cgpa: e.target.value })}
-                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="0.00" />
+                                            className="w-full px-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="0.00" />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 mb-1.5">Matric Marks</label>
                                         <input type="number" value={newStudent.matric_marks} onChange={(e) => setNewStudent({ ...newStudent, matric_marks: e.target.value })}
-                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="e.g. 850" />
+                                            className="w-full px-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="e.g. 850" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 mb-1.5">FSc Marks</label>
                                         <input type="number" value={newStudent.fsc_marks} onChange={(e) => setNewStudent({ ...newStudent, fsc_marks: e.target.value })}
-                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="e.g. 920" />
+                                            className="w-full px-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="e.g. 920" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 mb-1.5">Background</label>
                                         <select value={newStudent.background} onChange={(e) => setNewStudent({ ...newStudent, background: e.target.value })}
-                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white">
+                                            className="w-full px-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white">
                                             <option value="">Select...</option>
                                             <option value="pre-med">Pre-Med</option>
                                             <option value="pre-engineering">Pre-Engineering</option>
@@ -406,7 +406,7 @@ const StudentList = () => {
                                     </div>
                                 </div>
                                 <div className="flex gap-3 pt-2">
-                                    <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 font-medium">Cancel</button>
+                                    <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2.5 border-2 border-slate-300 shadow-sm text-slate-700 rounded-xl hover:bg-slate-50 font-medium">Cancel</button>
                                     <button type="submit" className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:shadow-lg font-medium">Add Student</button>
                                 </div>
                             </form>
@@ -430,7 +430,7 @@ const StudentList = () => {
                                 <h4 className="font-semibold text-slate-800 mb-2">Excel File Format Requirements</h4>
                                 <p className="text-sm text-slate-600 mb-4">Please ensure your Excel file (.xlsx or .csv) contains the following column headers exactly as shown:</p>
                                 
-                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6">
+                                <div className="bg-white border-2 border-slate-300 rounded-xl shadow-sm p-4 border-2 border-slate-200 mb-6">
                                     <ul className="text-sm text-slate-600 space-y-2 font-mono">
                                         <li><span className="font-bold text-emerald-600">roll_number</span> (Required, Unique)</li>
                                         <li><span className="font-bold text-emerald-600">first_name</span> (Required)</li>
@@ -447,7 +447,7 @@ const StudentList = () => {
                                 </div>
 
                                 <div className="flex gap-3">
-                                    <button onClick={() => setShowImportModal(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 font-medium">Cancel</button>
+                                    <button onClick={() => setShowImportModal(false)} className="flex-1 px-4 py-2.5 border-2 border-slate-300 shadow-sm text-slate-700 rounded-xl hover:bg-slate-50 font-medium">Cancel</button>
                                     <button onClick={triggerFileInput} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:shadow-lg font-medium flex items-center justify-center gap-2">
                                         <MdFileUpload className="w-5 h-5" /> Select File
                                     </button>
