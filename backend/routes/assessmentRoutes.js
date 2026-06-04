@@ -372,6 +372,14 @@ router.post('/:id/grades', async (req, res) => {
             return res.status(400).json({ success: false, message: 'grades array is required' });
         }
 
+        // Fetch assessment details for max_score validation
+        const [[assessment]] = await conn.query(
+            'SELECT max_score FROM assessments WHERE id = ?', [req.params.id]
+        );
+        if (!assessment) {
+            return res.status(404).json({ success: false, message: 'Assessment not found' });
+        }
+
         // Fetch questions to validate scores and map question_number to id
         const [questions] = await conn.query(
             'SELECT id, question_number, max_marks FROM assessment_questions WHERE assessment_id = ?',
@@ -401,6 +409,12 @@ router.post('/:id/grades', async (req, res) => {
                     }
                 }
                 finalScore = computedScore;
+            } else {
+                // Validate direct score input against assessment max_score
+                const parsedScore = parseFloat(finalScore);
+                if (!isNaN(parsedScore) && (parsedScore < 0 || parsedScore > parseFloat(assessment.max_score))) {
+                    throw new Error(`Score ${parsedScore} exceeds maximum allowed (${assessment.max_score}).`);
+                }
             }
 
             gradeValues.push([req.params.id, grade.student_id, finalScore, grade.remarks || null, req.user.id]);

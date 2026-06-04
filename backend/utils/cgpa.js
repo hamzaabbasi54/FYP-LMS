@@ -37,15 +37,19 @@ export async function recalcStudentCGPA(studentId, conn) {
     const db = conn || pool;
     try {
         // Get all course percentages for this student
-        // course_pct = SUM((score/max_score) * weight) per course
+        // course_pct = SUM((score/max_score) * weight) / SUM(weight) * 100
+        // Only include assessments that have been fully graded
         const [courseGrades] = await db.query(
             `SELECT ca.course_id, c.credit_hours,
-                    SUM((g.score / a.max_score) * a.weight) as course_pct
+                    CASE 
+                        WHEN SUM(COALESCE(a.weight, 0)) = 0 THEN 0
+                        ELSE SUM((g.score / a.max_score) * COALESCE(a.weight, 0)) / SUM(COALESCE(a.weight, 0)) * 100
+                    END as course_pct
              FROM grades g
              JOIN assessments a ON g.assessment_id = a.id
              JOIN course_assignments ca ON a.course_assignment_id = ca.id
              JOIN courses c ON ca.course_id = c.id
-             WHERE g.student_id = ?
+             WHERE g.student_id = ? AND a.status = 'graded' AND g.score IS NOT NULL
              GROUP BY ca.course_id, c.credit_hours`,
             [studentId]
         );
