@@ -1,12 +1,37 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { MdDashboard, MdPeople, MdAssignment, MdBook, MdSchool, MdSettings, MdExpandMore, MdExpandLess, MdBuild, MdLink, MdTrackChanges, MdLogout, MdMenuBook, MdAdminPanelSettings } from 'react-icons/md';
+import { MdDashboard, MdPeople, MdAssignment, MdBook, MdSchool, MdSettings, MdExpandMore, MdExpandLess, MdBuild, MdLink, MdTrackChanges, MdLogout, MdMenuBook, MdAdminPanelSettings, MdMessage } from 'react-icons/md';
 import { useAuth } from '../../../context/AuthContext';
+import { useSocket } from '../../../context/SocketContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { messageApi } from '../../../services/api';
 const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [operationsExpanded, setOperationsExpanded] = useState(true);
     const { user, logout } = useAuth();
+    const socket = useSocket();
+    const queryClient = useQueryClient();
+
+    const { data: unreadData } = useQuery({
+        queryKey: ['unreadMessageCount'],
+        queryFn: async () => {
+            const res = await messageApi.getUnreadCount();
+            return res.success ? res.count : 0;
+        },
+        refetchInterval: 30000,
+    });
+    const unreadCount = unreadData || 0;
+
+    // Listen for new_message socket events to update badge
+    React.useEffect(() => {
+        if (!socket) return;
+        const handler = () => {
+            queryClient.invalidateQueries({ queryKey: ['unreadMessageCount'] });
+        };
+        socket.on('new_message', handler);
+        return () => socket.off('new_message', handler);
+    }, [socket, queryClient]);
 
     const isOperationsActive = ['/admin-managebatches', '/admin-courseassignment', '/admin-managecourses', '/admin-managefaculty', '/admin-obe', '/admin-external-links', '/admin-curricula']
         .some(path => location.pathname.startsWith(path));
@@ -15,12 +40,12 @@ const Sidebar = () => {
         logout();
     };
 
-    const NavItem = ({ icon: Icon, label, to, indent = false }) => {
+    const NavItem = ({ icon: Icon, label, to, indent = false, badge }) => {
         return (
             <NavLink
                 to={to}
                 className={({ isActive }) => `
-                    flex items-center w-full px-4 py-2.5 rounded-xl text-left transition-all duration-200 mb-1
+                    flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-left transition-all duration-200 mb-1
                     ${indent ? 'ml-4' : ''}
                     ${isActive
                         ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/25'
@@ -30,8 +55,15 @@ const Sidebar = () => {
             >
                 {({ isActive }) => (
                     <>
-                        <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-white' : ''}`} />
-                        <span className="font-medium text-sm">{label}</span>
+                        <div className="flex items-center">
+                            <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-white' : ''}`} />
+                            <span className="font-medium text-sm">{label}</span>
+                        </div>
+                        {badge && (
+                            <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
+                                {badge > 9 ? '9+' : badge}
+                            </span>
+                        )}
                     </>
                 )}
             </NavLink>
@@ -92,6 +124,9 @@ const Sidebar = () => {
                         <NavItem to="/admin-external-links" icon={MdLink} label="Links" indent />
                     </div>
                 )}
+
+                <p className="text-xs text-slate-600 font-semibold uppercase tracking-wider mt-6 mb-3 px-4">Communication</p>
+                <NavItem to="/admin-messages" icon={MdMessage} label="Messages" badge={unreadCount > 0 ? unreadCount : undefined} />
 
                 <p className="text-xs text-slate-600 font-semibold uppercase tracking-wider mt-6 mb-3 px-4">Other</p>
                 <NavItem to="/admin-parents" icon={MdPeople} label="Parents" />

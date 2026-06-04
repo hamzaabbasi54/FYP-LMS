@@ -38,11 +38,31 @@ const ManageCourses = () => {
 
     const deleteMutation = useMutation({
         mutationFn: (id) => courseApi.delete(id),
+        onMutate: async (deletedId) => {
+            // Cancel any outgoing refetches so they don't overwrite our optimistic update
+            await queryClient.cancelQueries({ queryKey: ['courses'] });
+            // Snapshot the previous value for rollback
+            const previousData = queryClient.getQueryData(['courses', page, searchQuery]);
+            // Optimistically remove the course from the cache
+            queryClient.setQueryData(['courses', page, searchQuery], (old) => {
+                if (!old) return old;
+                return {
+                    ...old,
+                    data: old.data.filter(course => course.id !== deletedId),
+                    pagination: { ...old.pagination, total: (old.pagination?.total || 1) - 1 }
+                };
+            });
+            return { previousData };
+        },
         onSuccess: () => {
             toast.success('Course deleted successfully');
             queryClient.invalidateQueries({ queryKey: ['courses'] });
         },
-        onError: (error) => {
+        onError: (error, _deletedId, context) => {
+            // Rollback on error
+            if (context?.previousData) {
+                queryClient.setQueryData(['courses', page, searchQuery], context.previousData);
+            }
             console.error('Error deleting course:', error);
             toast.error(error.response?.data?.message || 'Failed to delete course');
         }

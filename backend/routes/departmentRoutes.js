@@ -7,10 +7,14 @@ import express from 'express';
 import multer from 'multer';
 import pool from '../config/db.js';
 import { verifyToken, isAdmin } from '../middleware/auth.js';
-import { parsePagination, paginatedResponse } from '../utils/pagination.js';
-import { parseExcel, generateExcel, getUploadDir } from '../utils/excel.js';
+import { scopeToDepartment } from '../middleware/deptScope.js';
 
-const upload = multer({ dest: getUploadDir() });
+const scopeDept = scopeToDepartment('departments');
+const scopePLO = scopeToDepartment('plos', 'ploId', { deptColumn: 'department_id' });
+import { parsePagination, paginatedResponse } from '../utils/pagination.js';
+import { parseExcel, generateExcel, getUploadDir, createExcelUpload } from '../utils/excel.js';
+
+const upload = createExcelUpload(multer);
 
 const router = express.Router();
 
@@ -185,7 +189,7 @@ router.post('/', isAdmin, async (req, res) => {
 });
 
 // PUT update department
-router.put('/:id', isAdmin, async (req, res) => {
+router.put('/:id', isAdmin, scopeDept, async (req, res) => {
     try {
         const { name, faculty_id } = req.body;
         const fields = [];
@@ -210,7 +214,7 @@ router.put('/:id', isAdmin, async (req, res) => {
 });
 
 // DELETE department
-router.delete('/:id', isAdmin, async (req, res) => {
+router.delete('/:id', isAdmin, scopeDept, async (req, res) => {
     try {
         const [result] = await pool.query('DELETE FROM departments WHERE id = ?', [req.params.id]);
         if (result.affectedRows === 0) {
@@ -266,7 +270,7 @@ router.post('/plos/add', isAdmin, async (req, res) => {
 });
 
 // DELETE single PLO
-router.delete('/plos/:ploId', isAdmin, async (req, res) => {
+router.delete('/plos/:ploId', isAdmin, scopePLO, async (req, res) => {
     try {
         const [result] = await pool.query('DELETE FROM plos WHERE id = ?', [req.params.ploId]);
         if (result.affectedRows === 0) {

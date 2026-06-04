@@ -170,6 +170,31 @@ const BatchCourseSchedule = () => {
         }
     };
 
+    const [unassigningFaculty, setUnassigningFaculty] = useState(false);
+
+    const handleUnassignFaculty = async () => {
+        if (!window.confirm(`Remove ${courseData?.assignment?.faculty_name || 'faculty'} from this course? All course data (students, grades, attendance) will be preserved.`)) return;
+        if (!courseData?.semester_number) {
+            toast.error('Semester information not found for this course');
+            return;
+        }
+
+        try {
+            setUnassigningFaculty(true);
+            const res = await batchApi.assignFaculty(batchId, courseData.semester_number, courseId, null);
+            if (res.success) {
+                toast.success('Faculty unassigned successfully');
+                setSelectedFaculty('');
+                fetchData();
+            }
+        } catch(e) {
+            console.error(e);
+            toast.error('Failed to unassign faculty');
+        } finally {
+            setUnassigningFaculty(false);
+        }
+    };
+
     const activeDayCount = Object.values(schedule).filter(d => d.active).length;
 
     const toggleDay = (dayKey) => {
@@ -422,27 +447,40 @@ const BatchCourseSchedule = () => {
                             {/* Faculty Assignment */}
                             <div>
                                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                    <MdPerson className="w-4 h-4 text-slate-400" /> Assign Faculty
+                                    <MdPerson className="w-4 h-4 text-slate-400" /> {courseData.assignment?.faculty_id ? 'Assigned Faculty' : 'Assign Faculty'}
                                 </h3>
-                                <div className="flex items-end gap-3">
-                                    <div className="flex-1">
-                                        <label className="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Select Faculty</label>
-                                        <select value={selectedFaculty} onChange={(e) => setSelectedFaculty(e.target.value)}
-                                            className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none bg-white">
-                                            <option value="">-- Choose Faculty --</option>
-                                            {facultyList.map(f => (
-                                                <option key={f.id} value={f.id}>{f.full_name || f.fullName} ({f.department || 'No Dept'})</option>
-                                            ))}
-                                        </select>
+                                {courseData.assignment?.faculty_id ? (
+                                    /* Faculty is assigned — show info + Unassign button */
+                                    <div>
+                                        <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                                            <div>
+                                                <p className="text-xs text-slate-400 font-medium">Currently Assigned</p>
+                                                <p className="text-sm font-bold text-emerald-700">{courseData.assignment.faculty_name}</p>
+                                            </div>
+                                            <button onClick={handleUnassignFaculty} disabled={unassigningFaculty}
+                                                className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50">
+                                                {unassigningFaculty ? 'Removing...' : 'Unassign'}
+                                            </button>
+                                        </div>
+                                        <p className="mt-2 text-[11px] text-slate-400 italic">Unassigning preserves all course data (students, grades, attendance).</p>
                                     </div>
-                                    <button onClick={handleAssignFaculty} disabled={assigningFaculty} className="px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600 transition-colors disabled:opacity-50">
-                                        {assigningFaculty ? 'Saving...' : 'Assign'}
-                                    </button>
-                                </div>
-                                {courseData.assignment && (
-                                    <p className="mt-3 text-sm text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100">
-                                        Currently Assigned: <span className="font-bold">{courseData.assignment.faculty_name}</span>
-                                    </p>
+                                ) : (
+                                    /* No faculty — show dropdown + Assign button */
+                                    <div className="flex items-end gap-3">
+                                        <div className="flex-1">
+                                            <label className="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Select Faculty</label>
+                                            <select value={selectedFaculty} onChange={(e) => setSelectedFaculty(e.target.value)}
+                                                className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none bg-white">
+                                                <option value="">-- Choose Faculty --</option>
+                                                {facultyList.map(f => (
+                                                    <option key={f.id} value={f.id}>{f.full_name || f.fullName} ({f.department || 'No Dept'})</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <button onClick={handleAssignFaculty} disabled={assigningFaculty} className="px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600 transition-colors disabled:opacity-50">
+                                            {assigningFaculty ? 'Saving...' : 'Assign'}
+                                        </button>
+                                    </div>
                                 )}
                             </div>
 

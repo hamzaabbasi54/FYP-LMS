@@ -31,8 +31,11 @@ const FacultyMainLayout = () => {
             // Invalidate all faculty-relevant queries so data refreshes
             queryClient.invalidateQueries({ queryKey: ['facultyDashboardCourses'] });
             queryClient.invalidateQueries({ queryKey: ['facultySchedule'] });
+            queryClient.invalidateQueries({ queryKey: ['facultyAssignedCourse'] });
             queryClient.invalidateQueries({ queryKey: ['courses'] });
             queryClient.invalidateQueries({ queryKey: ['batches'] });
+            queryClient.invalidateQueries({ queryKey: ['assignments'] });
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
         };
 
         events.forEach(e => socket.on(e, handler));

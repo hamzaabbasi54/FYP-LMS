@@ -8,12 +8,13 @@ import multer from 'multer';
 import pool from '../config/db.js';
 import { verifyToken, isAuthenticated } from '../middleware/auth.js';
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
-import { parseExcel, generateExcel, getUploadDir } from '../utils/excel.js';
+import { parseExcel, generateExcel, getUploadDir, createExcelUpload } from '../utils/excel.js';
+import { recalcCGPAForAssessment } from '../utils/cgpa.js';
 
 const router = express.Router();
 router.use(verifyToken);
 
-const upload = multer({ dest: getUploadDir() });
+const upload = createExcelUpload(multer);
 
 // ===================== ASSESSMENTS =====================
 
@@ -344,7 +345,7 @@ router.get('/:id/grades', async (req, res) => {
     }
 });
 
-// POST save grades (bulk upsert)
+// POST save grades (bulk upsert — optimized single-query batching)
 router.post('/:id/grades', async (req, res) => {
     const conn = await pool.getConnection();
     try {
@@ -377,8 +378,11 @@ router.post('/:id/grades', async (req, res) => {
             [req.params.id]
         );
 
+        // Collect all question grade rows and total grade rows for bulk insert
+        const questionGradeValues = [];
+        const gradeValues = [];
+
         for (const grade of grades) {
-            // Validate question scores if provided
             let finalScore = grade.score;
             
             if (grade.question_scores && questions.length > 0) {
@@ -388,32 +392,38 @@ router.post('/:id/grades', async (req, res) => {
                     if (qScore !== undefined && qScore !== null && qScore !== '') {
                         const parsedScore = parseFloat(qScore);
                         if (!isNaN(parsedScore)) {
-                            // Validate against max marks
                             if (parsedScore < 0 || parsedScore > parseFloat(q.max_marks)) {
                                 throw new Error(`Score for Question ${q.question_number} exceeds maximum allowed marks.`);
                             }
                             computedScore += parsedScore;
-                            
-                            // Insert/Update question grade
-                            await conn.query(
-                                `INSERT INTO question_grades (assessment_id, student_id, question_id, score)
-                                 VALUES (?, ?, ?, ?)
-                                 ON DUPLICATE KEY UPDATE score = VALUES(score)`,
-                                [req.params.id, grade.student_id, q.id, parsedScore]
-                            );
+                            questionGradeValues.push([req.params.id, grade.student_id, q.id, parsedScore]);
                         }
                     }
                 }
-                // Override the total score with the computed sum if questions exist
                 finalScore = computedScore;
             }
 
+            gradeValues.push([req.params.id, grade.student_id, finalScore, grade.remarks || null, req.user.id]);
+        }
+
+        // Bulk upsert question grades (single query instead of N queries)
+        if (questionGradeValues.length > 0) {
+            await conn.query(
+                `INSERT INTO question_grades (assessment_id, student_id, question_id, score)
+                 VALUES ?
+                 ON DUPLICATE KEY UPDATE score = VALUES(score)`,
+                [questionGradeValues]
+            );
+        }
+
+        // Bulk upsert total grades (single query instead of N queries)
+        if (gradeValues.length > 0) {
             await conn.query(
                 `INSERT INTO grades (assessment_id, student_id, score, remarks, graded_by, graded_at)
-                 VALUES (?, ?, ?, ?, ?, NOW())
+                 VALUES ${gradeValues.map(() => '(?, ?, ?, ?, ?, NOW())').join(', ')}
                  ON DUPLICATE KEY UPDATE
                  score = VALUES(score), remarks = VALUES(remarks), graded_by = VALUES(graded_by), graded_at = NOW()`,
-                [req.params.id, grade.student_id, finalScore, grade.remarks || null, req.user.id]
+                gradeValues.flat()
             );
         }
 
@@ -421,6 +431,10 @@ router.post('/:id/grades', async (req, res) => {
         await conn.query(`UPDATE assessments SET status = 'graded' WHERE id = ?`, [req.params.id]);
 
         await conn.commit();
+
+        // Recalculate CGPA for all affected students (fire-and-forget)
+        recalcCGPAForAssessment(req.params.id).catch(err => console.error('CGPA recalc error:', err.message));
+
         res.json({ success: true, message: `${grades.length} grades saved` });
     } catch (error) {
         await conn.rollback();
@@ -624,7 +638,7 @@ router.post('/:id/grades/import-preview', upload.single('file'), async (req, res
     }
 });
 
-// POST import grades from Excel (supports question-level columns)
+// POST import grades from Excel (supports question-level columns — optimized)
 router.post('/:id/grades/import', upload.single('file'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({
@@ -667,15 +681,28 @@ router.post('/:id/grades/import', upload.single('file'), async (req, res) => {
             [req.params.id]
         );
 
+        // Pre-fetch ALL enrolled students for this course assignment in one query
+        const [enrolledStudents] = await conn.query(
+            `SELECT s.id, s.student_id_number FROM students s
+             JOIN enrollments e ON s.id = e.student_id
+             WHERE e.course_assignment_id = ?`,
+            [assessment.course_assignment_id]
+        );
+        const studentMap = {};
+        enrolledStudents.forEach(s => { studentMap[String(s.student_id_number).trim()] = s.id; });
+
         await conn.beginTransaction();
         const rows = parseExcel(req.file.path);
         let imported = 0, skipped = 0;
         const errors = [];
 
+        // Collect bulk insert data
+        const questionGradeValues = [];
+        const gradeValues = [];
+
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             try {
-                // Find the registration number column (try multiple possible names)
                 const regNum = row['Registration Number'] || row['student_id_number'] || row['Reg No'] || row['registration_number'];
                 if (!regNum) {
                     skipped++;
@@ -683,55 +710,38 @@ router.post('/:id/grades/import', upload.single('file'), async (req, res) => {
                     continue;
                 }
 
-                const [students] = await conn.query(
-                    `SELECT s.id FROM students s
-                     JOIN enrollments e ON s.id = e.student_id
-                     WHERE s.student_id_number = ? AND e.course_assignment_id = ?`,
-                    [regNum, assessment.course_assignment_id]
-                );
-                if (students.length === 0) {
+                // Use pre-fetched map instead of per-row DB query
+                const studentId = studentMap[String(regNum).trim()];
+                if (!studentId) {
                     skipped++;
                     errors.push({ row: i + 2, student: regNum, error: 'Student not found or not enrolled' });
                     continue;
                 }
-                const studentId = students[0].id;
 
                 let totalScore = 0;
                 let hasQuestionScores = false;
 
                 if (questions.length > 0) {
-                    // Process question-level scores
                     for (const q of questions) {
-                        // Try to find the column for this question
                         const colKey = Object.keys(row).find(k => k.startsWith(`Q${q.question_number}`));
                         if (colKey !== undefined && row[colKey] !== '' && row[colKey] !== undefined) {
                             const qScore = parseFloat(row[colKey]);
                             if (!isNaN(qScore)) {
-                                // Validate score range
                                 if (qScore < 0 || qScore > parseFloat(q.max_marks)) {
                                     errors.push({ row: i + 2, student: regNum, error: `Q${q.question_number} score ${qScore} out of range (0-${q.max_marks})` });
                                     continue;
                                 }
                                 hasQuestionScores = true;
                                 totalScore += qScore;
-
-                                // Upsert question grade
-                                await conn.query(
-                                    `INSERT INTO question_grades (assessment_id, student_id, question_id, score)
-                                     VALUES (?, ?, ?, ?)
-                                     ON DUPLICATE KEY UPDATE score = VALUES(score)`,
-                                    [req.params.id, studentId, q.id, qScore]
-                                );
+                                questionGradeValues.push([req.params.id, studentId, q.id, qScore]);
                             }
                         }
                     }
                 } else {
-                    // No questions — look for total score column
                     const scoreKey = Object.keys(row).find(k => k.startsWith('Total Score') || k === 'score' || k === 'Score');
                     if (scoreKey && row[scoreKey] !== '' && row[scoreKey] !== undefined) {
                         totalScore = parseFloat(row[scoreKey]);
                         if (!isNaN(totalScore)) {
-                            // Validate against assessment max_score
                             if (totalScore < 0 || (assessment && totalScore > parseFloat(assessment.max_score))) {
                                 errors.push({ row: i + 2, student: regNum, error: `Total score ${totalScore} out of range (0-${assessment?.max_score})` });
                                 totalScore = 0;
@@ -742,15 +752,9 @@ router.post('/:id/grades/import', upload.single('file'), async (req, res) => {
                     }
                 }
 
-                // Upsert total grade
                 if (hasQuestionScores) {
                     const remarks = row['Remarks'] || row['remarks'] || null;
-                    await conn.query(
-                        `INSERT INTO grades (assessment_id, student_id, score, remarks, graded_by, graded_at)
-                         VALUES (?, ?, ?, ?, ?, NOW())
-                         ON DUPLICATE KEY UPDATE score = VALUES(score), remarks = VALUES(remarks), graded_by = VALUES(graded_by), graded_at = NOW()`,
-                        [req.params.id, studentId, totalScore, remarks, req.user.id]
-                    );
+                    gradeValues.push([req.params.id, studentId, totalScore, remarks, req.user.id]);
                     imported++;
                 } else {
                     skipped++;
@@ -762,7 +766,31 @@ router.post('/:id/grades/import', upload.single('file'), async (req, res) => {
             }
         }
 
+        // Bulk upsert question grades
+        if (questionGradeValues.length > 0) {
+            await conn.query(
+                `INSERT INTO question_grades (assessment_id, student_id, question_id, score)
+                 VALUES ?
+                 ON DUPLICATE KEY UPDATE score = VALUES(score)`,
+                [questionGradeValues]
+            );
+        }
+
+        // Bulk upsert total grades
+        if (gradeValues.length > 0) {
+            await conn.query(
+                `INSERT INTO grades (assessment_id, student_id, score, remarks, graded_by, graded_at)
+                 VALUES ${gradeValues.map(() => '(?, ?, ?, ?, ?, NOW())').join(', ')}
+                 ON DUPLICATE KEY UPDATE score = VALUES(score), remarks = VALUES(remarks), graded_by = VALUES(graded_by), graded_at = NOW()`,
+                gradeValues.flat()
+            );
+        }
+
         await conn.commit();
+
+        // Recalculate CGPA for all affected students (fire-and-forget)
+        recalcCGPAForAssessment(req.params.id).catch(err => console.error('CGPA recalc error:', err.message));
+
         res.json({
             success: true,
             message: `Grades import: ${imported} saved, ${skipped} skipped`,

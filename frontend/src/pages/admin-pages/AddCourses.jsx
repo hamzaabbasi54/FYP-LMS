@@ -6,9 +6,11 @@ import { courseApi, authApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import OverlayLoader from '../../components/common/OverlayLoader';
 import { useAuth } from '../../context/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 const AddCourse = () => {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [loading, setLoading] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
     const [departments, setDepartments] = useState([]);
@@ -154,6 +156,7 @@ const AddCourse = () => {
             const response = await courseApi.create(payload);
             if (response.success) {
                 toast.success('Course created successfully!');
+                queryClient.invalidateQueries({ queryKey: ['courses'] });
                 navigate('/admin-managecourses');
             }
         } catch (error) {
@@ -181,6 +184,7 @@ const AddCourse = () => {
             const response = await courseApi.import(file);
             if (response.success) {
                 toast.success(`Import successful: ${response.data.imported} added, ${response.data.skipped} skipped`);
+                queryClient.invalidateQueries({ queryKey: ['courses'] });
                 setTimeout(() => navigate('/admin-managecourses'), 1500);
             }
         } catch (error) {

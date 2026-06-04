@@ -3,8 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { MdPerson, MdEmail, MdBusiness, MdPhone, MdSchool, MdLogout, MdCheckCircle, MdDelete, MdSearch, MdArrowDropDown, MdAdminPanelSettings } from 'react-icons/md';
 import { authApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
 const SuperAdminPanel = () => {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const { user, logout } = useAuth();
 
     // Form state
@@ -15,53 +18,47 @@ const SuperAdminPanel = () => {
         faculty: '',
         department: ''
     });
-    const [faculties, setFaculties] = useState([]);
     const [departments, setDepartments] = useState([]);
     const [formLoading, setFormLoading] = useState(false);
     const [formSuccess, setFormSuccess] = useState('');
     const [formError, setFormError] = useState('');
-
-    // List state
-    const [admins, setAdmins] = useState([]);
-    const [listLoading, setListLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
-    useEffect(() => {
-        fetchFaculties();
-        fetchAdmins();
-    }, []);
+    // Cached faculties list
+    const { data: faculties = [] } = useQuery({
+        queryKey: ['faculties'],
+        queryFn: async () => {
+            const res = await authApi.getFaculties();
+            if (res.success) return res.data;
+            throw new Error('Failed');
+        },
+        staleTime: 10 * 60 * 1000 // 10 minutes
+    });
+
+    // Cached admins list
+    const { data: admins = [], isLoading: listLoading } = useQuery({
+        queryKey: ['deptAdmins'],
+        queryFn: async () => {
+            const res = await authApi.getAllUsers({ role: 'deptadmin' });
+            if (res.success) return res.data;
+            throw new Error('Failed');
+        }
+    });
 
     useEffect(() => {
         if (formData.faculty) {
-            fetchDepartments(formData.faculty);
+            const fetchDepts = async () => {
+                try {
+                    const res = await authApi.getDepartments(formData.faculty);
+                    if (res.success) setDepartments(res.data);
+                } catch (e) { console.error(e); }
+            };
+            fetchDepts();
         } else {
             setDepartments([]);
             setFormData(prev => ({ ...prev, department: '' }));
         }
     }, [formData.faculty]);
-
-    const fetchFaculties = async () => {
-        try {
-            const res = await authApi.getFaculties();
-            if (res.success) setFaculties(res.data);
-        } catch (e) { console.error(e); }
-    };
-
-    const fetchDepartments = async (faculty) => {
-        try {
-            const res = await authApi.getDepartments(faculty);
-            if (res.success) setDepartments(res.data);
-        } catch (e) { console.error(e); }
-    };
-
-    const fetchAdmins = async () => {
-        setListLoading(true);
-        try {
-            const res = await authApi.getAllUsers({ role: 'deptadmin' });
-            if (res.success) setAdmins(res.data);
-        } catch (e) { console.error(e); }
-        finally { setListLoading(false); }
-    };
 
     const handleChange = (e) => {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -87,7 +84,7 @@ const SuperAdminPanel = () => {
             if (res.success) {
                 setFormSuccess(`Account created for ${formData.fullName}. Invite email sent to ${formData.email}.`);
                 setFormData({ fullName: '', email: '', phoneNumber: '', faculty: '', department: '' });
-                fetchAdmins();
+                queryClient.invalidateQueries({ queryKey: ['deptAdmins'] });
                 setTimeout(() => setFormSuccess(''), 6000);
             }
         } catch (err) {
@@ -101,14 +98,14 @@ const SuperAdminPanel = () => {
         if (!window.confirm('Are you sure you want to delete this department admin?')) return;
         try {
             await authApi.deleteUser(userId);
-            fetchAdmins();
+            queryClient.invalidateQueries({ queryKey: ['deptAdmins'] });
         } catch { alert('Failed to delete.'); }
     };
 
     const handleToggle = async (userId) => {
         try {
             await authApi.toggleUserStatus(userId);
-            fetchAdmins();
+            queryClient.invalidateQueries({ queryKey: ['deptAdmins'] });
         } catch { alert('Failed to toggle status.'); }
     };
 

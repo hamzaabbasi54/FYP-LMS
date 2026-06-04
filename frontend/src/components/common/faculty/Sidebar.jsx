@@ -3,12 +3,37 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { MdDashboard, MdBook, MdSchedule, MdPeople, MdGrade, MdMessage, MdNotifications, MdLogout, MdSchool } from 'react-icons/md';
 import { useCourse } from '../../../context/CourseContext';
 import { useAuth } from '../../../context/AuthContext';
+import { useSocket } from '../../../context/SocketContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { messageApi } from '../../../services/api';
 
 const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { selectedCourse } = useCourse();
     const { user, logout } = useAuth();
+    const socket = useSocket();
+    const queryClient = useQueryClient();
+
+    const { data: unreadData } = useQuery({
+        queryKey: ['unreadMessageCount'],
+        queryFn: async () => {
+            const res = await messageApi.getUnreadCount();
+            return res.success ? res.count : 0;
+        },
+        refetchInterval: 30000,
+    });
+    const unreadCount = unreadData || 0;
+
+    // Listen for new_message socket events to update badge
+    React.useEffect(() => {
+        if (!socket) return;
+        const handler = () => {
+            queryClient.invalidateQueries({ queryKey: ['unreadMessageCount'] });
+        };
+        socket.on('new_message', handler);
+        return () => socket.off('new_message', handler);
+    }, [socket, queryClient]);
 
     // Get logged-in user data from AuthContext
     const facultyName = user?.faculty || 'Faculty';
@@ -138,7 +163,7 @@ const Sidebar = () => {
                         to="/faculty-messages"
                         icon={MdMessage}
                         label="Messages"
-                        badge={3}
+                        badge={unreadCount > 0 ? unreadCount : undefined}
                     />
                     <NavItem to="/faculty-notifications" icon={MdNotifications} label="Notifications" />
                 </div>

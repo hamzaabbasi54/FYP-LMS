@@ -6,6 +6,10 @@
 import express from 'express';
 import pool from '../config/db.js';
 import { verifyToken, isAdmin } from '../middleware/auth.js';
+import { scopeToDepartment } from '../middleware/deptScope.js';
+import { cacheDel } from '../config/redis.js';
+
+const scopeBatch = scopeToDepartment('batches');
 import { emitToDepartment } from '../utils/emitHelper.js';
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
 import multer from 'multer';
@@ -26,7 +30,21 @@ const storage = multer.diskStorage({
         cb(null, uniqueSuffix + path.extname(file.originalname));
     }
 });
-const upload = multer({ storage: storage });
+
+// HIGH-3: File upload security — whitelist allowed types + 10MB limit
+const allowedExtensions = ['.pdf', '.doc', '.docx', '.xlsx', '.xls', '.pptx', '.ppt', '.png', '.jpg', '.jpeg', '.gif', '.csv', '.txt', '.zip'];
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (allowedExtensions.includes(ext)) {
+            cb(null, true);
+        } else {
+            cb(new Error(`File type ${ext} not allowed. Allowed: ${allowedExtensions.join(', ')}`), false);
+        }
+    }
+});
 
 
 const router = express.Router();
@@ -55,13 +73,16 @@ router.get('/', async (req, res) => {
         const [batches] = await pool.query(
             `SELECT b.*, d.name as department_name, f.name as faculty_name,
                     cur.name as curriculum_name,
-                    (SELECT COUNT(*) FROM students s WHERE s.batch_id = b.id) as student_count,
-                    (SELECT COUNT(*) FROM semesters s WHERE s.batch_id = b.id) as semester_count
+                    COUNT(DISTINCT st.id) as student_count,
+                    COUNT(DISTINCT sem.id) as semester_count
              FROM batches b
              JOIN departments d ON b.department_id = d.id
              JOIN faculties f ON d.faculty_id = f.id
              LEFT JOIN curricula cur ON b.curriculum_id = cur.id
+             LEFT JOIN students st ON st.batch_id = b.id
+             LEFT JOIN semesters sem ON sem.batch_id = b.id
              ${whereClause}
+             GROUP BY b.id
              ORDER BY b.created_at DESC
              LIMIT ? OFFSET ?`,
             [...params, limit, offset]
@@ -90,6 +111,11 @@ router.get('/:id', async (req, res) => {
         );
         if (batches.length === 0) {
             return res.status(404).json({ success: false, message: 'Batch not found' });
+        }
+
+        // Department scoping: deptadmin can only view batches in own department
+        if (req.user.role === 'deptadmin' && batches[0].department_id !== req.user.department_id) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
         }
 
         const [semesters] = await pool.query(
@@ -173,7 +199,7 @@ router.post('/', isAdmin, async (req, res) => {
 });
 
 // PUT update batch (with curriculum copy-on-assign)
-router.put('/:id', isAdmin, async (req, res) => {
+router.put('/:id', isAdmin, scopeBatch, async (req, res) => {
     const conn = await pool.getConnection();
     try {
         const { name, start_date, end_date, status, is_active, curriculum_id } = req.body;
@@ -237,6 +263,9 @@ router.put('/:id', isAdmin, async (req, res) => {
         }
 
         res.json({ success: true, message: 'Batch updated' });
+
+        // Invalidate scope cache for this batch
+        await cacheDel(`scope:batches:${req.params.id}`);
     } catch (error) {
         await conn.rollback();
         console.error('Update batch error:', error);
@@ -247,13 +276,16 @@ router.put('/:id', isAdmin, async (req, res) => {
 });
 
 // DELETE batch
-router.delete('/:id', isAdmin, async (req, res) => {
+router.delete('/:id', isAdmin, scopeBatch, async (req, res) => {
     try {
         const [result] = await pool.query('DELETE FROM batches WHERE id = ?', [req.params.id]);
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Batch not found' });
         }
         res.json({ success: true, message: 'Batch deleted' });
+
+        // Invalidate scope cache for deleted batch
+        await cacheDel(`scope:batches:${req.params.id}`);
     } catch (error) {
         console.error('Delete batch error:', error);
         res.status(500).json({ success: false, message: 'Error deleting batch' });
@@ -399,6 +431,8 @@ router.post('/:id/semesters/:semNum/courses', isAdmin, async (req, res) => {
 });
 
 // DELETE remove a course from a batch semester (with copy-on-write from curriculum)
+// CASCADE: Also removes course_assignments, class_schedules, batch_clo_plo_mapping
+// FK cascades handle: enrollments, assessments, grades, attendance, course_assignment_files
 router.delete('/:id/semesters/:semNum/courses/:courseId', isAdmin, async (req, res) => {
     const conn = await pool.getConnection();
     try {
@@ -429,7 +463,43 @@ router.delete('/:id/semesters/:semNum/courses/:courseId', isAdmin, async (req, r
             }
         }
 
-        // Now delete the specific course
+        // Fetch course info before deletion (for WebSocket message)
+        const [[courseInfo]] = await conn.query(
+            'SELECT title, code FROM courses WHERE id = ?', [courseId]
+        );
+
+        // 1. Find the semester for this batch
+        const [semesters] = await conn.query(
+            'SELECT id FROM semesters WHERE batch_id = ? AND semester_number = ?',
+            [batchId, semNum]
+        );
+
+        if (semesters.length > 0) {
+            const semesterId = semesters[0].id;
+
+            // 2. Delete course_assignments for this course+semester
+            // FK cascades will automatically delete: enrollments, assessments, grades, attendance, course_assignment_files
+            await conn.query(
+                'DELETE FROM course_assignments WHERE semester_id = ? AND course_id = ?',
+                [semesterId, courseId]
+            );
+        }
+
+        // 3. Delete class_schedules for this batch+course
+        await conn.query(
+            'DELETE FROM class_schedules WHERE batch_id = ? AND course_id = ?',
+            [batchId, courseId]
+        );
+
+        // 4. Delete batch_clo_plo_mapping for this batch + course's CLOs
+        await conn.query(
+            `DELETE m FROM batch_clo_plo_mapping m
+             JOIN course_clo_mapping ccm ON m.clo_id = ccm.clo_id
+             WHERE m.batch_id = ? AND ccm.course_id = ?`,
+            [batchId, courseId]
+        );
+
+        // 5. Delete the course from batch_semester_courses
         const [result] = await conn.query(
             'DELETE FROM batch_semester_courses WHERE batch_id = ? AND semester_number = ? AND course_id = ?',
             [batchId, semNum, courseId]
@@ -440,7 +510,23 @@ router.delete('/:id/semesters/:semNum/courses/:courseId', isAdmin, async (req, r
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Course not in this semester' });
         }
-        res.json({ success: true, message: 'Course removed from batch semester' });
+
+        // 6. Emit WebSocket event to notify faculty in real-time
+        try {
+            const [[batch]] = await pool.query('SELECT department_id FROM batches WHERE id = ?', [batchId]);
+            if (batch) {
+                const courseName = courseInfo ? `${courseInfo.code}: ${courseInfo.title}` : 'A course';
+                emitToDepartment(batch.department_id, 'course_deleted', {
+                    courseId, batchId,
+                    message: `${courseName} removed from batch by Admin`,
+                    updatedBy: req.user.email
+                });
+            }
+        } catch (emitErr) {
+            console.error('Socket emit error (non-blocking):', emitErr);
+        }
+
+        res.json({ success: true, message: 'Course removed from batch semester (all related data cleaned up)' });
     } catch (error) {
         await conn.rollback();
         console.error('Remove batch course error:', error);

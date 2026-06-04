@@ -6,6 +6,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import pool from '../config/db.js';
+import { cacheDel } from '../config/redis.js';
 
 // Signup Controller — Faculty only (admins are seeded in DB)
 export const signup = async (req, res) => {
@@ -62,7 +63,7 @@ export const signup = async (req, res) => {
         if (existingUsers.length > 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Email already registered'
+                message: 'Unable to create account with the provided details. Please try a different email.'
             });
         }
 
@@ -206,7 +207,7 @@ export const login = async (req, res) => {
             });
         }
 
-        // Generate JWT
+        // Generate JWT (includes token_version for invalidation support)
         const token = jwt.sign(
             {
                 id: user.id,
@@ -215,7 +216,8 @@ export const login = async (req, res) => {
                 faculty: user.faculty_name || '',
                 department: user.department_name || '',
                 faculty_id: user.faculty_id,
-                department_id: user.department_id
+                department_id: user.department_id,
+                token_version: user.token_version || 0
             },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
@@ -382,12 +384,18 @@ export const changePassword = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-        await pool.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, req.user.id]);
+        await pool.query(
+            'UPDATE users SET password = ?, token_version = token_version + 1 WHERE id = ?',
+            [hashedPassword, req.user.id]
+        );
 
         res.status(200).json({
             success: true,
             message: 'Password changed successfully'
         });
+
+        // Invalidate Redis session cache so token_version is re-verified
+        await cacheDel(`session:user:${req.user.id}`);
     } catch (error) {
         console.error('Change password error:', error);
         res.status(500).json({

@@ -8,8 +8,9 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            staleTime: 5 * 60 * 1000, // 5 minutes
-            refetchOnWindowFocus: false,
+            staleTime: 0,                // data is immediately stale, ensuring fresh fetches
+            refetchOnMount: true,         // refetch when component mounts (e.g. navigating back)
+            refetchOnWindowFocus: true,   // refetch when browser tab regains focus
         },
     },
 });
@@ -129,6 +130,8 @@ function App() {
 
                         <Route path="/admin-curricula" element={<ManageCurricula />} />
                         <Route path="/admin-curricula/:id" element={<CurriculumDetails />} />
+
+                        <Route path="/admin-messages" element={<Messages />} />
                     </Route>
                 </Route>
 

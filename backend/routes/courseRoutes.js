@@ -7,14 +7,18 @@ import express from 'express';
 import multer from 'multer';
 import pool from '../config/db.js';
 import { verifyToken, isAdmin, isAuthenticated } from '../middleware/auth.js';
+import { scopeToDepartment } from '../middleware/deptScope.js';
+import { cacheDel } from '../config/redis.js';
+
+const scopeCourse = scopeToDepartment('courses');
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
-import { parseExcel, generateExcel, getUploadDir } from '../utils/excel.js';
+import { parseExcel, generateExcel, getUploadDir, createExcelUpload } from '../utils/excel.js';
 import { emitToDepartment } from '../utils/emitHelper.js';
 
 const router = express.Router();
 router.use(verifyToken);
 
-const upload = multer({ dest: getUploadDir() });
+const upload = createExcelUpload(multer);
 
 // ===================== COURSES =====================
 
@@ -638,7 +642,7 @@ router.post('/', isAdmin, async (req, res) => {
 });
 
 // PUT update course
-router.put('/:id', isAdmin, async (req, res) => {
+router.put('/:id', isAdmin, scopeCourse, async (req, res) => {
     try {
         const { title, code, department_id, credit_hours, semester_level, prerequisites, description } = req.body;
         const fields = [];
@@ -672,6 +676,9 @@ router.put('/:id', isAdmin, async (req, res) => {
         }
 
         res.json({ success: true, message: 'Course updated' });
+
+        // Invalidate scope cache (department_id may have changed)
+        await cacheDel(`scope:courses:${req.params.id}`);
     } catch (error) {
         console.error('Update course error:', error);
         res.status(500).json({ success: false, message: 'Error updating course' });
@@ -679,7 +686,7 @@ router.put('/:id', isAdmin, async (req, res) => {
 });
 
 // DELETE course
-router.delete('/:id', isAdmin, async (req, res) => {
+router.delete('/:id', isAdmin, scopeCourse, async (req, res) => {
     try {
         // Get department_id before deletion
         const [[course]] = await pool.query('SELECT department_id, title FROM courses WHERE id = ?', [req.params.id]);
@@ -699,6 +706,9 @@ router.delete('/:id', isAdmin, async (req, res) => {
         }
 
         res.json({ success: true, message: 'Course deleted' });
+
+        // Invalidate scope cache for deleted resource
+        await cacheDel(`scope:courses:${req.params.id}`);
     } catch (error) {
         console.error('Delete course error:', error);
         res.status(500).json({ success: false, message: 'Error deleting course' });
@@ -1016,6 +1026,31 @@ router.put('/assign/:id', isAdmin, async (req, res) => {
         }
 
         await conn.commit();
+
+        // Emit real-time WebSocket event to faculty's department
+        try {
+            const [[assignment]] = await pool.query(
+                `SELECT c.title, c.code, b.department_id
+                 FROM course_assignments ca
+                 JOIN courses c ON ca.course_id = c.id
+                 JOIN semesters s ON ca.semester_id = s.id
+                 JOIN batches b ON s.batch_id = b.id
+                 WHERE ca.id = ?`,
+                [req.params.id]
+            );
+            if (assignment && assignment.department_id) {
+                emitToDepartment(assignment.department_id, 'faculty_assigned', {
+                    assignmentId: req.params.id,
+                    courseCode: assignment.code,
+                    courseTitle: assignment.title,
+                    message: `Faculty assignment updated for ${assignment.code}: ${assignment.title}`,
+                    updatedBy: req.user.email
+                });
+            }
+        } catch (emitErr) {
+            console.error('Socket emit error (non-blocking):', emitErr);
+        }
+
         res.json({ success: true, message: 'Course assignment updated' });
     } catch (error) {
         await conn.rollback();

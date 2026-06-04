@@ -1,10 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { MdPerson, MdSchool, MdEmail, MdBadge, MdPhone, MdDescription, MdAdd, MdChevronRight, MdFileUpload, MdClose } from 'react-icons/md';
+import { MdPerson, MdSchool, MdEmail, MdBadge, MdPhone, MdDescription, MdAdd, MdChevronRight, MdFileUpload, MdClose, MdSearch, MdPeople, MdSwapHoriz, MdCheck } from 'react-icons/md';
 import { toast } from 'react-toastify';
-import { studentApi } from '../../services/api';
+import { studentApi, batchApi } from '../../services/api';
 import OverlayLoader from '../../components/common/OverlayLoader';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const RegisterStudent = () => {
     const navigate = useNavigate();
@@ -12,6 +12,14 @@ const RegisterStudent = () => {
     const fileInputRef = useRef(null);
     const [showImportModal, setShowImportModal] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
+
+    // Cross-batch picker state
+    const [showPickerModal, setShowPickerModal] = useState(false);
+    const [selectedBatchId, setSelectedBatchId] = useState('');
+    const [studentSearch, setStudentSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [tempSelectedStudent, setTempSelectedStudent] = useState(null); // temp selection inside modal
+    const [confirmedStudent, setConfirmedStudent] = useState(null);       // confirmed after OK
 
     // Form state
     const [formData, setFormData] = useState({
@@ -29,6 +37,80 @@ const RegisterStudent = () => {
         sendWelcomeEmail: true
     });
 
+    // Fetch batches for the picker modal
+    const { data: batchesData } = useQuery({
+        queryKey: ['allBatches'],
+        enabled: showPickerModal,
+        queryFn: async () => {
+            const res = await batchApi.getAll({ limit: 100 });
+            return res.success ? (res.data || []) : [];
+        },
+        staleTime: 5 * 60 * 1000
+    });
+
+    // Fetch students for selected batch
+    const { data: batchStudents = [], isLoading: loadingStudents } = useQuery({
+        queryKey: ['batchStudents', selectedBatchId, studentSearch],
+        enabled: showPickerModal && !!selectedBatchId,
+        queryFn: async () => {
+            const res = await studentApi.getStudentsByBatch(selectedBatchId, studentSearch);
+            return res.success ? (res.data || []) : [];
+        },
+        staleTime: 30 * 1000
+    });
+
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => setStudentSearch(debouncedSearch), 300);
+        return () => clearTimeout(timer);
+    }, [debouncedSearch]);
+
+    // Handle confirming the selected student (OK button)
+    const handleConfirmStudent = () => {
+        if (!tempSelectedStudent) return;
+        setConfirmedStudent(tempSelectedStudent);
+        setFormData({
+            firstName: tempSelectedStudent.first_name || '',
+            lastName: tempSelectedStudent.last_name || '',
+            studentId: tempSelectedStudent.student_id_number || '',
+            phoneNumber: tempSelectedStudent.phone || '',
+            email: tempSelectedStudent.email || '',
+            parentName: tempSelectedStudent.parent_name || '',
+            parentEmail: tempSelectedStudent.parent_email || '',
+            parentPhone: tempSelectedStudent.parent_phone || '',
+            matricMarks: tempSelectedStudent.matric_marks ? String(tempSelectedStudent.matric_marks) : '',
+            fscMarks: tempSelectedStudent.fsc_marks ? String(tempSelectedStudent.fsc_marks) : '',
+            background: tempSelectedStudent.background || '',
+            sendWelcomeEmail: false
+        });
+        setShowPickerModal(false);
+    };
+
+    // Open picker modal
+    const handleOpenPicker = () => {
+        setTempSelectedStudent(null);
+        setSelectedBatchId('');
+        setDebouncedSearch('');
+        setStudentSearch('');
+        setShowPickerModal(true);
+    };
+
+    // Close picker modal without confirming
+    const handleClosePicker = () => {
+        setTempSelectedStudent(null);
+        setShowPickerModal(false);
+    };
+
+    // Clear the confirmed student (go back to manual mode)
+    const handleClearStudent = () => {
+        setConfirmedStudent(null);
+        setFormData({
+            firstName: '', lastName: '', studentId: '', phoneNumber: '',
+            email: '', parentName: '', parentEmail: '', parentPhone: '',
+            matricMarks: '', fscMarks: '', background: '', sendWelcomeEmail: true
+        });
+    };
+
     // Handle input changes
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -43,7 +125,7 @@ const RegisterStudent = () => {
     const registerMutation = useMutation({
         mutationFn: (data) => studentApi.facultyRegisterStudent(assignmentId, data),
         onSuccess: (response) => {
-            toast.success('Student registered successfully!');
+            toast.success(confirmedStudent ? 'Student enrolled from another batch successfully!' : 'Student registered successfully!');
             queryClient.invalidateQueries({ queryKey: ['enrolledStudents', String(assignmentId)] });
             queryClient.invalidateQueries({ queryKey: ['facultyDashboardCourses'] });
             queryClient.invalidateQueries({ queryKey: ['facultyAssignedCourse', String(assignmentId)] });
@@ -73,6 +155,11 @@ const RegisterStudent = () => {
             background: formData.background || null
         };
 
+        // If a student was picked from a different batch, include their original batch_id
+        if (confirmedStudent && confirmedStudent.batch_id) {
+            payload.original_batch_id = confirmedStudent.batch_id;
+        }
+
         registerMutation.mutate(payload);
     };
 
@@ -86,8 +173,6 @@ const RegisterStudent = () => {
         setShowImportModal(false);
         fileInputRef.current?.click();
     };
-
-
 
     const importMutation = useMutation({
         mutationFn: (file) => studentApi.facultyImportStudents(assignmentId, file),
@@ -152,11 +237,61 @@ const RegisterStudent = () => {
                         Fill in the information below to manually enroll a student into the course. To add multiple students, use the CSV import tool.
                     </p>
                 </div>
-                <input type="file" accept=".csv,.xlsx,.xls" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
-                <button type="button" onClick={handleImportClick} className="flex items-center justify-center px-5 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm whitespace-nowrap">
-                    <MdDescription className="w-5 h-5 mr-2" />
-                    Import CSV
-                </button>
+                <div className="flex gap-3">
+                    <input type="file" accept=".csv,.xlsx,.xls" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+                    <button type="button" onClick={handleImportClick} className="flex items-center justify-center px-5 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm whitespace-nowrap">
+                        <MdDescription className="w-5 h-5 mr-2" />
+                        Import CSV
+                    </button>
+                </div>
+            </div>
+
+            {/* Cross-Batch Picker Banner */}
+            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                            <MdSwapHoriz className="w-5 h-5 text-indigo-600" />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-bold text-gray-800">Enroll from Another Batch</h3>
+                            <p className="text-xs text-gray-500">Pick an existing student from a different batch (e.g., a student re-taking a course)</p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleOpenPicker}
+                        className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-medium text-sm transition-all whitespace-nowrap hover:bg-indigo-700 shadow-sm"
+                    >
+                        📋 Select Existing Student
+                    </button>
+                </div>
+
+                {/* Confirmed Student Badge */}
+                {confirmedStudent && (
+                    <div className="mt-4 flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                            <MdCheck className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-green-800">
+                                {confirmedStudent.first_name} {confirmedStudent.last_name}
+                            </p>
+                            <p className="text-xs text-green-600">{confirmedStudent.student_id_number} · {confirmedStudent.email}</p>
+                        </div>
+                        <span className="text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-medium whitespace-nowrap">
+                            From: {confirmedStudent.batch_name}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={handleClearStudent}
+                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Clear selection"
+                        >
+                            <MdClose className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Main Form Card */}
@@ -166,6 +301,9 @@ const RegisterStudent = () => {
                     <div className="flex items-center gap-2 mb-6">
                         <MdPerson className="w-5 h-5 text-gray-600" />
                         <h2 className="text-xl font-bold text-gray-800">Student Information</h2>
+                        {confirmedStudent && (
+                            <span className="text-xs bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full font-medium ml-2">Auto-filled from batch picker</span>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -366,7 +504,6 @@ const RegisterStudent = () => {
                     </div>
                 </div>
 
-
                 {/* Form Actions */}
                 <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200 mt-8">
                     <button
@@ -385,19 +522,170 @@ const RegisterStudent = () => {
                         {registerMutation.isPending ? (
                             <>
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                                Registering...
+                                {confirmedStudent ? 'Enrolling...' : 'Registering...'}
                             </>
                         ) : (
                             <>
                                 <MdAdd className="w-5 h-5 mr-1.5" />
-                                Add Student
+                                {confirmedStudent ? 'Enroll Student' : 'Add Student'}
                             </>
                         )}
                     </button>
                 </div>
             </form>
 
-            {/* Import Modal */}
+            {/* ==================== STUDENT PICKER MODAL ==================== */}
+            {showPickerModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col" style={{ maxHeight: '85vh' }}>
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-blue-50 flex-shrink-0">
+                            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                <MdSwapHoriz className="w-5 h-5 text-indigo-600" />
+                                Select Student from Batch
+                            </h3>
+                            <button onClick={handleClosePicker} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                                <MdClose className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-5 space-y-4 overflow-y-auto flex-1">
+                            {/* Batch Selector */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Select Batch</label>
+                                <select
+                                    value={selectedBatchId}
+                                    onChange={(e) => { setSelectedBatchId(e.target.value); setTempSelectedStudent(null); setDebouncedSearch(''); }}
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white"
+                                >
+                                    <option value="">Choose a batch...</option>
+                                    {(batchesData || []).map(batch => (
+                                        <option key={batch.id} value={batch.id}>
+                                            {batch.name} ({new Date(batch.start_date).getFullYear()} – {new Date(batch.end_date).getFullYear()})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Search Bar (visible after batch selected) */}
+                            {selectedBatchId && (
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Search Student</label>
+                                    <div className="relative">
+                                        <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                        <input
+                                            type="text"
+                                            value={debouncedSearch}
+                                            onChange={(e) => setDebouncedSearch(e.target.value)}
+                                            placeholder="Search by name or roll number..."
+                                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                            autoFocus
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Student List */}
+                            {selectedBatchId && (
+                                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                    <div className="max-h-72 overflow-y-auto">
+                                        {loadingStudents ? (
+                                            <div className="p-8 text-center">
+                                                <div className="inline-block w-7 h-7 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3"></div>
+                                                <p className="text-gray-500 text-sm">Loading students...</p>
+                                            </div>
+                                        ) : batchStudents.length === 0 ? (
+                                            <div className="p-8 text-center">
+                                                <MdPeople className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                                                <p className="text-gray-500 text-sm font-medium">No students found</p>
+                                                <p className="text-gray-400 text-xs mt-1">Try a different batch or search term</p>
+                                            </div>
+                                        ) : (
+                                            batchStudents.map(student => (
+                                                <button
+                                                    key={student.id}
+                                                    type="button"
+                                                    onClick={() => setTempSelectedStudent(student)}
+                                                    className={`w-full text-left px-4 py-3.5 flex items-center gap-3 transition-colors border-b border-gray-100 last:border-b-0 ${
+                                                        tempSelectedStudent?.id === student.id
+                                                            ? 'bg-indigo-50 ring-2 ring-inset ring-indigo-500'
+                                                            : 'hover:bg-gray-50'
+                                                    }`}
+                                                >
+                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                                        tempSelectedStudent?.id === student.id
+                                                            ? 'bg-indigo-600'
+                                                            : 'bg-indigo-100'
+                                                    }`}>
+                                                        {tempSelectedStudent?.id === student.id ? (
+                                                            <MdCheck className="w-5 h-5 text-white" />
+                                                        ) : (
+                                                            <span className="text-indigo-700 font-bold text-xs">
+                                                                {(student.first_name?.[0] || '')}{(student.last_name?.[0] || '')}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-semibold text-gray-800 truncate">
+                                                            {student.first_name} {student.last_name}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 truncate">
+                                                            {student.student_id_number} · {student.email}
+                                                        </p>
+                                                    </div>
+                                                    {tempSelectedStudent?.id === student.id && (
+                                                        <span className="text-xs font-semibold text-indigo-600 bg-indigo-100 px-2.5 py-1 rounded-full">
+                                                            Selected
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Selected Student Preview */}
+                            {tempSelectedStudent && (
+                                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                                    <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Selected Student</p>
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                                        <div><span className="text-gray-500">Name:</span> <span className="font-medium text-gray-800">{tempSelectedStudent.first_name} {tempSelectedStudent.last_name}</span></div>
+                                        <div><span className="text-gray-500">Roll No:</span> <span className="font-medium text-gray-800">{tempSelectedStudent.student_id_number}</span></div>
+                                        <div><span className="text-gray-500">Email:</span> <span className="font-medium text-gray-800">{tempSelectedStudent.email}</span></div>
+                                        <div><span className="text-gray-500">Batch:</span> <span className="font-medium text-gray-800">{tempSelectedStudent.batch_name}</span></div>
+                                        {tempSelectedStudent.phone && <div><span className="text-gray-500">Phone:</span> <span className="font-medium text-gray-800">{tempSelectedStudent.phone}</span></div>}
+                                        {tempSelectedStudent.parent_name && <div><span className="text-gray-500">Parent:</span> <span className="font-medium text-gray-800">{tempSelectedStudent.parent_name}</span></div>}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="flex gap-3 p-5 border-t border-gray-100 bg-gray-50 flex-shrink-0">
+                            <button
+                                type="button"
+                                onClick={handleClosePicker}
+                                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 font-medium text-sm transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleConfirmStudent}
+                                disabled={!tempSelectedStudent}
+                                className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-medium text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <MdCheck className="w-5 h-5" />
+                                OK — Use This Student
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ==================== IMPORT MODAL ==================== */}
             {showImportModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">

@@ -1,32 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { MdExpandMore, MdExpandLess, MdTrendingUp, MdCheckCircle, MdWarning, MdSchool, MdBook, MdCloudDownload } from 'react-icons/md';
 import { obeApi } from '../../services/api';
 import { toast } from 'react-toastify';
+import { useQuery } from '@tanstack/react-query';
 
 const OBEReports = () => {
     const [expandedBatch, setExpandedBatch] = useState(null);
     const [expandedSemester, setExpandedSemester] = useState(null);
-    const [batches, setBatches] = useState([]);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchReports();
-    }, []);
-
-    const fetchReports = async () => {
-        try {
-            setLoading(true);
+    const { data: batches = [], isLoading: loading } = useQuery({
+        queryKey: ['obeReports'],
+        queryFn: async () => {
             const res = await obeApi.getReports();
-            if (res.success) {
-                setBatches(res.data || []);
-            }
-        } catch (error) {
-            console.error('Failed to fetch OBE reports:', error);
-            toast.error('Failed to fetch OBE reports');
-        } finally {
-            setLoading(false);
-        }
-    };
+            if (res.success) return res.data || [];
+            throw new Error('Failed to fetch OBE reports');
+        },
+        staleTime: 5 * 60 * 1000, // Cache for 5 minutes (this is an expensive query)
+        onError: () => toast.error('Failed to fetch OBE reports')
+    });
 
     const getAchievementColor = (percentage) => {
         if (percentage >= 85) return 'text-green-600 bg-green-50';

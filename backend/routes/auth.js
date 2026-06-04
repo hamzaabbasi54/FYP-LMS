@@ -10,6 +10,7 @@ import { signup, login, getProfile, updateProfile, changePassword } from '../con
 import { verifyToken, isAdmin } from '../middleware/auth.js';
 import pool from '../config/db.js';
 import { sendInviteEmail, sendPasswordResetEmail } from '../utils/email.js';
+import { cacheDel } from '../config/redis.js';
 
 const router = express.Router();
 
@@ -362,9 +363,26 @@ router.put('/users/:id', verifyToken, isAdmin, async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        // Don't let admin delete themselves
+        // Don't let admin modify themselves
         if (parseInt(id) === req.user.id) {
             return res.status(400).json({ success: false, message: 'Cannot modify your own account from here' });
+        }
+
+        // CRIT-2: Department admin can only modify users in their own department
+        if (req.user.role === 'deptadmin') {
+            if (existing[0].department_id !== req.user.department_id) {
+                return res.status(403).json({ success: false, message: 'Access denied. User belongs to a different department.' });
+            }
+        }
+
+        // CRIT-3: Role hierarchy — deptadmins can only assign 'faculty' role
+        if (role !== undefined) {
+            const allowedRoles = req.user.role === 'super_admin'
+                ? ['super_admin', 'deptadmin', 'faculty']
+                : ['faculty'];
+            if (!allowedRoles.includes(role)) {
+                return res.status(403).json({ success: false, message: 'You do not have permission to assign this role.' });
+            }
         }
 
         const updates = [];
@@ -409,6 +427,11 @@ router.delete('/users/:id', verifyToken, isAdmin, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Cannot delete your own account' });
         }
 
+        // Department scoping: deptadmin can only delete users in own department
+        if (req.user.role === 'deptadmin' && users[0].department_id !== req.user.department_id) {
+            return res.status(403).json({ success: false, message: 'Access denied. User belongs to a different department.' });
+        }
+
         await pool.query('DELETE FROM users WHERE id = ?', [id]);
 
         res.status(200).json({
@@ -436,14 +459,27 @@ router.patch('/users/:id/status', verifyToken, isAdmin, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Cannot toggle your own account status' });
         }
 
+        // Department scoping: deptadmin can only toggle users in own department
+        if (req.user.role === 'deptadmin' && users[0].department_id !== req.user.department_id) {
+            return res.status(403).json({ success: false, message: 'Access denied. User belongs to a different department.' });
+        }
+
         const newStatus = !users[0].is_active;
-        await pool.query('UPDATE users SET is_active = ? WHERE id = ?', [newStatus, id]);
+        // Bump token_version on deactivation to invalidate existing sessions
+        if (!newStatus) {
+            await pool.query('UPDATE users SET is_active = ?, token_version = token_version + 1 WHERE id = ?', [newStatus, id]);
+        } else {
+            await pool.query('UPDATE users SET is_active = ? WHERE id = ?', [newStatus, id]);
+        }
 
         res.status(200).json({
             success: true,
             message: `${users[0].full_name} is now ${newStatus ? 'active' : 'inactive'}`,
             data: { id: parseInt(id), is_active: newStatus }
         });
+
+        // Invalidate Redis session cache so auth middleware reads fresh data
+        await cacheDel(`session:user:${id}`);
     } catch (error) {
         console.error('Toggle status error:', error);
         res.status(500).json({ success: false, message: 'Error toggling user status' });
@@ -651,9 +687,9 @@ router.post('/reset-password', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Update password and clear reset token
+        // Update password, clear reset token, and invalidate existing sessions
         await pool.query(
-            'UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?',
+            'UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL, token_version = token_version + 1 WHERE id = ?',
             [hashedPassword, user.id]
         );
 
@@ -661,6 +697,9 @@ router.post('/reset-password', async (req, res) => {
             success: true,
             message: 'Password reset successfully! You can now log in with your new password.'
         });
+
+        // Invalidate Redis session cache so token_version check is fresh
+        await cacheDel(`session:user:${user.id}`);
     } catch (error) {
         console.error('Reset password error:', error);
         res.status(500).json({

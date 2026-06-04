@@ -6,6 +6,9 @@
 import express from 'express';
 import pool from '../config/db.js';
 import { verifyToken, isAdmin } from '../middleware/auth.js';
+import { scopeToDepartment } from '../middleware/deptScope.js';
+
+const scopeCurriculum = scopeToDepartment('curricula');
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
 
 const router = express.Router();
@@ -163,7 +166,7 @@ router.post('/', isAdmin, async (req, res) => {
 });
 
 // PUT update curriculum
-router.put('/:id', isAdmin, async (req, res) => {
+router.put('/:id', isAdmin, scopeCurriculum, async (req, res) => {
     try {
         const { name, description, status } = req.body;
         const fields = [];
@@ -188,7 +191,7 @@ router.put('/:id', isAdmin, async (req, res) => {
 });
 
 // DELETE curriculum
-router.delete('/:id', isAdmin, async (req, res) => {
+router.delete('/:id', isAdmin, scopeCurriculum, async (req, res) => {
     try {
         const [result] = await pool.query('DELETE FROM curricula WHERE id = ?', [req.params.id]);
         if (result.affectedRows === 0) {
@@ -204,7 +207,7 @@ router.delete('/:id', isAdmin, async (req, res) => {
 // ===================== SEMESTER COURSES =====================
 
 // POST add course(s) to a curriculum semester
-router.post('/:id/semesters/:semNum/courses', isAdmin, async (req, res) => {
+router.post('/:id/semesters/:semNum/courses', isAdmin, scopeCurriculum, async (req, res) => {
     const conn = await pool.getConnection();
     try {
         await conn.beginTransaction();
@@ -272,7 +275,7 @@ router.post('/:id/semesters/:semNum/courses', isAdmin, async (req, res) => {
 });
 
 // DELETE remove a course from a curriculum semester
-router.delete('/:id/semesters/:semNum/courses/:courseId', isAdmin, async (req, res) => {
+router.delete('/:id/semesters/:semNum/courses/:courseId', isAdmin, scopeCurriculum, async (req, res) => {
     try {
         const [semesters] = await pool.query(
             'SELECT id FROM curriculum_semesters WHERE curriculum_id = ? AND semester_number = ?',

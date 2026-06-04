@@ -516,6 +516,10 @@ export const studentApi = {
     getEnrolledStudents: async (courseAssignmentId) => {
         const response = await api.get(`/students/enrolled/${courseAssignmentId}?limit=1000`);
         return response.data;
+    },
+    getStudentsByBatch: async (batchId, search = '') => {
+        const response = await api.get(`/students/by-batch/${batchId}`, { params: { search } });
+        return response.data;
     }
 };
 
@@ -804,6 +808,32 @@ export const notificationApi = {
     },
     markAllRead: async () => {
         const response = await api.put('/notifications/read-all');
+        return response.data;
+    }
+};
+
+// ============================================
+// Message API
+// ============================================
+export const messageApi = {
+    getContacts: async () => {
+        const response = await api.get('/messages/contacts');
+        return response.data;
+    },
+    getConversation: async (userId) => {
+        const response = await api.get(`/messages/conversation/${userId}`);
+        return response.data;
+    },
+    send: async (recipientId, content) => {
+        const response = await api.post('/messages/send', { recipient_id: recipientId, content });
+        return response.data;
+    },
+    getUnreadCount: async () => {
+        const response = await api.get('/messages/unread-count');
+        return response.data;
+    },
+    markRead: async (userId) => {
+        const response = await api.put(`/messages/read/${userId}`);
         return response.data;
     }
 };

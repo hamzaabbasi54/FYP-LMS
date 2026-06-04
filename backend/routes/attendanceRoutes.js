@@ -8,12 +8,12 @@ import multer from 'multer';
 import pool from '../config/db.js';
 import { verifyToken, isAuthenticated } from '../middleware/auth.js';
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
-import { parseExcel, generateExcel, getUploadDir } from '../utils/excel.js';
+import { parseExcel, generateExcel, getUploadDir, createExcelUpload } from '../utils/excel.js';
 
 const router = express.Router();
 router.use(verifyToken);
 
-const upload = multer({ dest: getUploadDir() });
+const upload = createExcelUpload(multer);
 
 // GET attendance for a course on a specific date (paginated)
 router.get('/course/:courseAssignmentId', async (req, res) => {
