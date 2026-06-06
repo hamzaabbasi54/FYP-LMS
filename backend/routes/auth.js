@@ -202,40 +202,11 @@ router.post('/create-account', verifyToken, isAdmin, async (req, res) => {
         const [existing] = await conn.query('SELECT id, role, full_name FROM users WHERE email = ?', [email.toLowerCase()]);
         
         if (existing.length > 0) {
-            const existingUser = existing[0];
-            
-            // If we are creating a deptadmin and email exists, fail.
-            if (role === 'deptadmin') {
-                await conn.rollback();
-                return res.status(400).json({ success: false, message: 'Email already registered as a different role.' });
-            }
-
-            // If we are creating a faculty, and existing is faculty, add them to user_departments
-            if (role === 'faculty') {
-                if (existingUser.role !== 'faculty') {
-                    await conn.rollback();
-                    return res.status(400).json({ success: false, message: 'Email is already registered under a non-faculty role.' });
-                }
-
-                // Check if already in this department
-                const [userDepts] = await conn.query('SELECT * FROM user_departments WHERE user_id = ? AND department_id = ?', [existingUser.id, departmentId]);
-                if (userDepts.length > 0) {
-                    await conn.rollback();
-                    return res.status(400).json({ success: false, message: 'Faculty member is already associated with this department.' });
-                }
-
-                // Associate faculty with this new department
-                await conn.query(
-                    'INSERT INTO user_departments (user_id, department_id, employment_type, is_primary) VALUES (?, ?, ?, false)',
-                    [existingUser.id, departmentId, employment_type]
-                );
-
-                await conn.commit();
-                return res.status(200).json({
-                    success: true,
-                    message: `Existing faculty member ${existingUser.full_name} has been successfully added to this department as a ${employment_type} faculty.`
-                });
-            }
+            await conn.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'This email is already registered. Visiting faculty must use a separate email for each department.'
+            });
         }
 
         // --- CREATE NEW USER ---
@@ -262,13 +233,8 @@ router.post('/create-account', verifyToken, isAdmin, async (req, res) => {
 
         const newUserId = result.insertId;
 
-        // If faculty, also insert into user_departments
-        if (role === 'faculty') {
-            await conn.query(
-                'INSERT INTO user_departments (user_id, department_id, employment_type, is_primary) VALUES (?, ?, ?, true)',
-                [newUserId, departmentId, employment_type]
-            );
-        }
+        // Note: Visiting faculty use separate accounts per department.
+        // users.department_id is the sole source of truth.
 
         await conn.commit();
 
@@ -319,8 +285,8 @@ router.get('/users', verifyToken, isAdmin, async (req, res) => {
             if (deptId) {
                 whereClause += ' AND u.role = ?';
                 params.push('faculty');
-                whereClause += ' AND (u.department_id = ? OR u.id IN (SELECT user_id FROM user_departments WHERE department_id = ?))';
-                params.push(deptId, deptId);
+                whereClause += ' AND u.department_id = ?';
+                params.push(deptId);
                 whereClause += ' AND u.id != ?';
                 params.push(req.user.id);
             }

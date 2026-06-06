@@ -72,14 +72,7 @@ router.get('/conversation/:userId', async (req, res) => {
         }
 
         if (otherUser[0].department_id !== deptId) {
-            // Also check user_departments for multi-department faculty
-            const [sharedDept] = await pool.query(
-                `SELECT 1 FROM user_departments WHERE user_id = ? AND department_id = ? LIMIT 1`,
-                [otherUserId, deptId]
-            );
-            if (sharedDept.length === 0) {
-                return res.status(403).json({ success: false, message: 'Cannot message users outside your department' });
-            }
+            return res.status(403).json({ success: false, message: 'Cannot message users outside your department' });
         }
 
         // Fetch conversation messages
@@ -143,13 +136,7 @@ router.post('/send', async (req, res) => {
         }
 
         if (recipient[0].department_id !== deptId) {
-            const [sharedDept] = await pool.query(
-                `SELECT 1 FROM user_departments WHERE user_id = ? AND department_id = ? LIMIT 1`,
-                [recipient_id, deptId]
-            );
-            if (sharedDept.length === 0) {
-                return res.status(403).json({ success: false, message: 'You can only message members of your department' });
-            }
+            return res.status(403).json({ success: false, message: 'You can only message members of your department' });
         }
 
         // Insert message
