@@ -288,7 +288,7 @@ router.post('/import', upload.single('file'), async (req, res) => {
         return res.status(400).json({
             success: false,
             message: 'Excel file required.',
-            expected_columns: ['title', 'code', 'department_name', 'credit_hours', 'prerequisites', 'description']
+            expected_columns: ['title', 'code', 'department_name', 'credit_hours', 'description']
         });
     }
 
@@ -321,18 +321,17 @@ router.post('/import', upload.single('file'), async (req, res) => {
                 }
 
                 await conn.query(
-                    `INSERT INTO courses (title, code, department_id, credit_hours, prerequisites, description)
-                     VALUES (?, ?, ?, ?, ?, ?)
+                    `INSERT INTO courses (title, code, department_id, credit_hours, description)
+                     VALUES (?, ?, ?, ?, ?)
                      ON DUPLICATE KEY UPDATE 
                      title = VALUES(title), department_id = VALUES(department_id), 
-                     credit_hours = VALUES(credit_hours), prerequisites = VALUES(prerequisites), 
+                     credit_hours = VALUES(credit_hours), 
                      description = VALUES(description)`,
                     [
                         row.title,
                         row.code,
                         departmentId,
                         parseInt(row.credit_hours) || 3,
-                        row.prerequisites || '',
                         row.description || ''
                     ]
                 );
@@ -362,7 +361,7 @@ router.post('/import', upload.single('file'), async (req, res) => {
 router.get('/export', async (req, res) => {
     try {
         const [courses] = await pool.query(
-            `SELECT c.title, c.code, d.name as department_name, c.credit_hours, c.prerequisites, c.description
+            `SELECT c.title, c.code, d.name as department_name, c.credit_hours, c.description
              FROM courses c
              JOIN departments d ON c.department_id = d.id
              ORDER BY d.name, c.code`
@@ -560,23 +559,16 @@ router.post('/', isAdmin, async (req, res) => {
     const conn = await pool.getConnection();
     try {
         await conn.beginTransaction();
-        const { title, code, department_id, credit_hours, semester_level, prerequisites, description, clos, prerequisite_ids } = req.body;
+        const { title, code, department_id, credit_hours, semester_level, description, clos, prerequisite_ids } = req.body;
 
         if (!title || !code || !department_id || !credit_hours) {
             return res.status(400).json({ success: false, message: 'title, code, department_id, credit_hours are required' });
         }
 
-        // Build prereq display string from IDs if provided
-        let prereqDisplay = prerequisites || '';
-        if (prerequisite_ids && Array.isArray(prerequisite_ids) && prerequisite_ids.length > 0) {
-            const [prereqCourses] = await conn.query('SELECT code FROM courses WHERE id IN (?)', [prerequisite_ids]);
-            prereqDisplay = prereqCourses.map(c => c.code).join(', ');
-        }
-
         const [result] = await conn.query(
-            `INSERT INTO courses (title, code, department_id, credit_hours, semester_level, prerequisites, description)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [title, code.toUpperCase(), department_id, credit_hours, semester_level || null, prereqDisplay, description || null]
+            `INSERT INTO courses (title, code, department_id, credit_hours, semester_level, description)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [title, code.toUpperCase(), department_id, credit_hours, semester_level || null, description || null]
         );
         const courseId = result.insertId;
 
@@ -644,7 +636,7 @@ router.post('/', isAdmin, async (req, res) => {
 // PUT update course
 router.put('/:id', isAdmin, scopeCourse, async (req, res) => {
     try {
-        const { title, code, department_id, credit_hours, semester_level, prerequisites, description } = req.body;
+        const { title, code, department_id, credit_hours, semester_level, description } = req.body;
         const fields = [];
         const values = [];
         if (title) { fields.push('title = ?'); values.push(title); }
@@ -652,7 +644,6 @@ router.put('/:id', isAdmin, scopeCourse, async (req, res) => {
         if (department_id) { fields.push('department_id = ?'); values.push(department_id); }
         if (credit_hours) { fields.push('credit_hours = ?'); values.push(credit_hours); }
         if (semester_level !== undefined) { fields.push('semester_level = ?'); values.push(semester_level); }
-        if (prerequisites !== undefined) { fields.push('prerequisites = ?'); values.push(prerequisites); }
         if (description !== undefined) { fields.push('description = ?'); values.push(description); }
 
         if (fields.length === 0) {

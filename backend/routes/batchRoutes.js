@@ -161,6 +161,15 @@ router.post('/', isAdmin, async (req, res) => {
             return res.status(400).json({ success: false, message: 'name, department_id, start_date, end_date are required' });
         }
 
+        // Validate curriculum belongs to the same department
+        if (curriculum_id) {
+            const [[curriculum]] = await conn.query('SELECT department_id FROM curricula WHERE id = ?', [curriculum_id]);
+            if (curriculum && curriculum.department_id !== parseInt(final_department_id)) {
+                await conn.rollback();
+                return res.status(400).json({ success: false, message: 'Curriculum belongs to a different department' });
+            }
+        }
+
         const [result] = await conn.query(
             'INSERT INTO batches (name, department_id, curriculum_id, start_date, end_date, is_active) VALUES (?, ?, ?, ?, ?, ?)',
             [name, final_department_id, curriculum_id || null, start_date, end_date, is_active || false]
@@ -217,6 +226,17 @@ router.put('/:id', isAdmin, scopeBatch, async (req, res) => {
         }
 
         await conn.beginTransaction();
+
+        // Validate curriculum belongs to the same department as this batch
+        if (curriculum_id) {
+            const [[batch]] = await conn.query('SELECT department_id FROM batches WHERE id = ?', [req.params.id]);
+            const [[curriculum]] = await conn.query('SELECT department_id FROM curricula WHERE id = ?', [curriculum_id]);
+            if (batch && curriculum && curriculum.department_id !== batch.department_id) {
+                await conn.rollback();
+                return res.status(400).json({ success: false, message: 'Curriculum belongs to a different department' });
+            }
+        }
+
         values.push(req.params.id);
         const [result] = await conn.query(`UPDATE batches SET ${fields.join(', ')} WHERE id = ?`, values);
         if (result.affectedRows === 0) {

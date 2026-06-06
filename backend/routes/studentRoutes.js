@@ -675,7 +675,7 @@ router.get('/enrolled/:courseAssignmentId', async (req, res) => {
         );
 
         const [students] = await pool.query(
-            `SELECT s.*, e.id as enrollment_id, e.enrolled_at
+            `SELECT s.*, e.id as enrollment_id, e.created_at as enrolled_at
              FROM students s
              JOIN enrollments e ON s.id = e.student_id
              WHERE e.course_assignment_id = ?
