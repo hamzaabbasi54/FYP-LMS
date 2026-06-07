@@ -32,6 +32,9 @@ import messageRoutes from './routes/messageRoutes.js';
 
 const app = express();
 
+// Trust the first proxy to correctly identify client IPs for rate limiting
+app.set('trust proxy', 1);
+
 // CORS configuration
 const allowedOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',')

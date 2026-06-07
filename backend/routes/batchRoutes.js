@@ -5,8 +5,9 @@
 
 import express from 'express';
 import pool from '../config/db.js';
-import { verifyToken, isAdmin } from '../middleware/auth.js';
+import { verifyToken, isAdmin, isFaculty } from '../middleware/auth.js';
 import { scopeToDepartment } from '../middleware/deptScope.js';
+import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
 import { cacheDel } from '../config/redis.js';
 
 const scopeBatch = scopeToDepartment('batches');
@@ -731,7 +732,7 @@ router.post('/:batchId/semesters/:semesterNumber/courses/:courseId/assign', isAd
 });
 
 // POST upload course content file
-router.post('/:batchId/semesters/:semesterNumber/courses/:courseId/upload', isAdmin, upload.single('file'), async (req, res) => {
+router.post('/:batchId/semesters/:semesterNumber/courses/:courseId/upload', isAdmin, upload.single('file'), validateMagicBytes, async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ success: false, message: 'No file uploaded' });

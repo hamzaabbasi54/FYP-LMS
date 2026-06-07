@@ -7,6 +7,8 @@ import express from 'express';
 import multer from 'multer';
 import pool from '../config/db.js';
 import { verifyToken, isAuthenticated } from '../middleware/auth.js';
+import { scopeFaculty } from '../middleware/facultyScope.js';
+import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
 import { parseExcel, generateExcel, getUploadDir, createExcelUpload } from '../utils/excel.js';
 import { recalcCGPAForAssessment } from '../utils/cgpa.js';
@@ -126,7 +128,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST create assessment
-router.post('/', async (req, res) => {
+router.post('/', scopeFaculty('course_assignment', 'body', 'course_assignment_id'), async (req, res) => {
     const conn = await pool.getConnection();
     try {
         await conn.beginTransaction();
@@ -190,7 +192,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update assessment
-router.put('/:id', async (req, res) => {
+router.put('/:id', scopeFaculty('assessment', 'params', 'id'), async (req, res) => {
     const conn = await pool.getConnection();
     try {
         await conn.beginTransaction();
@@ -276,7 +278,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE assessment
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', scopeFaculty('assessment', 'params', 'id'), async (req, res) => {
     try {
         const [result] = await pool.query('DELETE FROM assessments WHERE id = ?', [req.params.id]);
         if (result.affectedRows === 0) {
@@ -534,8 +536,8 @@ router.get('/:id/grades/template', async (req, res) => {
 
 // ===================== GRADES EXCEL IMPORT (QUESTION-LEVEL) =====================
 
-// POST preview grades from Excel (calculates CLO without saving)
-router.post('/:id/grades/import-preview', upload.single('file'), async (req, res) => {
+// POST import grades preview
+router.post('/:id/grades/import-preview', upload.single('file'), validateMagicBytes, async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'Excel file required.' });
     }
@@ -652,8 +654,8 @@ router.post('/:id/grades/import-preview', upload.single('file'), async (req, res
     }
 });
 
-// POST import grades from Excel (supports question-level columns — optimized)
-router.post('/:id/grades/import', upload.single('file'), async (req, res) => {
+// POST import grades
+router.post('/:id/grades/import', upload.single('file'), validateMagicBytes, async (req, res) => {
     if (!req.file) {
         return res.status(400).json({
             success: false,

@@ -9,6 +9,7 @@ import multer from 'multer';
 import pool from '../config/db.js';
 import { verifyToken, isAdmin, isAuthenticated } from '../middleware/auth.js';
 import { scopeToDepartment } from '../middleware/deptScope.js';
+import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
 
 // Students don't have a direct department_id — resolve via batch → department
 const scopeStudent = scopeToDepartment('students', 'id', {
@@ -236,7 +237,7 @@ router.post('/bulk-delete', isAdmin, async (req, res) => {
 // ===================== EXCEL IMPORT =====================
 
 // POST bulk import students from Excel
-router.post('/import', isAdmin, upload.single('file'), async (req, res) => {
+router.post('/import', isAdmin, upload.single('file'), validateMagicBytes, async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'Excel file is required. Upload as form-data with key "file".' });
     }
@@ -331,7 +332,7 @@ router.post('/import', isAdmin, upload.single('file'), async (req, res) => {
 });
 
 // POST bulk import students and enroll them into a course assignment (Faculty)
-router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file'), async (req, res) => {
+router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file'), validateMagicBytes, async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'Excel file is required. Upload as form-data with key "file".' });
     }

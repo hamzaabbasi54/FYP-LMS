@@ -8,6 +8,7 @@ import multer from 'multer';
 import pool from '../config/db.js';
 import { verifyToken, isAdmin } from '../middleware/auth.js';
 import { scopeToDepartment } from '../middleware/deptScope.js';
+import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
 
 const scopeDept = scopeToDepartment('departments');
 const scopePLO = scopeToDepartment('plos', 'ploId', { deptColumn: 'department_id' });
@@ -284,7 +285,7 @@ router.delete('/plos/:ploId', isAdmin, scopePLO, async (req, res) => {
 });
 
 // POST import PLOs from Excel
-router.post('/plos/import', isAdmin, upload.single('file'), async (req, res) => {
+router.post('/plos/import', isAdmin, upload.single('file'), validateMagicBytes, async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
