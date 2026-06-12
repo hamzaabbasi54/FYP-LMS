@@ -1,0 +1,423 @@
+erDiagram
+
+    %% ==================== CORE IDENTITY ====================
+
+    faculties {
+        int id PK
+        varchar name UK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    departments {
+        int id PK
+        varchar name
+        int faculty_id FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    users {
+        int id PK
+        varchar full_name
+        varchar email UK
+        varchar password
+        enum role "super_admin | deptadmin | faculty"
+        int faculty_id FK
+        int department_id FK
+        varchar phone_number
+        enum status "pending | approved | rejected"
+        int approved_by FK
+        text rejection_reason
+        tinyint is_active
+        timestamp created_at
+        timestamp updated_at
+        varchar invite_token
+        datetime invite_expires
+        varchar reset_token
+        datetime reset_expires
+        int token_version
+    }
+
+
+    %% ==================== ACADEMIC STRUCTURE ====================
+
+    courses {
+        int id PK
+        varchar title
+        varchar code UK
+        int department_id FK
+        int credit_hours
+        int semester_level
+        text description
+        timestamp created_at
+        timestamp updated_at
+        tinyint is_active
+    }
+
+    course_prerequisites {
+        int course_id PK, FK
+        int prerequisite_course_id PK, FK
+    }
+
+    clos {
+        int id PK
+        int course_id FK
+        int clo_number
+        varchar title
+        text description
+        enum cognitive_level "C1 | C2 | C3 | C4 | C5 | C6"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    plos {
+        int id PK
+        int department_id FK
+        int plo_number
+        text description
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    clo_plo_mapping {
+        int clo_id PK, FK
+        int plo_id PK, FK
+    }
+
+    course_clo_mapping {
+        int course_id PK, FK
+        int clo_id PK, FK
+    }
+
+    syllabi {
+        int id PK
+        int course_id UK, FK
+        text course_overview
+        json learning_objectives
+        json weekly_schedule
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    %% ==================== CURRICULUM ====================
+
+    curricula {
+        int id PK
+        varchar name
+        int department_id FK
+        text description
+        int total_semesters
+        enum status "active | archived"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    curriculum_semesters {
+        int id PK
+        int curriculum_id FK
+        int semester_number
+        varchar name
+        timestamp created_at
+    }
+
+    curriculum_semester_courses {
+        int id PK
+        int curriculum_semester_id FK
+        int course_id FK
+        enum type "core | elective"
+        timestamp created_at
+    }
+
+    %% ==================== BATCH & SEMESTER ====================
+
+    batches {
+        int id PK
+        varchar name
+        int department_id FK
+        int curriculum_id FK
+        tinyint is_active
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    semesters {
+        int id PK
+        int batch_id FK
+        varchar name
+        int semester_number
+        varchar term
+        date start_date
+        date end_date
+        timestamp created_at
+        timestamp updated_at
+        tinyint is_active
+    }
+
+    batch_semester_courses {
+        int id PK
+        int batch_id FK
+        int semester_number FK
+        int course_id FK
+        enum type "core | elective"
+        timestamp created_at
+    }
+
+    batch_plos {
+        int batch_id PK, FK
+        int plo_id PK, FK
+    }
+
+    batch_clo_plo_mapping {
+        int batch_id FK
+        int clo_id FK
+        int plo_id FK
+    }
+
+    %% ==================== COURSE DELIVERY ====================
+
+    course_assignments {
+        int id PK
+        int course_id FK
+        int semester_id FK
+        int faculty_id FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    course_assignment_files {
+        int id PK
+        int course_assignment_id FK
+        varchar file_name
+        varchar file_path
+        varchar file_type
+        timestamp uploaded_at
+    }
+
+    class_schedules {
+        int id PK
+        int batch_id FK
+        int course_id FK
+        int faculty_id FK
+        enum day_of_week "monday-sunday"
+        time start_time
+        time end_time
+        enum shift "morning | evening"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    %% ==================== STUDENTS ====================
+
+    students {
+        int id PK
+        varchar student_id_number UK
+        varchar first_name
+        varchar last_name
+        varchar email UK
+        varchar phone
+        int batch_id FK
+        decimal cgpa
+        tinyint is_active
+        timestamp created_at
+        timestamp updated_at
+        decimal matric_marks
+        decimal fsc_marks
+        enum background "pre-med | pre-engineering | ics | other"
+    }
+
+    parents {
+        int id PK
+        int student_id UK, FK
+        varchar name
+        varchar email
+        varchar phone
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    enrollments {
+        int id PK
+        int student_id FK
+        int course_assignment_id FK
+        int original_batch_id FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    %% ==================== ASSESSMENTS & GRADES ====================
+
+    assessments {
+        int id PK
+        int course_assignment_id FK
+        enum type "quiz | assignment | midterm | final | project"
+        varchar title
+        text description
+        datetime due_date
+        datetime conducted_date
+        datetime release_grades_on
+        int max_score
+        decimal weight
+        int duration_minutes
+        enum status "draft | scheduled | published | needs_grading | graded"
+        timestamp created_at
+        timestamp updated_at
+        tinyint is_active
+    }
+
+    assessment_questions {
+        int id PK
+        int assessment_id FK
+        int question_number
+        varchar title
+        decimal max_score
+        int clo_id FK
+        timestamp created_at
+    }
+
+    assessment_clo_mapping {
+        int assessment_id PK, FK
+        int clo_id PK, FK
+    }
+
+    grades {
+        int id PK
+        int assessment_id FK
+        int student_id FK
+        decimal score
+        text remarks
+        int graded_by FK
+        timestamp graded_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    question_grades {
+        int id PK
+        int assessment_id FK
+        int student_id FK
+        int question_id FK
+        decimal score
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    attendance {
+        int id PK
+        int course_assignment_id FK
+        int student_id FK
+        date date
+        enum status "present | absent | late | excused"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    %% ==================== COMMUNICATION ====================
+
+    messages {
+        int id PK
+        int sender_id FK
+        int recipient_id FK
+        int department_id FK
+        text content
+        tinyint is_read
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    notifications {
+        int id PK
+        int user_id FK
+        varchar title
+        text message
+        varchar type
+        tinyint is_read
+        timestamp created_at
+    }
+
+    %% ==================== SYSTEM ====================
+
+    schema_migrations {
+        int id PK
+        varchar migration_name UK
+        timestamp executed_at
+    }
+
+
+    %% ============================================================
+    %% RELATIONSHIPS
+    %% ============================================================
+
+    %% --- Core Identity ---
+    faculties ||--o{ departments : "owns"
+    departments ||--o{ users : "employs"
+    users ||--o| users : "approved by"
+    users }o--o| faculties : "belongs to faculty"
+
+    %% --- Academic Structure ---
+    departments ||--o{ courses : "offers"
+    courses ||--o{ clos : "defines"
+    departments ||--o{ plos : "defines"
+    clos ||--o{ clo_plo_mapping : "maps to"
+    plos ||--o{ clo_plo_mapping : "mapped from"
+    courses ||--o{ course_clo_mapping : "maps CLOs"
+    clos ||--o{ course_clo_mapping : "mapped to course"
+    courses ||--o{ course_prerequisites : "has prerequisite"
+    courses ||--o{ course_prerequisites : "is prerequisite of"
+    courses ||--|| syllabi : "has syllabus"
+
+    %% --- Curriculum ---
+    departments ||--o{ curricula : "designs"
+    curricula ||--o{ curriculum_semesters : "contains"
+    curriculum_semesters ||--o{ curriculum_semester_courses : "includes"
+    courses ||--o{ curriculum_semester_courses : "appears in"
+
+    %% --- Batch & Semester ---
+    departments ||--o{ batches : "runs"
+    curricula ||--o{ batches : "followed by"
+    batches ||--o{ semesters : "has"
+    batches ||--o{ batch_semester_courses : "schedules"
+    semesters ||--o{ batch_semester_courses : "contains"
+    courses ||--o{ batch_semester_courses : "assigned to"
+    batches ||--o{ batch_plos : "targets"
+    plos ||--o{ batch_plos : "targeted by"
+    batches ||--o{ batch_clo_plo_mapping : "maps"
+    clos ||--o{ batch_clo_plo_mapping : "mapped in batch"
+    plos ||--o{ batch_clo_plo_mapping : "mapped in batch"
+
+    %% --- Course Delivery ---
+    semesters ||--o{ course_assignments : "delivers"
+    courses ||--o{ course_assignments : "assigned in"
+    users ||--o{ course_assignments : "teaches"
+    course_assignments ||--o{ course_assignment_files : "has files"
+    batches ||--o{ class_schedules : "schedules"
+    courses ||--o{ class_schedules : "scheduled in"
+    users ||--o{ class_schedules : "teaches"
+
+    %% --- Students ---
+    batches ||--o{ students : "enrolls"
+    students ||--|| parents : "has parent"
+    students ||--o{ enrollments : "enrolls in"
+    course_assignments ||--o{ enrollments : "has enrolled"
+    batches ||--o{ enrollments : "original batch"
+
+    %% --- Assessments & Grades ---
+    course_assignments ||--o{ assessments : "has"
+    assessments ||--o{ assessment_questions : "contains"
+    clos ||--o{ assessment_questions : "measured by"
+    assessments ||--o{ assessment_clo_mapping : "maps CLOs"
+    clos ||--o{ assessment_clo_mapping : "assessed by"
+    assessments ||--o{ grades : "graded in"
+    students ||--o{ grades : "receives"
+    users ||--o{ grades : "graded by"
+    assessments ||--o{ question_grades : "has"
+    students ||--o{ question_grades : "receives"
+    assessment_questions ||--o{ question_grades : "scored in"
+    course_assignments ||--o{ attendance : "tracks"
+    students ||--o{ attendance : "attends"
+
+    %% --- Communication ---
+    users ||--o{ messages : "sends"
+    users ||--o{ messages : "receives"
+    departments ||--o{ messages : "scoped to"
+    users ||--o{ notifications : "notified"
