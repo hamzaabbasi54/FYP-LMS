@@ -850,6 +850,19 @@ router.put('/:id/syllabus', isAdmin, async (req, res) => {
                 weekly_schedule ? JSON.stringify(weekly_schedule) : null
             ]
         );
+        // Notify assigned faculty about syllabus update
+        const [course] = await pool.query('SELECT code, title FROM courses WHERE id = ?', [req.params.id]);
+        const [assignments] = await pool.query(
+            'SELECT DISTINCT faculty_id FROM course_assignments WHERE course_id = ? AND faculty_id IS NOT NULL',
+            [req.params.id]
+        );
+        for (const a of assignments) {
+            await pool.query(
+                'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+                [a.faculty_id, 'Syllabus Updated', `The syllabus for ${course[0]?.code || ''}: ${course[0]?.title || ''} has been updated.`, 'syllabus_update']
+            );
+        }
+
         res.json({ success: true, message: 'Syllabus saved' });
     } catch (error) {
         console.error('Save syllabus error:', error);
@@ -1056,10 +1069,25 @@ router.put('/assign/:id', isAdmin, async (req, res) => {
 // DELETE course assignment
 router.delete('/assign/:id', isAdmin, async (req, res) => {
     try {
+        // Get assignment details before deleting (for notification)
+        const [existing] = await pool.query(
+            `SELECT ca.faculty_id, c.code, c.title FROM course_assignments ca
+             JOIN courses c ON ca.course_id = c.id WHERE ca.id = ?`, [req.params.id]
+        );
+
         const [result] = await pool.query('DELETE FROM course_assignments WHERE id = ?', [req.params.id]);
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Assignment not found' });
         }
+
+        // Notify faculty about unassignment
+        if (existing.length > 0 && existing[0].faculty_id) {
+            await pool.query(
+                'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+                [existing[0].faculty_id, 'Course Unassigned', `You have been removed from ${existing[0].code}: ${existing[0].title}.`, 'course_unassignment']
+            );
+        }
+
         res.json({ success: true, message: 'Course assignment removed' });
     } catch (error) {
         console.error('Delete assignment error:', error);

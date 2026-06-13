@@ -935,6 +935,18 @@ router.put('/:batchId/courses/:courseId/schedule', isAdmin, async (req, res) => 
         }
 
         await conn.commit();
+
+        // Notify faculty about schedule change
+        if (facultyId) {
+            const [courseInfo] = await pool.query('SELECT code, title FROM courses WHERE id = ?', [courseId]);
+            const courseName = courseInfo.length > 0 ? `${courseInfo[0].code}: ${courseInfo[0].title}` : 'a course';
+            const days = schedule.map(s => s.day_of_week).join(', ');
+            await pool.query(
+                'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+                [facultyId, 'Schedule Updated', `Your class schedule for ${courseName} has been updated. Days: ${days}.`, 'schedule_update']
+            );
+        }
+
         res.json({
             success: true,
             message: `Schedule saved — ${schedule.length} day(s) configured`
