@@ -55,26 +55,10 @@ const ManageUsers = () => {
         toggleMutation.mutate(userId);
     };
 
-    const stats = [
-        {
-            label: 'Total Users',
-            value: users.length,
-            color: 'from-blue-500 to-indigo-600'
-        },
-        {
-            label: 'Department Admins',
-            value: users.filter(u => u.role === 'deptadmin').length,
-            color: 'from-purple-500 to-violet-600'
-        },
-        {
-            label: 'Faculty',
-            value: users.filter(u => u.role === 'faculty').length,
-            color: 'from-pink-500 to-rose-600'
-        }
-    ];
+
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="mb-8">
@@ -97,23 +81,6 @@ const ManageUsers = () => {
                     </div>
                 </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-                    {stats.map((stat, index) => (
-                        <div
-                            key={index}
-                            className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"
-                        >
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="bg-blue-50 text-blue-500 p-2 rounded-lg">
-                                    <MdPerson className="w-5 h-5" />
-                                </div>
-                                <h3 className="text-2xl font-bold text-slate-900">{stat.value}</h3>
-                            </div>
-                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{stat.label}</p>
-                        </div>
-                    ))}
-                </div>
 
                 {/* Filters */}
                 <div className="mb-6 flex flex-col md:flex-row gap-4">
@@ -127,18 +94,6 @@ const ManageUsers = () => {
                             className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm outline-none"
                         />
                     </div>
-                    <div className="relative min-w-[200px]">
-                        <MdFilterList className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                        <select
-                            value={filterRole}
-                            onChange={(e) => setFilterRole(e.target.value)}
-                            className="w-full pl-10 pr-8 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm outline-none appearance-none bg-white"
-                        >
-                            <option value="all">All Roles</option>
-                            <option value="deptadmin">Department Admin</option>
-                            <option value="faculty">Faculty</option>
-                        </select>
-                    </div>
                 </div>
 
                 {/* Users Table */}
@@ -151,7 +106,7 @@ const ManageUsers = () => {
                                     <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Role</th>
                                     <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Department</th>
                                     <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Contact</th>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Permissions</th>
+
                                     <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
                                     <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Actions</th>
                                 </tr>
@@ -159,13 +114,13 @@ const ManageUsers = () => {
                             <tbody className="divide-y divide-slate-100">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="7" className="px-6 py-12 text-center text-slate-500">
+                                        <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
                                             Loading users...
                                         </td>
                                     </tr>
                                 ) : users.length === 0 ? (
                                     <tr>
-                                        <td colSpan="7" className="px-6 py-12 text-center text-slate-500">
+                                        <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
                                             No users found
                                         </td>
                                     </tr>
@@ -197,11 +152,7 @@ const ManageUsers = () => {
                                             <td className="px-5 py-4">
                                                 <p className="text-sm text-slate-600">{user.phone_number || 'N/A'}</p>
                                             </td>
-                                            <td className="px-5 py-4">
-                                                <span className="text-sm text-slate-600">
-                                                    {user.permissions?.length || 0} modules
-                                                </span>
-                                            </td>
+
                                             <td className="px-5 py-4">
                                                 <button
                                                     onClick={() => handleToggleActive(user.id)}

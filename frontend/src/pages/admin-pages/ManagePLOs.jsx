@@ -113,7 +113,7 @@ const ManagePLOs = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
             <OverlayLoader isLoading={isImporting} text="Importing PLOs..." />
             <div className="p-8 max-w-5xl mx-auto">
                 {/* Header */}
@@ -217,7 +217,7 @@ const ManagePLOs = () => {
                                     </div>
 
                                     {isExpanded && (
-                                        <div className="border-t border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6">
+                                        <div className="border-t border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200 p-6">
                                             <div className="space-y-3">
                                                 <div>
                                                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">PLO Number</h4>

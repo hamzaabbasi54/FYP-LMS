@@ -128,7 +128,7 @@ const AddBatch = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
             <div className="p-8 max-w-3xl mx-auto">
                 <div className="mb-6">
                     <Link to="/admin-managebatches" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors text-sm font-medium">

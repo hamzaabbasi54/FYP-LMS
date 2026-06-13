@@ -5,6 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useSocket } from '../../../context/SocketContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { messageApi } from '../../../services/api';
+import qauLogo from '../../../assets/QAU-Logo.png';
 
 const Sidebar = () => {
     const location = useLocation();
@@ -75,11 +76,11 @@ const Sidebar = () => {
     };
 
     return (
-        <div className="flex flex-col w-full h-full px-4 py-6 bg-white border-r border-slate-200 overflow-y-auto">
+        <div className="flex flex-col w-full h-full px-4 py-6 bg-slate-50 border-r border-slate-200 overflow-y-auto shadow-sm">
             {/* Logo */}
             <div className="flex items-center mb-8 px-2">
-                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mr-3">
-                    <MdSchool className="w-6 h-6 text-blue-600" />
+                <div className="w-10 h-10 flex items-center justify-center mr-3">
+                    <img src={qauLogo} alt="QAU Logo" className="w-full h-full object-contain drop-shadow-sm" />
                 </div>
                 <div>
                     <h2 className="text-lg font-bold text-slate-800 leading-tight">Uni LMS</h2>

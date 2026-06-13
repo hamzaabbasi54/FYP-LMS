@@ -198,7 +198,7 @@ const AddCourse = () => {
     const handleExport = () => { courseApi.export(); };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
             <OverlayLoader isLoading={isImporting} text="Importing courses..." />
             <div className="p-6 max-w-7xl mx-auto">
                 <div className="mb-6">

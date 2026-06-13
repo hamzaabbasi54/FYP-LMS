@@ -164,7 +164,7 @@ const ManageCLOs = () => {
                 </div>
 
                 {isExpanded && (
-                    <div className="border-t border-slate-200 bg-gradient-to-br from-slate-50 to-white">
+                    <div className="border-t border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200">
                         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Left column */}
                             <div className="space-y-4">
@@ -236,7 +236,7 @@ const ManageCLOs = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
             <OverlayLoader isLoading={isImporting} text="Importing CLOs..." />
             <div className="max-w-6xl mx-auto">
                 {/* Breadcrumb */}

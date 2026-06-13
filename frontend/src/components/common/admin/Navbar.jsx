@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { MdSearch, MdNotifications } from 'react-icons/md';
+import { MdNotifications } from 'react-icons/md';
 import { useAuth } from '../../../context/AuthContext';
 const Navbar = () => {
     const location = useLocation();
@@ -31,15 +31,6 @@ const Navbar = () => {
 
             {/* Right Section */}
             <div className="flex items-center gap-4">
-                {/* Search */}
-                <div className="relative">
-                    <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-                    <input
-                        type="text"
-                        placeholder="Search..."
-                        className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all focus-within:bg-white"
-                    />
-                </div>
 
                 {/* Notifications */}
                 <button className="relative p-2.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">

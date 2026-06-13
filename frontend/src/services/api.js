@@ -520,6 +520,17 @@ export const studentApi = {
     getStudentsByBatch: async (batchId, search = '') => {
         const response = await api.get(`/students/by-batch/${batchId}`, { params: { search } });
         return response.data;
+    },
+    downloadImportTemplate: async () => {
+        const response = await api.get('/students/import/template', { responseType: 'blob' });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'student_import_template.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
     }
 };
 

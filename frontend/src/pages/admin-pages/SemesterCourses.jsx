@@ -150,7 +150,7 @@ const SemesterCourses = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
             <div className="p-8 max-w-6xl mx-auto space-y-6">
                 {/* Breadcrumb */}
                 <div className="flex items-center text-sm text-gray-500 mb-2">

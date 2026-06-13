@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MdAdd, MdSearch, MdEmail, MdMoreHoriz, MdDelete, MdCheckCircle, MdCancel } from 'react-icons/md';
+import { MdAdd, MdSearch, MdEmail, MdMoreHoriz, MdDelete } from 'react-icons/md';
 import { approvalApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,9 +8,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 const ManageFaculty = () => {
     const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeTab, setActiveTab] = useState('approved');
 
-    const { data: facultyMembers = [], isLoading: loadingApproved } = useQuery({
+    const { data: facultyMembers = [], isLoading: loading } = useQuery({
         queryKey: ['faculty_approved'],
         queryFn: async () => {
             const res = await approvalApi.getUsersByRole('faculty');
@@ -18,40 +17,6 @@ const ManageFaculty = () => {
             throw new Error('Failed to load faculty');
         }
     });
-
-    const { data: pendingFaculty = [], isLoading: loadingPending } = useQuery({
-        queryKey: ['faculty_pending'],
-        queryFn: async () => {
-            const res = await approvalApi.getPendingUsers();
-            if (res.success) return res.data || [];
-            throw new Error('Failed to load pending faculty');
-        }
-    });
-
-    const loading = loadingApproved || loadingPending;
-
-    const approveMutation = useMutation({
-        mutationFn: (userId) => approvalApi.approveUser(userId),
-        onSuccess: () => {
-            toast.success('Faculty approved successfully');
-            queryClient.invalidateQueries({ queryKey: ['faculty_approved'] });
-            queryClient.invalidateQueries({ queryKey: ['faculty_pending'] });
-        },
-        onError: () => toast.error('Failed to approve faculty')
-    });
-
-    const handleApprove = (userId) => approveMutation.mutate(userId);
-
-    const rejectMutation = useMutation({
-        mutationFn: (userId) => approvalApi.rejectUser(userId, 'Application rejected by Department Admin'),
-        onSuccess: () => {
-            toast.success('Faculty application rejected');
-            queryClient.invalidateQueries({ queryKey: ['faculty_pending'] });
-        },
-        onError: () => toast.error('Failed to reject faculty')
-    });
-
-    const handleReject = (userId) => rejectMutation.mutate(userId);
 
     const deleteMutation = useMutation({
         mutationFn: (userId) => approvalApi.deleteUser(userId),
@@ -79,9 +44,7 @@ const ManageFaculty = () => {
         }
     };
 
-    const currentList = activeTab === 'approved' ? facultyMembers : pendingFaculty;
-
-    const filteredFaculty = currentList.filter(member =>
+    const filteredFaculty = facultyMembers.filter(member =>
         (member.full_name || member.fullName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (member.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (member.department || '').toLowerCase().includes(searchQuery.toLowerCase())
@@ -93,7 +56,7 @@ const ManageFaculty = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -102,7 +65,7 @@ const ManageFaculty = () => {
                             Faculty Management
                         </h1>
                         <p className="text-slate-500 ml-5">
-                            {loading ? 'Loading...' : `${facultyMembers.length} active faculty • ${pendingFaculty.length} pending`}
+                            {loading ? 'Loading...' : `${facultyMembers.length} active faculty`}
                         </p>
                     </div>
                     <Link
@@ -112,33 +75,6 @@ const ManageFaculty = () => {
                         <MdAdd className="w-5 h-5" />
                         Add Faculty
                     </Link>
-                </div>
-
-                {/* Tabs */}
-                <div className="flex gap-2 mb-6 border-b border-slate-200 pb-2">
-                    <button
-                        onClick={() => setActiveTab('approved')}
-                        className={`flex items-center gap-2 px-4 py-2 font-medium text-sm transition-all duration-200 border-b-2 ${
-                            activeTab === 'approved'
-                                ? 'border-blue-600 text-blue-600'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                        }`}
-                    >
-                        Active Faculty ({facultyMembers.length})
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('pending')}
-                        className={`flex items-center gap-2 px-4 py-2 font-medium text-sm transition-all duration-200 border-b-2 ${
-                            activeTab === 'pending'
-                                ? 'border-blue-600 text-blue-600'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                        }`}
-                    >
-                        Pending Approval ({pendingFaculty.length})
-                        {pendingFaculty.length > 0 && (
-                            <span className="ml-2 inline-flex w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
-                        )}
-                    </button>
                 </div>
 
                 {/* Search */}
@@ -169,10 +105,10 @@ const ManageFaculty = () => {
                 ) : filteredFaculty.length === 0 ? (
                     <div className="text-center py-16">
                         <h3 className="text-lg font-semibold text-slate-600 mb-2">
-                            {activeTab === 'pending' ? 'No pending applications' : 'No faculty members found'}
+                            No faculty members found
                         </h3>
                         <p className="text-slate-400">
-                            {searchQuery ? 'Try a different search term' : activeTab === 'pending' ? 'All applications have been reviewed' : 'Add faculty members to get started'}
+                            {searchQuery ? 'Try a different search term' : 'Add faculty members to get started'}
                         </p>
                     </div>
                 ) : (
@@ -209,27 +145,7 @@ const ManageFaculty = () => {
                                     </div>
 
                                     {/* Actions */}
-                                    {activeTab === 'pending' ? (
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => handleApprove(member.id)}
-                                                disabled={approveMutation.isPending && approveMutation.variables === member.id}
-                                                className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-semibold hover:bg-emerald-200 transition-colors disabled:opacity-50"
-                                            >
-                                                <MdCheckCircle className="w-3.5 h-3.5" />
-                                                Approve
-                                            </button>
-                                            <button
-                                                onClick={() => handleReject(member.id)}
-                                                disabled={rejectMutation.isPending && rejectMutation.variables === member.id}
-                                                className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-semibold hover:bg-red-200 transition-colors disabled:opacity-50"
-                                            >
-                                                <MdCancel className="w-3.5 h-3.5" />
-                                                Reject
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="absolute top-2 right-2">
+                                    <div className="absolute top-2 right-2">
                                             <button
                                                 onClick={() => handleDelete(member.id)}
                                                 disabled={deleteMutation.isPending && deleteMutation.variables === member.id}
@@ -239,7 +155,6 @@ const ManageFaculty = () => {
                                                 <MdDelete className="w-4 h-4" />
                                             </button>
                                         </div>
-                                    )}
                                 </div>
                             );
                         })}

@@ -16,7 +16,7 @@ const scopeStudent = scopeToDepartment('students', 'id', {
     joinQuery: `SELECT b.department_id FROM students s JOIN batches b ON s.batch_id = b.id WHERE s.id = ?`
 });
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
-import { parseExcel, generateExcel, getUploadDir, createExcelUpload } from '../utils/excel.js';
+import { parseExcel, generateExcel, getUploadDir, createExcelUpload, parseAcademicBackground } from '../utils/excel.js';
 
 const router = express.Router();
 router.use(verifyToken);
@@ -68,6 +68,33 @@ router.get('/', async (req, res) => {
     } catch (error) {
         console.error('Get students error:', error);
         res.status(500).json({ success: false, message: 'Error fetching students' });
+    }
+});
+// GET download blank import template (must be before /:id to avoid param conflict)
+router.get('/import/template', isAdmin, (req, res) => {
+    try {
+        const templateData = [
+            {
+                roll_number: '',
+                first_name: '',
+                last_name: '',
+                email: '',
+                phone: '',
+                parent_name: '',
+                parent_email: '',
+                parent_phone: '',
+                matric_marks: '',
+                fsc_marks: '',
+                background: ''
+            }
+        ];
+        const buffer = generateExcel(templateData, 'Students Template');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=student_import_template.xlsx');
+        res.send(buffer);
+    } catch (error) {
+        console.error('Generate template error:', error);
+        res.status(500).json({ success: false, message: 'Error generating template' });
     }
 });
 
@@ -284,6 +311,9 @@ router.post('/import', isAdmin, upload.single('file'), validateMagicBytes, async
 
                 const studentBatchId = row.batch_id || targetBatchId;
 
+                // Robust background parsing
+                const cleanBackground = parseAcademicBackground(row.background);
+
                 const [result] = await conn.query(
                     `INSERT INTO students (student_id_number, first_name, last_name, email, phone, batch_id, matric_marks, fsc_marks, background)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -296,7 +326,7 @@ router.post('/import', isAdmin, upload.single('file'), validateMagicBytes, async
                         matric_marks = VALUES(matric_marks),
                         fsc_marks = VALUES(fsc_marks),
                         background = VALUES(background)`,
-                    [rollNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', studentBatchId, row.matric_marks || null, row.fsc_marks || null, row.background || null]
+                    [rollNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', studentBatchId, row.matric_marks || null, row.fsc_marks || null, cleanBackground]
                 );
 
                 const studentId = result.insertId;
@@ -390,6 +420,9 @@ router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file
                     throw new Error('Roll number is required');
                 }
 
+                // Robust background parsing
+                const cleanBackground = parseAcademicBackground(row.background);
+
                 const [result] = await conn.query(
                     `INSERT INTO students (student_id_number, first_name, last_name, email, phone, batch_id, matric_marks, fsc_marks, background)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -401,7 +434,7 @@ router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file
                         matric_marks = VALUES(matric_marks),
                         fsc_marks = VALUES(fsc_marks),
                         background = VALUES(background)`,
-                    [rollNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', batchId, row.matric_marks || null, row.fsc_marks || null, row.background || null]
+                    [rollNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', batchId, row.matric_marks || null, row.fsc_marks || null, cleanBackground]
                 );
 
                 const studentId = result.insertId;

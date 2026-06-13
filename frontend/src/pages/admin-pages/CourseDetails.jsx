@@ -19,7 +19,7 @@ const CourseDetails = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-8 flex items-center justify-center">
+            <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8 flex items-center justify-center">
                 <div className="text-slate-500 font-medium">Loading course details...</div>
             </div>
         );
@@ -27,7 +27,7 @@ const CourseDetails = () => {
 
     if (!course) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-8 flex items-center justify-center flex-col gap-4">
+            <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8 flex items-center justify-center flex-col gap-4">
                 <div className="text-slate-500 font-medium text-lg">Course not found</div>
                 <Link to="/admin-managecourses" className="text-blue-600 hover:underline">Return to Course Catalog</Link>
             </div>
@@ -37,7 +37,7 @@ const CourseDetails = () => {
     const { clos = [] } = course;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
             <div className="max-w-5xl mx-auto space-y-6">
                 {/* Breadcrumb */}
                 <div className="flex items-center text-sm text-gray-500 mb-2">

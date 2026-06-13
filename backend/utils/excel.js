@@ -25,6 +25,35 @@ export function parseExcel(filePath) {
 }
 
 /**
+ * Robustly parses user input for academic background to match database ENUM.
+ * Handles typos, full forms, abbreviations, and spacing.
+ * @param {string} input - raw string from Excel
+ * @returns {string|null} - strict ENUM value or null
+ */
+export function parseAcademicBackground(input) {
+    if (!input) return null;
+    const str = String(input).toLowerCase().trim();
+    if (!str) return null;
+
+    // ICS Matcher
+    if (/^i\.?c\.?s\.?$/i.test(str) || str.includes('computer science') || /^cs$/i.test(str)) {
+        return 'ics';
+    }
+    
+    // Pre-Med Matcher
+    if (str.includes('med') || str.includes('bio')) {
+        return 'pre-med';
+    }
+
+    // Pre-Engineering Matcher
+    if (str.includes('eng') || str.includes('math')) {
+        return 'pre-engineering';
+    }
+
+    return 'other';
+}
+
+/**
  * Generate Excel buffer from array of objects
  * @param {Array<Object>} data - rows to export
  * @param {string} sheetName - name of the sheet

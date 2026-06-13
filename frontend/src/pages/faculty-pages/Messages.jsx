@@ -229,11 +229,12 @@ const Messages = () => {
     // Render
     // ============================================
     return (
-        <div className="h-[calc(100vh-120px)] flex bg-white rounded-2xl border-2 border-slate-300 shadow-sm shadow-sm overflow-hidden">
+        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-100 to-slate-200 p-4 lg:p-6 rounded-3xl flex flex-col">
+            <div className="flex-1 w-full max-w-7xl mx-auto flex bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden">
             {/* ========== LEFT: Contact List ========== */}
-            <div className={`w-full md:w-[340px] lg:w-[380px] flex-shrink-0 border-r border-slate-100 flex flex-col bg-white ${showMobileChat ? 'hidden md:flex' : 'flex'}`}>
+            <div className={`w-full md:w-[340px] lg:w-[380px] flex-shrink-0 border-r border-slate-200 flex flex-col bg-slate-50 ${showMobileChat ? 'hidden md:flex' : 'flex'}`}>
                 {/* Header */}
-                <div className="p-4 border-b border-slate-100">
+                <div className="p-4 border-b border-slate-200">
                     <h2 className="text-xl font-bold text-slate-800 mb-3">Messages</h2>
                     <div className="relative">
                         <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -242,7 +243,7 @@ const Messages = () => {
                             placeholder="Search contacts..."
                             value={contactSearch}
                             onChange={(e) => setContactSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white border border-transparent focus:border-blue-200 transition-all"
+                            className="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 border border-slate-200 shadow-sm focus:border-blue-300 transition-all"
                         />
                     </div>
                 </div>
@@ -268,8 +269,8 @@ const Messages = () => {
                                 <button
                                     key={contact.id}
                                     onClick={() => handleSelectContact(contact)}
-                                    className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-all border-b border-slate-50 hover:bg-slate-50 ${
-                                        isActive ? 'bg-blue-50 border-l-4 !border-l-blue-500' : ''
+                                    className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-all border-b border-slate-200/50 hover:bg-slate-100/50 ${
+                                        isActive ? 'bg-blue-50/80 border-l-4 !border-l-blue-500' : ''
                                     }`}
                                 >
                                     {/* Avatar */}
@@ -309,7 +310,7 @@ const Messages = () => {
             </div>
 
             {/* ========== RIGHT: Conversation View ========== */}
-            <div className={`flex-1 flex flex-col bg-slate-50 ${!showMobileChat && !selectedContact ? 'hidden md:flex' : 'flex'}`}>
+            <div className={`flex-1 flex flex-col bg-white ${!showMobileChat && !selectedContact ? 'hidden md:flex' : 'flex'}`}>
                 {!selectedContact ? (
                     /* Empty state */
                     <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
@@ -324,7 +325,7 @@ const Messages = () => {
                 ) : (
                     <>
                         {/* Conversation Header */}
-                        <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-slate-100 shadow-sm">
+                        <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-slate-200 shadow-sm">
                             <button
                                 onClick={() => { setShowMobileChat(false); setSelectedContact(null); }}
                                 className="md:hidden p-1 hover:bg-slate-100 rounded-lg text-slate-400"
@@ -383,7 +384,7 @@ const Messages = () => {
                                                         <div className={`px-3.5 py-2 rounded-2xl text-sm leading-relaxed shadow-sm ${
                                                             isMine
                                                                 ? 'bg-blue-500 text-white rounded-br-md'
-                                                                : 'bg-white text-slate-700 rounded-bl-md border border-slate-100'
+                                                                : 'bg-slate-50 text-slate-700 rounded-bl-md border border-slate-200'
                                                         }`}>
                                                             <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                                                         </div>
@@ -404,7 +405,7 @@ const Messages = () => {
                                     })}
                                     {typingUser && (
                                         <div className="flex justify-start mt-2">
-                                            <div className="bg-white border border-slate-100 rounded-2xl rounded-bl-md px-4 py-2.5 shadow-sm">
+                                            <div className="bg-slate-50 border border-slate-200 rounded-2xl rounded-bl-md px-4 py-2.5 shadow-sm">
                                                 <div className="flex gap-1">
                                                     <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                                                     <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -419,7 +420,7 @@ const Messages = () => {
                         </div>
 
                         {/* Message Input */}
-                        <div className="px-4 py-3 bg-white border-t border-slate-100">
+                        <div className="px-4 py-3 bg-slate-50 border-t border-slate-200">
                             <div className="flex items-end gap-2">
                                 <div className="flex-1 relative">
                                     <textarea
@@ -429,7 +430,7 @@ const Messages = () => {
                                         onKeyDown={handleKeyDown}
                                         placeholder="Type a message..."
                                         rows={1}
-                                        className="w-full px-4 py-2.5 bg-slate-50 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white border border-transparent focus:border-blue-200 transition-all max-h-32 overflow-y-auto"
+                                        className="w-full px-4 py-2.5 bg-white rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 border border-slate-200 shadow-sm focus:border-blue-300 transition-all max-h-32 overflow-y-auto"
                                         style={{ minHeight: '42px' }}
                                         onInput={(e) => {
                                             e.target.style.height = 'auto';
@@ -448,6 +449,7 @@ const Messages = () => {
                         </div>
                     </>
                 )}
+            </div>
             </div>
         </div>
     );
