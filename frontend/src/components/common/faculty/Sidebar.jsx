@@ -63,14 +63,14 @@ const Sidebar = () => {
             ? excludePaths.some(path => location.pathname.includes(path))
             : false;
 
-        const baseClasses = "flex items-center justify-between w-full p-2 sm:p-3 rounded-lg text-left transition-colors duration-200 mb-1";
+        const baseClasses = "flex items-center justify-between w-full h-9 px-3 rounded-lg text-sm transition-all duration-200 mb-1";
 
         if (disabled) {
             return (
-                <div className={`${baseClasses} text-gray-400 cursor-not-allowed opacity-50`}>
-                    <div className="flex items-center min-w-0">
-                        <Icon className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-4 flex-shrink-0 text-gray-400" />
-                        <span className="font-medium text-sm sm:text-base truncate">{label}</span>
+                <div className={`${baseClasses} text-slate-400 cursor-not-allowed opacity-50 font-medium`}>
+                    <div className="flex items-center gap-2 min-w-0">
+                        <Icon className="w-5 h-5 flex-shrink-0 text-slate-400" />
+                        <span className="truncate">{label}</span>
                     </div>
                 </div>
             );
@@ -85,8 +85,8 @@ const Sidebar = () => {
                     return `
                         ${baseClasses}
                         ${active
-                            ? 'bg-blue-600 text-white shadow-md'       // Active: Blue bg, white text
-                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' // Inactive: Gray text, light gray hover
+                            ? 'bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600'
+                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium'
                         }
                     `;
                 }}
@@ -96,13 +96,13 @@ const Sidebar = () => {
                     const active = !isExcluded && (isActive || isActiveRoute);
                     return (
                         <>
-                            <div className="flex items-center min-w-0">
-                                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-4 flex-shrink-0 ${active ? 'text-white' : 'text-gray-500'}`} />
-                                <span className="font-medium text-sm sm:text-base truncate">{label}</span>
+                            <div className="flex items-center gap-2 min-w-0">
+                                <Icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-blue-700' : 'text-slate-400'}`} />
+                                <span className="truncate">{label}</span>
                             </div>
                             {badge && (
-                                <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 ml-2">
-                                    {badge}
+                                <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
+                                    {badge > 9 ? '9+' : badge}
                                 </span>
                             )}
                         </>
@@ -137,7 +137,6 @@ const Sidebar = () => {
                     excludePaths={['/faculty-mycourses/grading', '/grading']}
                     disabled={!selectedCourse}
                 />
-                <NavItem to="/faculty-schedule" icon={MdSchedule} label="Schedule" disabled={!selectedCourse} />
                 <NavItem
                     to="/faculty-attendance"
                     icon={MdPeople}
@@ -155,16 +154,16 @@ const Sidebar = () => {
 
                 {/* Communication Section */}
                 <div className="mt-4 sm:mt-6 mb-4">
-                    <div className="border-t border-gray-200 mb-3 sm:mb-4"></div>
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-2 sm:px-3 mb-2">
+                    <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-5 mb-1 px-3">
                         COMMUNICATION
-                    </h3>
+                    </p>
                     <NavItem
                         to="/faculty-messages"
                         icon={MdMessage}
                         label="Messages"
                         badge={unreadCount > 0 ? unreadCount : undefined}
                     />
+                    <NavItem to="/faculty-schedule" icon={MdSchedule} label="Schedule" />
                     <NavItem to="/faculty-notifications" icon={MdNotifications} label="Notifications" />
                 </div>
             </nav>

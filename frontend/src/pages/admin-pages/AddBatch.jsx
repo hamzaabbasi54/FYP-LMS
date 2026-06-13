@@ -131,38 +131,37 @@ const AddBatch = () => {
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
             <div className="p-8 max-w-3xl mx-auto">
                 <div className="mb-6">
-                    <Link to="/admin-managebatches" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm">
+                    <Link to="/admin-managebatches" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors text-sm font-medium">
                         <MdArrowBack className="w-4 h-4" /> Back to Batches
                     </Link>
                 </div>
 
                 <div className="mb-8">
-                    <div className="flex items-center gap-3">
-                        <div className="w-2 h-8 bg-gradient-to-b from-emerald-500 to-teal-600 rounded-full"></div>
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-800">
                             Add New Batch
                         </h1>
                     </div>
-                    <p className="text-slate-500 ml-5 mt-1">Create a new student cohort</p>
+                    <p className="text-sm text-slate-500 mt-1">Create a new student cohort</p>
                 </div>
 
-                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                     <form onSubmit={handleSubmit}>
-                        <div className="p-6 space-y-6">
+                        <div className="p-6 space-y-5">
                             {/* Batch Name */}
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">Batch Name <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Batch Name <span className="text-red-500">*</span></label>
                                 <input type="text" name="batchName" value={formData.batchName} onChange={handleChange}
-                                    className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50"
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
                                     placeholder="e.g., Batch 2026-2030" />
                             </div>
 
                             {/* Faculty Selection */}
                             {!isDeptAdmin && (
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Faculty <span className="text-red-500">*</span></label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Faculty <span className="text-red-500">*</span></label>
                                     <select value={selectedFaculty} onChange={(e) => { setSelectedFaculty(e.target.value); setFormData({...formData, department_id: ''}); }}
-                                        className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50">
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all">
                                         <option value="">Select Faculty...</option>
                                         {faculties.map(fac => <option key={fac.id} value={fac.name}>{fac.name}</option>)}
                                     </select>
@@ -172,17 +171,17 @@ const AddBatch = () => {
                             {/* Department Selection */}
                             {!isDeptAdmin ? (
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Department <span className="text-red-500">*</span></label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Department <span className="text-red-500">*</span></label>
                                     <select name="department_id" value={formData.department_id} onChange={handleChange} disabled={!selectedFaculty}
-                                        className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50 disabled:bg-slate-100">
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all disabled:bg-slate-50 disabled:cursor-not-allowed">
                                         <option value="">{selectedFaculty ? 'Select Department...' : 'Select Faculty first'}</option>
                                         {departments.map(dept => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
                                     </select>
                                 </div>
                             ) : (
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Department</label>
-                                    <div className="w-full px-4 py-3 bg-slate-100 border-2 border-slate-300 shadow-sm rounded-xl text-sm text-slate-600 font-medium">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Department</label>
+                                    <div className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">
                                         {user.department || 'Your Department'}
                                     </div>
                                 </div>
@@ -191,44 +190,44 @@ const AddBatch = () => {
                             {/* Dates */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Start Date <span className="text-red-500">*</span></label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Start Date <span className="text-red-500">*</span></label>
                                     <input type="date" name="startDate" value={formData.startDate} onChange={handleChange}
-                                        className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50" />
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">End Date <span className="text-red-500">*</span></label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">End Date <span className="text-red-500">*</span></label>
                                     <input type="date" name="endDate" value={formData.endDate} onChange={handleChange}
-                                        className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50" />
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all" />
                                 </div>
                             </div>
                         </div>
 
                         {/* PLO Selection Section */}
                         <div className="p-6 border-t border-slate-100 bg-slate-50/50">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-2 h-6 bg-gradient-to-b from-violet-500 to-purple-600 rounded-full"></div>
-                                    <h3 className="text-lg font-bold text-slate-800">Program Learning Outcomes</h3>
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
+                                    <h3 className="text-base font-semibold text-slate-800">Program Learning Outcomes</h3>
                                 </div>
-                                <Link to="/admin-managecourses/plos" className="text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
+                                <Link to="/admin-managecourses/plos" className="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors">
                                     Manage PLOs →
                                 </Link>
                             </div>
-                            <p className="text-sm text-slate-500 mb-4 ml-5">Select the PLOs to associate with this batch</p>
+                            <p className="text-xs text-slate-500 mb-4 ml-4">Select the PLOs to associate with this batch</p>
 
                             {/* Selected PLOs */}
                             {selectedPLOs.length > 0 && (
                                 <div className="space-y-2 mb-4">
                                     {selectedPLOs.map(plo => (
-                                        <div key={plo.id} className="flex justify-between items-start bg-white p-4 rounded-xl border border-violet-200">
-                                            <div className="flex gap-3">
-                                                <span className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-violet-500 to-purple-600 text-white rounded-lg flex items-center justify-center text-xs font-bold">
+                                        <div key={plo.id} className="flex justify-between items-start bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                            <div className="flex gap-2.5">
+                                                <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded flex items-center justify-center text-xs font-bold">
                                                     {plo.plo_number}
                                                 </span>
-                                                <p className="text-sm text-slate-600 pt-1">{plo.description}</p>
+                                                <p className="text-sm text-blue-900 pt-0.5 font-medium">{plo.description}</p>
                                             </div>
-                                            <button type="button" onClick={() => togglePLO(plo.id)} className="p-1 text-slate-400 hover:text-red-500 transition-colors">
-                                                <MdClose className="w-5 h-5" />
+                                            <button type="button" onClick={() => togglePLO(plo.id)} className="p-1 text-blue-400 hover:text-red-500 hover:bg-white rounded transition-colors">
+                                                <MdClose className="w-4 h-4" />
                                             </button>
                                         </div>
                                     ))}
@@ -236,8 +235,8 @@ const AddBatch = () => {
                             )}
 
                             {/* Available PLOs picker */}
-                            <div className="bg-white rounded-xl border-2 border-slate-300 shadow-sm overflow-hidden">
-                                <div className="p-3 border-b border-slate-100">
+                            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="p-3 border-b border-slate-100 bg-slate-50">
                                     <div className="relative">
                                         <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <input
@@ -245,7 +244,7 @@ const AddBatch = () => {
                                             placeholder="Search PLOs..."
                                             value={ploSearch}
                                             onChange={(e) => setPloSearch(e.target.value)}
-                                            className="w-full pl-9 pr-4 py-2 bg-slate-50 border-2 border-slate-300 shadow-sm rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all"
+                                            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                         />
                                     </div>
                                 </div>
@@ -255,7 +254,7 @@ const AddBatch = () => {
                                     ) : filteredAvailablePLOs.length === 0 ? (
                                         <div className="p-6 text-center">
                                             <p className="text-slate-400 text-sm mb-2">{ploSearch ? 'No PLOs match your search' : 'No PLOs available'}</p>
-                                            <Link to="/admin-managecourses/plos" className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                                            <Link to="/admin-managecourses/plos" className="text-xs text-blue-600 hover:text-blue-800 font-medium">
                                                 Create PLOs first →
                                             </Link>
                                         </div>
@@ -266,16 +265,16 @@ const AddBatch = () => {
                                                 <div
                                                     key={plo.id}
                                                     onClick={() => togglePLO(plo.id)}
-                                                    className={`flex items-center gap-3 p-3 cursor-pointer transition-all border-b border-slate-50 last:border-b-0 ${
-                                                        isSelected ? 'bg-violet-50' : 'hover:bg-slate-50'
+                                                    className={`flex items-center gap-3 p-3 cursor-pointer transition-all border-b border-slate-100 last:border-b-0 ${
+                                                        isSelected ? 'bg-blue-50/50' : 'hover:bg-slate-50'
                                                     }`}
                                                 >
-                                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                                                        isSelected ? 'border-violet-500 bg-violet-500' : 'border-slate-300'
+                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
+                                                        isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
                                                     }`}>
-                                                        {isSelected && <MdCheck className="w-3.5 h-3.5 text-white" />}
+                                                        {isSelected && <MdCheck className="w-3 h-3 text-white" />}
                                                     </div>
-                                                    <span className="px-2 py-0.5 bg-gradient-to-r from-violet-500 to-purple-600 text-white text-xs font-bold rounded flex-shrink-0">
+                                                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded flex-shrink-0">
                                                         PLO-{plo.plo_number}
                                                     </span>
                                                     <p className="text-sm text-slate-600 truncate">{plo.description}</p>
@@ -292,22 +291,22 @@ const AddBatch = () => {
 
                         {/* Active Toggle */}
                         <div className="p-6 border-t border-slate-100">
-                            <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl">
+                            <div className="flex items-center justify-between bg-slate-50 p-4 rounded-lg border border-slate-100">
                                 <div>
-                                    <h4 className="font-semibold text-slate-800">Set as Active</h4>
+                                    <h4 className="font-medium text-slate-800 text-sm">Set as Active</h4>
                                     <p className="text-xs text-slate-500">Make this batch available immediately</p>
                                 </div>
                                 <label className="relative inline-flex items-center cursor-pointer">
                                     <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} className="sr-only peer" />
-                                    <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                                 </label>
                             </div>
                         </div>
 
                         {/* Actions */}
-                        <div className="p-6 border-t border-slate-100 flex justify-end gap-3">
-                            <button type="button" onClick={() => navigate('/admin-managebatches')} className="px-6 py-2.5 border-2 border-slate-300 shadow-sm text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
-                            <button type="submit" disabled={loading} className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-emerald-500/25 transition-all disabled:opacity-50">
+                        <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                            <button type="button" onClick={() => navigate('/admin-managebatches')} className="px-4 py-2 border border-slate-200 bg-white shadow-sm text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors text-sm">Cancel</button>
+                            <button type="submit" disabled={loading} className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-colors text-sm disabled:opacity-50">
                                 {loading ? 'Creating...' : 'Create Batch'}
                             </button>
                         </div>

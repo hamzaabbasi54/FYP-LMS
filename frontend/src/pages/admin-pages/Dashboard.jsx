@@ -128,41 +128,32 @@ const Dashboard = () => {
             <div className="p-8 max-w-7xl mx-auto">
 
                 {/* Hero Section */}
-                <div className="mb-10">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-2 h-8 bg-blue-600 rounded-full"></div>
-                        <h1 className="text-3xl font-bold text-slate-800">
-                            Director Dashboard
-                        </h1>
-                    </div>
-                    <p className="text-slate-500 ml-5 flex items-center gap-2">
-                        <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                <div className="mb-8">
+                    <h1 className="text-2xl font-bold text-slate-800">
+                        Director Dashboard
+                    </h1>
+                    <p className="text-sm text-slate-500 mt-0.5 flex items-center gap-2">
                         {user.department || 'Department'} • {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-10">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                     {stats.map((stat, index) => (
                         <div
                             key={index}
-                            className="group relative bg-white rounded-2xl p-6 shadow-md border-2 border-slate-200 hover:shadow-xl hover:shadow-slate-300/50 hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer"
+                            className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-2"
                         >
-                            {/* Gradient accent */}
-                            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.color} opacity-5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:opacity-15 transition-opacity`}></div>
+                            <div className="bg-blue-50 text-blue-600 p-2 rounded-lg w-fit">
+                                <stat.icon className="w-5 h-5" />
+                            </div>
 
-                            <div className="relative">
-                                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                                    <stat.icon className="w-6 h-6 text-white" />
-                                </div>
+                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{stat.label}</p>
+                            <h3 className="text-2xl font-bold text-slate-900">{stat.value}</h3>
 
-                                <p className="text-slate-500 text-sm font-medium mb-1">{stat.label}</p>
-                                <h3 className="text-3xl font-bold text-slate-800 mb-2">{stat.value}</h3>
-
-                                <div className="flex items-center gap-1 text-xs font-medium text-slate-400">
-                                    <MdTrendingUp className="w-3 h-3" />
-                                    <span>{stat.trend}</span>
-                                </div>
+                            <div className="flex items-center gap-1 text-xs text-slate-400">
+                                <MdTrendingUp className="w-3 h-3" />
+                                <span>{stat.trend}</span>
                             </div>
                         </div>
                     ))}
@@ -230,24 +221,24 @@ const Dashboard = () => {
                         <h2 className="text-xl font-bold text-slate-800">Quick Actions</h2>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                         {quickActions.map((action, index) => (
                             <Link
                                 key={index}
                                 to={action.to}
-                                className={`group bg-white rounded-2xl p-6 border-2 border-slate-200 ${action.accent} hover:shadow-xl hover:shadow-slate-300/50 hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300`}
+                                className="bg-white border border-slate-100 rounded-xl p-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group flex flex-col"
                             >
-                                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                                <div className="text-3xl mb-3">
                                     {action.icon}
                                 </div>
-                                <h3 className="font-bold text-slate-800 mb-2 group-hover:text-slate-900">
+                                <h3 className="font-semibold text-slate-800 mb-1 group-hover:text-blue-600 transition-colors">
                                     {action.title}
                                 </h3>
-                                <p className="text-sm text-slate-500 mb-4 leading-relaxed">
+                                <p className="text-sm text-slate-500 mb-3 flex-grow">
                                     {action.description}
                                 </p>
-                                <div className="flex items-center text-sm font-semibold text-blue-600 group-hover:gap-2 transition-all">
-                                    Open <MdArrowForward className="ml-1 group-hover:translate-x-1 transition-transform" />
+                                <div className="flex items-center text-xs font-semibold text-blue-600">
+                                    Open <MdArrowForward className="ml-1 w-3 h-3" />
                                 </div>
                             </Link>
                         ))}

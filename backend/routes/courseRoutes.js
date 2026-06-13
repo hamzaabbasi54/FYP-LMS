@@ -398,7 +398,9 @@ router.get('/my-schedule', async (req, res) => {
              FROM class_schedules cs
              JOIN courses c ON cs.course_id = c.id
              JOIN batches b ON cs.batch_id = b.id
-             WHERE cs.faculty_id = ?
+             JOIN semesters s ON s.batch_id = b.id
+             JOIN course_assignments ca ON ca.course_id = c.id AND ca.semester_id = s.id
+             WHERE ca.faculty_id = ?
              ORDER BY FIELD(cs.day_of_week, 'monday','tuesday','wednesday','thursday','friday','saturday','sunday'),
                       cs.start_time`,
             [req.user.id]

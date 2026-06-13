@@ -127,13 +127,13 @@ const ManageCLOs = () => {
     const renderCloRow = (clo) => {
         const isExpanded = expandedCloId === clo.id;
         return (
-            <div key={clo.id} className="rounded-xl border-2 border-slate-300 shadow-sm overflow-hidden transition-shadow hover:shadow-md">
+            <div key={clo.id} className="border-b border-slate-100 overflow-hidden bg-white">
                 <div
-                    className={`flex items-center justify-between p-4 cursor-pointer transition-all ${isExpanded ? 'bg-amber-50' : 'hover:bg-slate-50'}`}
+                    className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-all ${isExpanded ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
                     onClick={() => setExpandedCloId(isExpanded ? null : clo.id)}
                 >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <span className="px-3 py-1.5 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold rounded-lg flex-shrink-0 shadow-sm">
+                        <span className="bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0">
                             {clo.title}
                         </span>
                         <div className="min-w-0 flex-1">
@@ -154,12 +154,12 @@ const ManageCLOs = () => {
                         <button
                             onClick={(e) => { e.stopPropagation(); handleDeleteCLO(clo.id, clo.title); }}
                             disabled={deleteCloMutation.isPending && deleteCloMutation.variables === clo.id}
-                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
+                            className="p-1.5 text-slate-300 hover:text-slate-600 transition-colors disabled:opacity-50"
                             title={`Delete ${clo.title}`}
                         >
                             <MdDelete className="w-5 h-5" />
                         </button>
-                        {isExpanded ? <MdExpandLess className="w-5 h-5 text-slate-400" /> : <MdExpandMore className="w-5 h-5 text-slate-400" />}
+                        {isExpanded ? <MdExpandLess className="w-5 h-5 text-slate-300 hover:text-slate-600 transition-colors" /> : <MdExpandMore className="w-5 h-5 text-slate-300 hover:text-slate-600 transition-colors" />}
                     </div>
                 </div>
 
@@ -286,27 +286,27 @@ const ManageCLOs = () => {
                 {/* Stats bar */}
                 {!loading && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                        <div className="bg-white rounded-xl border-2 border-slate-200 p-4 text-center shadow-sm">
-                            <p className="text-2xl font-bold text-slate-800">{allCLOs.length}</p>
-                            <p className="text-xs text-slate-500 font-medium">Total CLOs</p>
+                        <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
+                            <p className="text-2xl font-bold text-slate-900">{allCLOs.length}</p>
+                            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mt-1">Total CLOs</p>
                         </div>
-                        <div className="bg-white rounded-xl border-2 border-slate-200 p-4 text-center shadow-sm">
-                            <p className="text-2xl font-bold text-indigo-600">
+                        <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
+                            <p className="text-2xl font-bold text-slate-900">
                                 {allCLOs.filter(c => c.mapped_courses && c.mapped_courses.length > 0).length}
                             </p>
-                            <p className="text-xs text-slate-500 font-medium">Course Mapped</p>
+                            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mt-1">Course Mapped</p>
                         </div>
-                        <div className="bg-white rounded-xl border-2 border-slate-200 p-4 text-center shadow-sm">
-                            <p className="text-2xl font-bold text-emerald-600">
+                        <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
+                            <p className="text-2xl font-bold text-slate-900">
                                 {allCLOs.filter(c => c.mapped_plos && c.mapped_plos.length > 0).length}
                             </p>
-                            <p className="text-xs text-slate-500 font-medium">PLO Mapped</p>
+                            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mt-1">PLO Mapped</p>
                         </div>
-                        <div className="bg-white rounded-xl border-2 border-slate-200 p-4 text-center shadow-sm">
-                            <p className="text-2xl font-bold text-amber-600">
+                        <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
+                            <p className="text-2xl font-bold text-slate-900">
                                 {allCLOs.filter(c => !c.mapped_plos || c.mapped_plos.length === 0).length}
                             </p>
-                            <p className="text-xs text-slate-500 font-medium">Unmapped</p>
+                            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mt-1">Unmapped</p>
                         </div>
                     </div>
                 )}

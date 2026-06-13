@@ -102,35 +102,32 @@ const ManageCurricula = () => {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-2 h-8 bg-gradient-to-b from-indigo-500 to-blue-600 rounded-full"></div>
-                            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                                Manage Curricula
-                            </h1>
-                        </div>
+                        <h1 className="text-2xl font-bold text-slate-800">
+                            Manage Curricula
+                        </h1>
                         <p className="text-slate-500 ml-5">
                             {loading ? 'Loading...' : `${curricula.length} curricula found`}
                         </p>
                     </div>
                     <button
                         onClick={() => setShowCreateDialog(true)}
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-blue-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all duration-200"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors text-sm"
                     >
-                        <MdAdd className="w-5 h-5" />
+                        <MdAdd className="w-4 h-4" />
                         Add Curriculum
                     </button>
                 </div>
 
                 {/* Search Bar */}
-                <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-4 mb-8">
+                <div className="mb-8">
                     <div className="relative">
-                        <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
                             placeholder="Search curricula by name or department..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-300 rounded-xl shadow-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all"
+                            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
                         />
                     </div>
                 </div>
@@ -160,9 +157,9 @@ const ManageCurricula = () => {
                         {!searchQuery && (
                             <button
                                 onClick={() => setShowCreateDialog(true)}
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-blue-600 text-white font-medium rounded-xl"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors text-sm"
                             >
-                                <MdAdd className="w-5 h-5" />
+                                <MdAdd className="w-4 h-4" />
                                 Add Curriculum
                             </button>
                         )}
@@ -174,48 +171,48 @@ const ManageCurricula = () => {
                             <Link
                                 key={curr.id}
                                 to={`/admin-curricula/${curr.id}`}
-                                className="group bg-white rounded-2xl shadow-sm border-2 border-slate-200 overflow-hidden hover:shadow-xl hover:shadow-slate-300/50 transition-all duration-300 hover:-translate-y-1"
+                                className="group bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow relative"
                             >
                                 {/* Card Header */}
-                                <div className={`bg-gradient-to-r ${colorPalette[index % colorPalette.length]} p-6`}>
+                                <div className="bg-slate-50 border-b border-slate-100 p-4">
                                     <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <MdMenuBook className="w-6 h-6 text-white/90" />
-                                            <h3 className="text-xl font-bold text-white truncate">{curr.name}</h3>
+                                        <div className="flex items-center gap-2">
+                                            <MdMenuBook className="w-5 h-5 text-slate-400" />
+                                            <h3 className="text-base font-semibold text-slate-800 truncate hover:text-blue-600 transition-colors">{curr.name}</h3>
                                         </div>
                                         <button
                                             onClick={(e) => handleDelete(curr.id, e)}
                                             disabled={deletingId === curr.id}
-                                            className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors disabled:opacity-50"
+                                            className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors disabled:opacity-50"
                                             title="Delete curriculum"
                                         >
-                                            <MdDelete className="w-4 h-4 text-white" />
+                                            <MdDelete className="w-4 h-4" />
                                         </button>
                                     </div>
-                                    <p className="text-white/80 text-sm mt-1">
+                                    <p className="text-slate-500 text-xs mt-1 ml-7">
                                         {curr.department_name || 'No Department'}
                                     </p>
                                 </div>
 
                                 {/* Card Body */}
-                                <div className="p-6">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-2 text-slate-600">
-                                            <MdSchool className="w-5 h-5 text-slate-400" />
-                                            <span className="text-sm font-medium">{curr.total_semesters || 8} Semesters</span>
+                                <div className="p-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-1.5 text-slate-600">
+                                            <MdSchool className="w-4 h-4 text-slate-400" />
+                                            <span className="text-xs font-medium">{curr.total_semesters || 8} Semesters</span>
                                         </div>
-                                        <div className="flex items-center gap-2 text-slate-600">
-                                            <MdLibraryBooks className="w-5 h-5 text-slate-400" />
-                                            <span className="text-sm font-medium">{curr.total_courses || 0} Courses</span>
+                                        <div className="flex items-center gap-1.5 text-slate-600">
+                                            <MdLibraryBooks className="w-4 h-4 text-slate-400" />
+                                            <span className="text-xs font-medium">{curr.total_courses || 0} Courses</span>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2 text-slate-600">
-                                            <MdGroups className="w-5 h-5 text-slate-400" />
-                                            <span className="text-sm font-medium">{curr.batch_count || 0} Batches</span>
+                                        <div className="flex items-center gap-1.5 text-slate-600">
+                                            <MdGroups className="w-4 h-4 text-slate-400" />
+                                            <span className="text-xs font-medium">{curr.batch_count || 0} Batches</span>
                                         </div>
-                                        <span className={`inline-flex px-3 py-1 rounded-lg text-xs font-semibold
+                                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider
                                             ${curr.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}
                                         >
                                             {curr.status === 'active' ? 'Active' : 'Archived'}
@@ -231,34 +228,32 @@ const ManageCurricula = () => {
             {/* Create Curriculum Dialog */}
             {showCreateDialog && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-200">
-                            <div className="flex items-center gap-3">
-                                <div className="w-2 h-6 bg-gradient-to-b from-indigo-500 to-blue-600 rounded-full"></div>
-                                <h2 className="text-xl font-bold text-slate-800">Create New Curriculum</h2>
-                            </div>
-                            <button onClick={() => setShowCreateDialog(false)} disabled={createMutation.isPending} className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50">
-                                <span className="text-slate-500 text-xl">&times;</span>
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200">
+                        <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50">
+                            <h2 className="text-lg font-semibold text-slate-800">Create New Curriculum</h2>
+                            <button onClick={() => setShowCreateDialog(false)} disabled={createMutation.isPending} className="p-1.5 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50">
+                                <MdDelete className="hidden" /> {/* just to keep import used if not elsewhere */}
+                                <span className="text-slate-500 text-xl leading-none">&times;</span>
                             </button>
                         </div>
-                        <div className="p-6 space-y-4">
-                            <div className="space-y-2">
+                        <div className="p-5 space-y-4">
+                            <div className="space-y-1">
                                 <label className="text-sm font-medium text-slate-700">Curriculum Name <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     value={newCurriculum.name}
                                     onChange={(e) => setNewCurriculum(prev => ({ ...prev, name: e.target.value }))}
                                     placeholder="e.g., BS Physics 2024"
-                                    className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-700"
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
                                 />
                             </div>
                             {!isDeptAdmin ? (
-                                <div className="space-y-2">
+                                <div className="space-y-1">
                                     <label className="text-sm font-medium text-slate-700">Department <span className="text-red-500">*</span></label>
                                     <select
                                         value={newCurriculum.department_id}
                                         onChange={(e) => setNewCurriculum(prev => ({ ...prev, department_id: e.target.value }))}
-                                        className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-700"
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all"
                                     >
                                         <option value="">Select Department</option>
                                         {departments.map(dept => (
@@ -267,35 +262,35 @@ const ManageCurricula = () => {
                                     </select>
                                 </div>
                             ) : (
-                                <div className="space-y-2">
+                                <div className="space-y-1">
                                     <label className="text-sm font-medium text-slate-700">Department</label>
-                                    <div className="w-full px-4 py-3 bg-slate-100 border-2 border-slate-300 shadow-sm rounded-xl text-sm text-slate-600 font-medium">
+                                    <div className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">
                                         {user.department || 'Your Department'}
                                     </div>
                                 </div>
                             )}
-                            <div className="space-y-2">
+                            <div className="space-y-1">
                                 <label className="text-sm font-medium text-slate-700">Description</label>
                                 <textarea
                                     value={newCurriculum.description}
                                     onChange={(e) => setNewCurriculum(prev => ({ ...prev, description: e.target.value }))}
                                     placeholder="Brief description of this curriculum..."
                                     rows={3}
-                                    className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-700 resize-none"
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all resize-none"
                                 />
                             </div>
-                            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-sm text-indigo-700">
+                            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-700">
                                 <strong>Note:</strong> 8 empty semesters will be automatically created. You can then add courses to each semester.
                             </div>
                         </div>
-                        <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200 bg-slate-50">
-                            <button onClick={() => setShowCreateDialog(false)} disabled={createMutation.isPending} className="px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 border border-slate-300 rounded-xl hover:bg-white transition-all disabled:opacity-50">
+                        <div className="flex items-center justify-end gap-3 p-5 border-t border-slate-100 bg-slate-50">
+                            <button onClick={() => setShowCreateDialog(false)} disabled={createMutation.isPending} className="px-4 py-2 text-sm font-medium text-slate-700 border border-slate-200 rounded-lg hover:bg-white transition-colors disabled:opacity-50 bg-white">
                                 Cancel
                             </button>
                             <button
                                 onClick={handleCreate}
                                 disabled={!newCurriculum.name || !newCurriculum.department_id || createMutation.isPending}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-indigo-500/25 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <MdAdd className="w-4 h-4" /> {createMutation.isPending ? 'Creating...' : 'Create Curriculum'}
                             </button>

@@ -33,34 +33,31 @@ const CourseCard = ({ course, icon: Icon, gradientColor }) => {
     return (
         <div
             onClick={handleClick}
-            className="group relative bg-white rounded-2xl p-6 shadow-md border-2 border-slate-200 hover:shadow-xl hover:shadow-slate-300/50 hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer flex flex-col h-full"
+            className="group bg-white border border-slate-100 rounded-xl p-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col h-full"
         >
-            {/* Gradient accent in top right */}
-            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${gradientColor} opacity-5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:opacity-15 transition-opacity`}></div>
-
             <div className="relative flex-grow flex flex-col">
                 <div className="flex justify-between items-start mb-4">
-                    <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${gradientColor} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                        <Icon className="w-6 h-6 text-white" />
+                    <div className="text-3xl text-blue-600">
+                        <Icon />
                     </div>
                     <div className="text-right">
-                        <p className="text-sm font-bold text-slate-800">{course.code}</p>
+                        <p className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{course.code}</p>
                         <p className="text-xs text-slate-500">{course.credit_hours} Credits</p>
                     </div>
                 </div>
 
-                <h3 className="text-xl font-bold text-slate-800 mb-2 leading-tight">{course.title}</h3>
-                <p className="text-sm text-slate-600 mb-1">{course.batch_name}</p>
-                <p className="text-xs text-slate-400 mb-4">{course.semester_name}</p>
+                <h3 className="text-lg font-bold text-slate-800 mb-1 leading-tight group-hover:text-blue-600 transition-colors">{course.title}</h3>
+                <p className="text-sm text-slate-600 mb-0.5">{course.batch_name}</p>
+                <p className="text-xs text-slate-400 mb-4 flex-grow">{course.semester_name}</p>
 
-                <div className="mt-auto pt-4 border-t-2 border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
                         <MdPeople className="w-4 h-4 text-slate-400" />
-                        <p className="text-sm font-bold text-slate-700">{course.student_count} Students</p>
+                        <p className="text-xs font-semibold text-slate-600">{course.student_count} Students</p>
                     </div>
-                    <span className="inline-flex items-center text-blue-600 font-semibold text-sm group-hover:text-blue-700">
+                    <span className="inline-flex items-center text-blue-600 font-semibold text-xs">
                         Manage
-                        <MdArrowForward className="ml-1 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        <MdArrowForward className="ml-1 w-3 h-3 group-hover:translate-x-1 transition-transform" />
                     </span>
                 </div>
             </div>
@@ -114,52 +111,45 @@ const Dashboard = () => {
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
             <div className="p-8 max-w-7xl mx-auto">
                 {/* Hero Section */}
-                <div className="mb-10">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-2 h-8 bg-blue-600 rounded-full"></div>
-                        <h1 className="text-3xl font-bold text-slate-800">
-                            Faculty Dashboard
-                        </h1>
-                    </div>
-                    <p className="text-slate-500 ml-5 flex items-center gap-2">
-                        <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                <div className="mb-8">
+                    <h1 className="text-2xl font-bold text-slate-800">
+                        Faculty Dashboard
+                    </h1>
+                    <p className="text-sm text-slate-500 mt-0.5 flex items-center gap-2">
                         {user?.department || 'Department'} • {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                     {stats.map((stat, index) => (
                         <div
                             key={index}
-                            className="group relative bg-white rounded-2xl p-6 shadow-md border-2 border-slate-200 hover:shadow-xl hover:shadow-slate-300/50 hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-default"
+                            className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-2"
                         >
-                            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.color} opacity-5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:opacity-15 transition-opacity`}></div>
-                            <div className="relative">
-                                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                                    <stat.icon className="w-6 h-6 text-white" />
-                                </div>
-                                <p className="text-slate-500 text-sm font-medium mb-1">{stat.label}</p>
-                                <h3 className="text-3xl font-bold text-slate-800 mb-2">{stat.value}</h3>
-                                <div className="flex items-center gap-1 text-xs font-medium text-slate-400">
-                                    <MdTrendingUp className="w-3 h-3" />
-                                    <span>{stat.trend}</span>
-                                </div>
+                            <div className="bg-blue-50 text-blue-600 p-2 rounded-lg w-fit">
+                                <stat.icon className="w-5 h-5" />
+                            </div>
+                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{stat.label}</p>
+                            <h3 className="text-2xl font-bold text-slate-900">{stat.value}</h3>
+                            <div className="flex items-center gap-1 text-xs text-slate-400">
+                                <MdTrendingUp className="w-3 h-3" />
+                                <span>{stat.trend}</span>
                             </div>
                         </div>
                     ))}
                 </div>
 
                 {/* --- Assigned Courses Section --- */}
-                <div className="mb-10 bg-white rounded-2xl shadow-md border-2 border-slate-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b-2 border-slate-200 bg-slate-50/50">
+                <div className="mb-10 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="px-5 py-4 border-b border-slate-200 bg-slate-50">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shadow-sm">
-                                <MdSchool className="w-5 h-5 text-blue-700" />
+                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                <MdSchool className="w-4 h-4 text-blue-700" />
                             </div>
                             <div>
-                                <h2 className="font-bold text-slate-800">My Assigned Courses</h2>
-                                <p className="text-sm text-slate-500">Select a course to manage attendance, grades, and syllabus.</p>
+                                <h2 className="text-sm font-semibold text-slate-800">My Assigned Courses</h2>
+                                <p className="text-xs text-slate-500 mt-0.5">Select a course to manage attendance, grades, and syllabus.</p>
                             </div>
                         </div>
                     </div>
@@ -175,14 +165,14 @@ const Dashboard = () => {
 
                         {/* Error State */}
                         {error && !loading && (
-                            <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 text-center">
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
                                 <p className="text-red-600 font-medium">{error}</p>
                             </div>
                         )}
 
                         {/* Empty State */}
                         {!loading && !error && courses.length === 0 && (
-                            <div className="bg-white border-2 border-slate-200 rounded-2xl p-12 text-center shadow-sm">
+                            <div className="bg-white border border-slate-200 rounded-lg p-12 text-center shadow-sm">
                                 <MdBook className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                                 <h3 className="text-xl font-bold text-slate-700 mb-2">No Courses Assigned</h3>
                                 <p className="text-slate-500">You don't have any courses assigned yet. Please contact your department admin.</p>

@@ -36,8 +36,8 @@ const GradeAssignment = () => {
     const avatarColors = [
         "bg-purple-100 text-purple-700",
         "bg-pink-100 text-pink-700",
-        "bg-green-100 text-green-700",
-        "bg-yellow-100 text-yellow-700",
+        "bg-emerald-100 text-emerald-700",
+        "bg-amber-100 text-amber-700",
         "bg-indigo-100 text-indigo-700",
         "bg-blue-100 text-blue-700",
         "bg-red-100 text-red-700",
@@ -408,7 +408,7 @@ const GradeAssignment = () => {
             <div className="p-4 sm:p-6 lg:p-8">
                 <div className="flex justify-center items-center py-20">
                     <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-                    <p className="text-gray-500 text-sm ml-4">Loading assessment data...</p>
+                    <p className="text-slate-500 text-sm ml-4">Loading assessment data...</p>
                 </div>
             </div>
         );
@@ -418,7 +418,7 @@ const GradeAssignment = () => {
         return (
             <div className="p-4 sm:p-6 lg:p-8">
                 <div className="text-center py-20">
-                    <p className="text-gray-500 text-sm">Assessment not found.</p>
+                    <p className="text-slate-500 text-sm">Assessment not found.</p>
                     <Link
                         to={`/faculty-mycourses/${courseAssignmentId}/grading`}
                         className="text-blue-600 hover:text-blue-700 font-medium text-sm mt-4 inline-block"
@@ -437,38 +437,38 @@ const GradeAssignment = () => {
             <OverlayLoader isLoading={saving || importing} text={saving ? "Saving grades to database..." : "Importing grades..."} />
             
             {/* Breadcrumbs */}
-            <div className="flex items-center text-sm text-gray-500 mb-4">
+            <div className="flex items-center text-sm text-slate-500 mb-4 font-medium">
                 <Link to={`/faculty-mycourses/${courseAssignmentId}`} className="hover:text-blue-600 transition-colors">
                     {courseCode}
                 </Link>
-                <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+                <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
                 <Link to={`/faculty-mycourses/${courseAssignmentId}/grading`} className="hover:text-blue-600 transition-colors">
                     Grades
                 </Link>
-                <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                <span className="text-gray-700 font-medium">{assessment.title}</span>
+                <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                <span className="text-slate-800 font-semibold">{assessment.title}</span>
             </div>
 
             {/* Assignment Header Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                 <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
                     {/* Left Side - Assignment Info */}
                     <div className="flex-1">
                         <div className="mb-2">
-                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                                 {formatTypeLabel(assessment.type)}
                             </span>
                         </div>
                         <div className="mb-2">
-                            <span className="text-sm text-gray-600">
+                            <span className="text-sm text-slate-600 font-medium">
                                 Due {dueDate} at {dueTime}
                             </span>
                         </div>
-                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-3">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-3">
                             {assessment.title}
                         </h1>
                         {assessment.description && (
-                            <p className="text-gray-600 text-sm sm:text-base">
+                            <p className="text-slate-600 text-sm sm:text-base">
                                 {assessment.description}
                             </p>
                         )}
@@ -477,35 +477,35 @@ const GradeAssignment = () => {
                     {/* Right Side - Max Score and Summary */}
                     <div className="flex flex-col gap-4 lg:items-end">
                         {/* Max Score Card */}
-                        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm w-full lg:w-auto lg:min-w-[150px]">
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm w-full lg:w-auto lg:min-w-[150px]">
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                 MAX SCORE
                             </p>
-                            <p className="text-2xl font-bold text-gray-800">
-                                {assessment.max_score} <span className="text-lg font-normal text-gray-600">pts</span>
+                            <p className="text-2xl font-bold text-slate-800">
+                                {assessment.max_score} <span className="text-lg font-normal text-slate-500">pts</span>
                             </p>
                         </div>
 
                         {/* Grading Summary */}
-                        <div className="text-sm text-gray-600">
-                            <span className="font-semibold text-gray-800">{gradedCount}</span> graded / <span className="font-semibold text-gray-800">{students.length}</span> students
+                        <div className="text-sm text-slate-600">
+                            <span className="font-semibold text-slate-800">{gradedCount}</span> graded / <span className="font-semibold text-slate-800">{students.length}</span> students
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Template Download & Import Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-1">Excel Grading</h3>
-                        <p className="text-sm text-gray-500">Download a template, fill in scores, and import back.</p>
+                        <h3 className="text-lg font-semibold text-slate-800 mb-1">Excel Grading</h3>
+                        <p className="text-sm text-slate-500">Download a template, fill in scores, and import back.</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <button
                             onClick={handleDownloadTemplate}
                             disabled={downloading}
-                            className="flex items-center px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-sm transition-colors font-medium text-sm disabled:opacity-50"
+                            className="flex items-center px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 shadow-sm transition-colors font-medium text-sm disabled:opacity-50"
                         >
                             <MdDownload className="w-5 h-5 mr-2" />
                             {downloading ? 'Downloading...' : 'Get Template'}
@@ -513,7 +513,7 @@ const GradeAssignment = () => {
                         <button
                             onClick={() => fileInputRef.current?.click()}
                             disabled={importing}
-                            className="flex items-center px-4 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 shadow-sm transition-colors font-medium text-sm disabled:opacity-50"
+                            className="flex items-center px-4 py-2.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 shadow-sm transition-colors font-medium text-sm disabled:opacity-50"
                         >
                             <MdUploadFile className="w-5 h-5 mr-2" />
                             {importing ? 'Importing...' : 'Import Grades'}
@@ -530,7 +530,7 @@ const GradeAssignment = () => {
                 {importResult && (
                     <div className={`mt-4 px-4 py-3 rounded-lg text-sm font-medium ${
                         importResult.success
-                            ? 'bg-green-50 text-green-700 border border-green-200'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                             : 'bg-red-50 text-red-700 border border-red-200'
                     }`}>
                         <p>{importResult.message}</p>
@@ -547,17 +547,17 @@ const GradeAssignment = () => {
             </div>
 
             {/* Student Submissions Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 {/* Search Bar */}
-                <div className="p-6 border-b border-gray-200">
+                <div className="p-6 border-b border-slate-200">
                     <div className="relative max-w-md">
-                        <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                         <input
                             type="text"
                             placeholder="Search students..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
                 </div>
@@ -565,30 +565,30 @@ const GradeAssignment = () => {
                 {/* Table */}
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-gray-50 border-b border-gray-200">
+                        <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider sticky left-0 bg-gray-50 z-10">
+                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-10">
                                     STUDENT
                                 </th>
                                 {assessment.questions && assessment.questions.length > 0 ? (
                                     assessment.questions.map(q => (
-                                        <th key={q.id} className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px]">
-                                            Q{q.question_number} <span className="text-gray-400 font-normal">({q.max_marks})</span>
-                                            {q.clo_title && <div className="text-[10px] text-blue-500 mt-1">{q.clo_title}</div>}
+                                        <th key={q.id} className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider min-w-[120px]">
+                                            Q{q.question_number} <span className="text-slate-400 font-normal">({q.max_marks})</span>
+                                            {q.clo_title && <div className="text-[10px] text-blue-500 mt-1 font-semibold">{q.clo_title}</div>}
                                         </th>
                                     ))
                                 ) : null}
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                                     {assessment.questions && assessment.questions.length > 0 ? 'TOTAL SCORE' : 'SCORE'}
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                                     REMARKS
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
+                        <tbody className="divide-y divide-slate-100">
                             {filteredStudents.map((student) => (
-                                <tr key={student.id} className="hover:bg-gray-50 transition-colors">
+                                <tr key={student.id} className="hover:bg-slate-50 transition-colors">
                                     {/* Student Info */}
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
@@ -596,8 +596,8 @@ const GradeAssignment = () => {
                                                 <span className="font-bold text-sm">{student.initials}</span>
                                             </div>
                                             <div>
-                                                <p className="font-semibold text-gray-800 text-sm">{student.name}</p>
-                                                <p className="text-gray-500 text-xs">ID: {student.studentId}</p>
+                                                <p className="font-semibold text-slate-800 text-sm">{student.name}</p>
+                                                <p className="text-slate-500 text-xs">ID: {student.studentId}</p>
                                             </div>
                                         </div>
                                     </td>
@@ -613,7 +613,7 @@ const GradeAssignment = () => {
                                                     step="0.5"
                                                     value={questionScores[student.id]?.[`q${q.question_number}`] !== undefined ? questionScores[student.id][`q${q.question_number}`] : ''}
                                                     onChange={(e) => handleQuestionScoreChange(student.id, q.question_number, e.target.value)}
-                                                    className={`w-16 px-2 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'}`}
+                                                    className={`w-16 px-2 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-amber-400 bg-amber-50' : 'border-slate-300'}`}
                                                     placeholder="0"
                                                 />
                                             </td>
@@ -633,12 +633,12 @@ const GradeAssignment = () => {
                                                 disabled={assessment.questions && assessment.questions.length > 0}
                                                 className={`w-20 px-3 py-2 border rounded-lg text-sm focus:outline-none ${
                                                     assessment.questions && assessment.questions.length > 0 
-                                                        ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed font-semibold'
-                                                        : `focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'}`
+                                                        ? 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed font-semibold'
+                                                        : `focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-amber-400 bg-amber-50' : 'border-slate-300'}`
                                                 }`}
                                                 placeholder="0"
                                             />
-                                            <span className="text-sm text-gray-600">/ {assessment.max_score}</span>
+                                            <span className="text-sm text-slate-500 font-medium">/ {assessment.max_score}</span>
                                         </div>
                                     </td>
 
@@ -648,7 +648,7 @@ const GradeAssignment = () => {
                                             type="text"
                                             value={remarks[student.id] || ''}
                                             onChange={(e) => handleRemarksChange(student.id, e.target.value)}
-                                            className={`w-full max-w-xs px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'
+                                            className={`w-full max-w-xs px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-amber-400 bg-amber-50' : 'border-slate-300'
                                                 }`}
                                             placeholder="Add remarks..."
                                         />
@@ -657,7 +657,7 @@ const GradeAssignment = () => {
                             ))}
                             {filteredStudents.length === 0 && (
                                 <tr>
-                                    <td colSpan="3" className="px-6 py-8 text-center text-gray-500 text-sm">
+                                    <td colSpan="3" className="px-6 py-8 text-center text-slate-500 text-sm">
                                         {students.length === 0 ? 'No students enrolled in this course.' : 'No students found.'}
                                     </td>
                                 </tr>
@@ -667,12 +667,12 @@ const GradeAssignment = () => {
                 </div>
 
                 {/* Bottom Action Bar */}
-                <div className="p-6 border-t border-gray-200 bg-gray-50">
+                <div className="p-6 border-t border-slate-200 bg-slate-50">
                     {/* Save Message */}
                     {saveMessage && (
                         <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
                             saveMessage.type === 'success'
-                                ? 'bg-green-50 text-green-700 border border-green-200'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                 : saveMessage.type === 'info'
                                 ? 'bg-blue-50 text-blue-700 border border-blue-200'
                                 : 'bg-red-50 text-red-700 border border-red-200'
@@ -681,18 +681,18 @@ const GradeAssignment = () => {
                         </div>
                     )}
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-slate-600">
                             {unsavedCount > 0 ? (
-                                <>Unsaved changes for <span className="font-semibold text-gray-800">{unsavedCount}</span> {unsavedCount === 1 ? 'student' : 'students'}</>
+                                <>Unsaved changes for <span className="font-semibold text-slate-800">{unsavedCount}</span> {unsavedCount === 1 ? 'student' : 'students'}</>
                             ) : (
-                                <span className="text-gray-500">Enter scores and click Save Grades.</span>
+                                <span className="text-slate-500">Enter scores and click Save Grades.</span>
                             )}
                         </p>
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={handleCancel}
                                 disabled={saving || unsavedCount === 0}
-                                className="px-6 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm disabled:opacity-50"
+                                className="px-6 py-2.5 bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm transition-colors font-medium text-sm disabled:opacity-50"
                             >
                                 Cancel
                             </button>
@@ -717,9 +717,9 @@ const GradeAssignment = () => {
             {previewData && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-                        <div className="p-6 border-b border-gray-200">
-                            <h2 className="text-xl font-bold text-gray-800">Preview Import Results</h2>
-                            <p className="text-sm text-gray-500 mt-1">Review the grades and calculated CLO achievements before saving.</p>
+                        <div className="p-6 border-b border-slate-200">
+                            <h2 className="text-xl font-bold text-slate-800">Preview Import Results</h2>
+                            <p className="text-sm text-slate-500 mt-1">Review the grades and calculated CLO achievements before saving.</p>
                         </div>
                         
                         <div className="p-6 overflow-y-auto flex-1">
@@ -734,9 +734,9 @@ const GradeAssignment = () => {
                                 </div>
                             )}
 
-                            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                            <div className="overflow-x-auto border border-slate-200 rounded-lg">
                                 <table className="w-full text-sm text-left">
-                                    <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-200">
+                                    <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
                                         <tr>
                                             <th className="px-4 py-3">Registration #</th>
                                             <th className="px-4 py-3">Student Name</th>
@@ -745,11 +745,11 @@ const GradeAssignment = () => {
                                             <th className="px-4 py-3">Remarks</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-200">
+                                    <tbody className="divide-y divide-slate-100">
                                         {previewData.map((row, idx) => (
-                                            <tr key={idx} className="hover:bg-gray-50">
-                                                <td className="px-4 py-3 font-medium text-gray-900">{row.student_id_number}</td>
-                                                <td className="px-4 py-3">{row.student_name}</td>
+                                            <tr key={idx} className="hover:bg-slate-50">
+                                                <td className="px-4 py-3 font-medium text-slate-900">{row.student_id_number}</td>
+                                                <td className="px-4 py-3 text-slate-700">{row.student_name}</td>
                                                 <td className="px-4 py-3 font-bold text-blue-600">
                                                     {row.total_score} / {row.max_score}
                                                 </td>
@@ -757,8 +757,8 @@ const GradeAssignment = () => {
                                                     {row.clos && row.clos.length > 0 ? (
                                                         <div className="flex flex-wrap gap-2">
                                                             {row.clos.map((c, i) => (
-                                                                <span key={i} className={`px-2 py-1 rounded text-xs font-semibold ${
-                                                                    c.percentage >= 80 ? 'bg-green-100 text-green-700' :
+                                                                <span key={i} className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                                                    c.percentage >= 80 ? 'bg-emerald-100 text-emerald-700' :
                                                                     c.percentage >= 60 ? 'bg-blue-100 text-blue-700' :
                                                                     c.percentage >= 50 ? 'bg-amber-100 text-amber-700' :
                                                                     'bg-red-100 text-red-700'
@@ -768,10 +768,10 @@ const GradeAssignment = () => {
                                                             ))}
                                                         </div>
                                                     ) : (
-                                                        <span className="text-gray-400 italic">No mapped CLOs</span>
+                                                        <span className="text-slate-400 italic">No mapped CLOs</span>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-600">{row.remarks}</td>
+                                                <td className="px-4 py-3 text-slate-600">{row.remarks}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -779,11 +779,11 @@ const GradeAssignment = () => {
                             </div>
                         </div>
 
-                        <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
+                        <div className="p-6 border-t border-slate-200 bg-slate-50 flex justify-end gap-3 rounded-b-xl">
                             <button
                                 onClick={handleCancelImport}
                                 disabled={importing}
-                                className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+                                className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium text-sm"
                             >
                                 Cancel
                             </button>

@@ -125,12 +125,9 @@ const CreateAccount = () => {
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="mb-8">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full"></div>
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                            Create New Account
-                        </h1>
-                    </div>
+                    <h1 className="text-2xl font-bold text-slate-800">
+                        Create New Account
+                    </h1>
                     <p className="text-slate-500 ml-5">
                         Create accounts with custom role and permission assignments
                     </p>
@@ -138,13 +135,13 @@ const CreateAccount = () => {
 
                 {/* Success Message */}
                 {success && (
-                    <div className="mb-6 bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-2xl p-6 flex items-center gap-4 animate-fade-in">
-                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center">
-                            <MdCheckCircle className="w-6 h-6 text-white" />
+                    <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-4 animate-fade-in">
+                        <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <MdCheckCircle className="w-5 h-5 text-emerald-600" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-emerald-800">Account Created Successfully!</h3>
-                            <p className="text-sm text-emerald-600">An invite email has been sent. The user can set their own password.</p>
+                            <h3 className="font-semibold text-emerald-800 text-sm">Account Created Successfully!</h3>
+                            <p className="text-xs text-emerald-600 mt-0.5">An invite email has been sent. The user can set their own password.</p>
                         </div>
                     </div>
                 )}
@@ -158,8 +155,8 @@ const CreateAccount = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Personal Information */}
-                    <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-6">
-                        <h2 className="text-lg font-bold text-slate-800 mb-4">Personal Information</h2>
+                    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                        <h2 className="text-lg font-semibold text-slate-800 mb-4">Personal Information</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -173,7 +170,7 @@ const CreateAccount = () => {
                                         value={formData.fullName}
                                         onChange={handleChange}
                                         required
-                                        className="w-full pl-10 pr-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
                                         placeholder="John Doe"
                                     />
                                 </div>
@@ -191,7 +188,7 @@ const CreateAccount = () => {
                                         value={formData.email}
                                         onChange={handleChange}
                                         required
-                                        className="w-full pl-10 pr-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
                                         placeholder="john.doe@university.edu"
                                     />
                                 </div>
@@ -208,7 +205,7 @@ const CreateAccount = () => {
                                         name="phoneNumber"
                                         value={formData.phoneNumber}
                                         onChange={handleChange}
-                                        className="w-full pl-10 pr-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
                                         placeholder="+1 (555) 000-0000"
                                     />
                                 </div>
@@ -219,21 +216,21 @@ const CreateAccount = () => {
                     </div>
 
                     {/* Role & Department */}
-                    <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-6">
-                        <h2 className="text-lg font-bold text-slate-800 mb-4">Role & Department Assignment</h2>
+                    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                        <h2 className="text-lg font-semibold text-slate-800 mb-4">Role & Department Assignment</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-2">
                                     Select Role *
                                 </label>
                                 <div className="relative">
-                                    <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 pointer-events-none" />
+                                    <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                                     <select
                                         name="role"
                                         value={formData.role}
                                         onChange={handleChange}
                                         required
-                                        className="w-full px-4 py-2.5 border-2 border-slate-300 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all"
                                     >
                                         <option value="">-- Select Role --</option>
                                         {roles.map((role) => (
@@ -254,13 +251,13 @@ const CreateAccount = () => {
                                         </label>
                                         <div className="relative">
                                             <MdBusiness className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                            <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 pointer-events-none" />
+                                            <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                                             <select
                                                 name="faculty"
                                                 value={formData.faculty}
                                                 onChange={handleChange}
                                                 required
-                                                className="w-full pl-10 pr-10 py-2.5 border-2 border-slate-300 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+                                                className="w-full pl-10 pr-10 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all"
                                             >
                                                 <option value="">Select Faculty</option>
                                                 {faculties.map((fac) => (
@@ -276,14 +273,14 @@ const CreateAccount = () => {
                                         </label>
                                         <div className="relative">
                                             <MdBusiness className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                            <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 pointer-events-none" />
+                                            <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                                             <select
                                                 name="department"
                                                 value={formData.department}
                                                 onChange={handleChange}
                                                 required
                                                 disabled={!formData.faculty}
-                                                className="w-full pl-10 pr-10 py-2.5 border-2 border-slate-300 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white disabled:bg-slate-50 disabled:cursor-not-allowed"
+                                                className="w-full pl-10 pr-10 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white disabled:bg-slate-50 disabled:cursor-not-allowed transition-all"
                                             >
                                                 <option value="">
                                                     {formData.faculty ? 'Select Department' : 'Select Faculty First'}
@@ -305,13 +302,13 @@ const CreateAccount = () => {
                                     </label>
                                     <div className="relative">
                                         <MdPerson className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                        <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 pointer-events-none" />
+                                        <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                                         <select
                                             name="employment_type"
                                             value={formData.employment_type}
                                             onChange={handleChange}
                                             required
-                                            className="w-full pl-10 pr-10 py-2.5 border-2 border-slate-300 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+                                            className="w-full pl-10 pr-10 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all"
                                         >
                                             <option value="permanent">Permanent</option>
                                             <option value="visiting">Visiting</option>
@@ -324,13 +321,13 @@ const CreateAccount = () => {
 
 
                     {/* Action Buttons */}
-                    <div className="flex gap-4">
+                    <div className="flex gap-4 mt-6">
                         <button
                             type="submit"
                             disabled={loading || !formData.role}
-                            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                         >
-                            <MdSave className="w-5 h-5" />
+                            <MdSave className="w-4 h-4" />
                             {loading ? 'Creating Account...' : 'Create Account'}
                         </button>
                         <button
@@ -347,9 +344,9 @@ const CreateAccount = () => {
                                 });
                                 setError('');
                             }}
-                            className="px-6 py-3 bg-slate-100 text-slate-600 font-medium rounded-xl hover:bg-slate-200 transition-colors flex items-center gap-2"
+                            className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 text-sm"
                         >
-                            <MdCancel className="w-5 h-5" />
+                            <MdCancel className="w-4 h-4" />
                             Reset
                         </button>
                     </div>

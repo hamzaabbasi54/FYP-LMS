@@ -37,12 +37,12 @@ const Navbar = () => {
                     <input
                         type="text"
                         placeholder="Search..."
-                        className="pl-10 pr-4 py-2.5 bg-white border-2 border-slate-300 rounded-xl text-sm w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
+                        className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all focus-within:bg-white"
                     />
                 </div>
 
                 {/* Notifications */}
-                <button className="relative p-2.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
+                <button className="relative p-2.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
                     <MdNotifications className="w-6 h-6" />
                     <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white"></span>
                 </button>

@@ -93,12 +93,9 @@ const ManageCourses = () => {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-2 h-8 bg-gradient-to-b from-indigo-500 to-violet-600 rounded-full"></div>
-                            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                                Course Catalog
-                            </h1>
-                        </div>
+                        <h1 className="text-2xl font-bold text-slate-800">
+                            Course Catalog
+                        </h1>
                         <p className="text-slate-500 ml-5">
                             {loading ? 'Loading...' : `${total} courses found`}
                         </p>
@@ -106,31 +103,31 @@ const ManageCourses = () => {
                     <div className="flex gap-3">
                         <Link
                             to="/admin-managecourses/clos"
-                            className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all duration-200"
+                            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors text-sm"
                         >
                             CLOs
                         </Link>
                         <Link
                             to="/admin-managecourses/admin-addcourses"
-                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all duration-200"
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors text-sm"
                         >
-                            <MdAdd className="w-5 h-5" />
+                            <MdAdd className="w-4 h-4" />
                             Add Course
                         </Link>
                     </div>
                 </div>
 
                 {/* Search & Filters */}
-                <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-4 mb-8">
+                <div className="mb-8">
                     <div className="flex flex-col md:flex-row gap-4">
                         <div className="flex-1 relative">
-                            <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                             <input
                                 type="text"
                                 placeholder="Search by course name or code..."
                                 value={searchQuery}
                                 onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-300 rounded-xl shadow-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all"
+                                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
                             />
                         </div>
                         <div className="relative">
@@ -138,7 +135,7 @@ const ManageCourses = () => {
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                className="pl-10 pr-8 py-3 bg-white border-2 border-slate-300 rounded-xl shadow-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none min-w-[160px]"
+                                className="w-full md:w-auto pl-10 pr-8 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all min-w-[160px]"
                             >
                                 <option value="all">All Status</option>
                                 <option value="active">Active</option>
@@ -170,49 +167,49 @@ const ManageCourses = () => {
                 ) : (
                     <>
                         {/* Course Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
                             {filteredCourses.map((course, index) => (
                                 <div
                                     key={course.id}
-                                    className="group bg-white rounded-2xl shadow-sm border-2 border-slate-200 overflow-hidden hover:shadow-xl hover:shadow-slate-300/50 transition-all duration-300 hover:-translate-y-1"
+                                    className="group bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow relative"
                                 >
-                                    <div className={`bg-gradient-to-r ${colorPalette[index % colorPalette.length]} p-5`}>
+                                    <div className="bg-slate-50 border-b border-slate-100 p-4">
                                         <div className="flex items-center justify-between">
-                                            <span className="bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-lg">
+                                            <span className="bg-white border border-slate-200 text-slate-700 text-xs font-semibold px-2.5 py-1 rounded-md">
                                                 {course.code}
                                             </span>
-                                            <span className="text-white/80 text-sm font-medium">
+                                            <span className="text-slate-500 text-xs font-medium">
                                                 {course.credit_hours} Credits
                                             </span>
                                         </div>
                                     </div>
 
-                                    <div className="p-5">
+                                    <div className="p-4">
                                         <Link to={`/admin-managecourses/${course.id}`}>
-                                            <h3 className="text-lg font-bold text-slate-800 mb-2 line-clamp-2 hover:text-indigo-600 transition-colors">
+                                            <h3 className="text-base font-semibold text-slate-800 mb-1 line-clamp-2 hover:text-blue-600 transition-colors">
                                                 {course.title}
                                             </h3>
                                         </Link>
-                                        <p className="text-sm text-slate-500 mb-3">
+                                        <p className="text-xs text-slate-500 mb-4">
                                             {course.department_name || 'No Department'}
                                         </p>
 
                                         <div className="flex items-center justify-between">
-                                            <span className={`inline-flex px-3 py-1 rounded-lg text-xs font-semibold ${getStatusStyle(course.status || 'Active')}`}>
+                                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusStyle(course.status || 'Active')}`}>
                                                 {course.status || 'Active'}
                                             </span>
                                             <div className="flex items-center gap-1">
                                                 <Link
                                                     to={`/admin-managecourses/${course.id}`}
-                                                    className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                    className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                                                     title="View Details"
                                                 >
-                                                    <MdInfoOutline className="w-5 h-5" />
+                                                    <MdInfoOutline className="w-4 h-4" />
                                                 </Link>
                                                 <button
                                                     onClick={() => handleDelete(course.id)}
                                                     disabled={deleteMutation.isPending && deleteMutation.variables === course.id}
-                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                                                    className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
                                                     title="Delete"
                                                 >
                                                     <MdDelete className="w-4 h-4" />
@@ -230,7 +227,7 @@ const ManageCourses = () => {
                                 <button
                                     onClick={() => setPage(p => Math.max(1, p - 1))}
                                     disabled={page === 1}
-                                    className="p-2 rounded-lg bg-white border-2 border-slate-300 shadow-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     <MdChevronLeft className="w-5 h-5" />
                                 </button>
@@ -240,7 +237,7 @@ const ManageCourses = () => {
                                 <button
                                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                     disabled={page === totalPages}
-                                    className="p-2 rounded-lg bg-white border-2 border-slate-300 shadow-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     <MdChevronRight className="w-5 h-5" />
                                 </button>

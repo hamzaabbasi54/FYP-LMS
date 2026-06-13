@@ -46,18 +46,21 @@ const Sidebar = () => {
             <NavLink
                 to={to}
                 className={({ isActive }) => `
-                    flex items-center justify-between w-full px-4 py-2.5 rounded-lg text-left transition-all duration-200 mb-1
-                    ${indent ? 'ml-4' : ''}
-                    ${isActive
-                        ? 'bg-blue-50 text-blue-700 font-semibold'
-                        : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                    ${indent 
+                        ? 'flex items-center justify-between w-full text-sm font-normal text-slate-600 hover:text-slate-900 hover:bg-slate-50 px-3 py-1.5 rounded-lg transition-all duration-200 mb-0.5' 
+                        : 'flex items-center justify-between w-full h-9 px-3 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 mb-1'}
+                    ${isActive && !indent
+                        ? 'bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600'
+                        : isActive && indent
+                        ? 'text-blue-700 font-medium bg-blue-50'
+                        : ''
                     }
                 `}
             >
                 {({ isActive }) => (
                     <>
-                        <div className="flex items-center">
-                            <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-blue-700' : 'text-slate-400'}`} />
+                        <div className="flex items-center gap-2">
+                            <Icon className={`w-5 h-5 ${isActive ? 'text-blue-700' : 'text-slate-400'}`} />
                             <span className="text-sm">{label}</span>
                         </div>
                         {badge && (
@@ -86,24 +89,24 @@ const Sidebar = () => {
 
             {/* Navigation */}
             <nav className="flex-1 flex flex-col">
-                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2 px-4">Main</p>
+                <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-5 mb-1 px-3">Main</p>
                 <NavItem to="/deptadmin-dashboard" icon={MdDashboard} label="Dashboard" />
 
                 {/* User Management Section */}
-                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-6 mb-2 px-4">User Management</p>
+                <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-5 mb-1 px-3">User Management</p>
                 <NavItem to="/admin-manageusers" icon={MdPeople} label="Manage Users" />
 
                 {/* Operations Section */}
-                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-6 mb-2 px-4">Operations</p>
+                <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-5 mb-1 px-3">Operations</p>
                 <button
                     onClick={() => setOperationsExpanded(!operationsExpanded)}
                     className={`
-                        flex items-center justify-between w-full px-4 py-2.5 rounded-lg text-left transition-all duration-200 mb-1
-                        ${isOperationsActive ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'}
+                        flex items-center justify-between w-full h-9 px-3 rounded-lg text-left transition-all duration-200 mb-1
+                        ${isOperationsActive ? 'bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600' : 'text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900'}
                     `}
                 >
-                    <div className="flex items-center">
-                        <MdBuild className={`w-5 h-5 mr-3 ${isOperationsActive ? 'text-blue-700' : 'text-slate-400'}`} />
+                    <div className="flex items-center gap-2">
+                        <MdBuild className={`w-5 h-5 ${isOperationsActive ? 'text-blue-700' : 'text-slate-400'}`} />
                         <span className="text-sm">Operations</span>
                     </div>
                     {operationsExpanded ? (
@@ -114,7 +117,7 @@ const Sidebar = () => {
                 </button>
 
                 {operationsExpanded && (
-                    <div className="space-y-0.5 mt-1 border-l-2 border-slate-100 ml-5">
+                    <div className="ml-3 border-l-2 border-slate-100 pl-2 mt-1 flex flex-col gap-0.5">
                         <NavItem to="/admin-managebatches" icon={MdPeople} label="Batches" indent />
                         <NavItem to="/admin-managecourses" icon={MdBook} label="Courses" indent />
                         <NavItem to="/admin-curricula" icon={MdMenuBook} label="Curricula" indent />
@@ -126,10 +129,10 @@ const Sidebar = () => {
                     </div>
                 )}
 
-                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-6 mb-2 px-4">Communication</p>
+                <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-5 mb-1 px-3">Communication</p>
                 <NavItem to="/admin-messages" icon={MdMessage} label="Messages" badge={unreadCount > 0 ? unreadCount : undefined} />
 
-                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-6 mb-2 px-4">Other</p>
+                <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-5 mb-1 px-3">Other</p>
                 <NavItem to="/admin-parents" icon={MdPeople} label="Parents" />
                 <NavItem to="/admin-settings" icon={MdSettings} label="Settings" />
             </nav>

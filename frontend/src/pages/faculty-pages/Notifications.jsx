@@ -127,15 +127,15 @@ const Notifications = () => {
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Notifications</h1>
-                    <p className="text-gray-600 text-sm">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">Notifications</h1>
+                    <p className="text-slate-600 text-sm">
                         You have <span className="font-semibold text-blue-600">{unreadCount}</span> unread notifications
                     </p>
                 </div>
                 {unreadCount > 0 && (
                     <button
                         onClick={markAllAsRead}
-                        className="flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm"
+                        className="flex items-center px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 shadow-sm transition-colors font-medium text-sm"
                     >
                         <MdDoneAll className="w-5 h-5 mr-2" />
                         Mark All as Read
@@ -144,7 +144,7 @@ const Notifications = () => {
             </div>
 
             {/* Filter Tabs */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
                 <div className="flex flex-wrap gap-2">
                     {[
                         { key: 'all', label: 'All', icon: MdNotifications },
@@ -160,7 +160,7 @@ const Notifications = () => {
                             onClick={() => setFilter(tab.key)}
                             className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === tab.key
                                 ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                : 'bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100'
                                 }`}
                         >
                             <tab.icon className="w-4 h-4 mr-2" />
@@ -171,26 +171,26 @@ const Notifications = () => {
             </div>
 
             {/* Notifications List */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 {loading ? (
-                    <div className="p-8 text-center text-gray-500">
+                    <div className="p-8 text-center text-slate-500">
                         <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-3"></div>
                         <p>Loading notifications...</p>
                     </div>
                 ) : filteredNotifications.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">
-                        <MdNotifications className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <div className="p-8 text-center text-slate-500">
+                        <MdNotifications className="w-12 h-12 mx-auto mb-3 text-slate-300" />
                         <p>No notifications found</p>
                     </div>
                 ) : (
-                    <div className="divide-y divide-gray-100">
+                    <div className="divide-y divide-slate-100">
                         {filteredNotifications.map((notification) => {
                             const { icon: IconComponent, color: iconColor } = getNotificationMeta(notification.type);
                             return (
                                 <div
                                     key={notification.id}
                                     onClick={() => handleNotificationClick(notification)}
-                                    className={`flex items-start gap-4 p-4 hover:bg-gray-50 transition-colors cursor-pointer ${!notification.is_read ? 'bg-blue-50/50' : ''
+                                    className={`flex items-start gap-4 p-4 hover:bg-slate-50 transition-colors cursor-pointer ${!notification.is_read ? 'bg-blue-50/50' : ''
                                         }`}
                                 >
                                     {/* Icon */}
@@ -201,21 +201,21 @@ const Notifications = () => {
                                     {/* Content */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <p className={`font-semibold text-sm ${!notification.is_read ? 'text-gray-900' : 'text-gray-700'}`}>
+                                            <p className={`font-semibold text-sm ${!notification.is_read ? 'text-slate-900' : 'text-slate-700'}`}>
                                                 {notification.title}
                                             </p>
                                             {!notification.is_read && (
                                                 <span className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0"></span>
                                             )}
                                         </div>
-                                        <p className="text-sm text-gray-600 mb-1">{notification.message}</p>
-                                        <p className="text-xs text-gray-400">{timeAgo(notification.created_at)}</p>
+                                        <p className="text-sm text-slate-600 mb-1">{notification.message}</p>
+                                        <p className="text-xs text-slate-400">{timeAgo(notification.created_at)}</p>
                                     </div>
 
                                     {/* Read indicator */}
                                     <div className="flex-shrink-0">
                                         {notification.is_read ? (
-                                            <MdDone className="w-5 h-5 text-gray-400" />
+                                            <MdDone className="w-5 h-5 text-slate-400" />
                                         ) : (
                                             <MdCircle className="w-3 h-3 text-blue-600" />
                                         )}

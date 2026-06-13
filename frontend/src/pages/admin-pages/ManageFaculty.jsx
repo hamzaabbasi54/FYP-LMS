@@ -98,19 +98,16 @@ const ManageFaculty = () => {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-2 h-8 bg-gradient-to-b from-violet-500 to-purple-600 rounded-full"></div>
-                            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                                Faculty Management
-                            </h1>
-                        </div>
+                        <h1 className="text-2xl font-bold text-slate-800">
+                            Faculty Management
+                        </h1>
                         <p className="text-slate-500 ml-5">
                             {loading ? 'Loading...' : `${facultyMembers.length} active faculty • ${pendingFaculty.length} pending`}
                         </p>
                     </div>
                     <Link
                         to="/admin-managefaculty/addfaculty"
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-violet-500/25 transition-all duration-200"
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 font-medium shadow-sm transition-colors"
                     >
                         <MdAdd className="w-5 h-5" />
                         Add Faculty
@@ -118,23 +115,23 @@ const ManageFaculty = () => {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-2 mb-6">
+                <div className="flex gap-2 mb-6 border-b border-slate-200 pb-2">
                     <button
                         onClick={() => setActiveTab('approved')}
-                        className={`px-5 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                        className={`flex items-center gap-2 px-4 py-2 font-medium text-sm transition-all duration-200 border-b-2 ${
                             activeTab === 'approved'
-                                ? 'bg-white shadow-sm text-violet-700 border border-violet-200'
-                                : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                                ? 'border-blue-600 text-blue-600'
+                                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                         }`}
                     >
                         Active Faculty ({facultyMembers.length})
                     </button>
                     <button
                         onClick={() => setActiveTab('pending')}
-                        className={`px-5 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                        className={`flex items-center gap-2 px-4 py-2 font-medium text-sm transition-all duration-200 border-b-2 ${
                             activeTab === 'pending'
-                                ? 'bg-white shadow-sm text-amber-700 border border-amber-200'
-                                : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                                ? 'border-blue-600 text-blue-600'
+                                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                         }`}
                     >
                         Pending Approval ({pendingFaculty.length})
@@ -145,15 +142,15 @@ const ManageFaculty = () => {
                 </div>
 
                 {/* Search */}
-                <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-4 mb-8">
+                <div className="mb-6">
                     <div className="relative">
-                        <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
                             placeholder="Search by name, email, or department..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-300 rounded-xl shadow-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:bg-white transition-all"
+                            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
                         />
                     </div>
                 </div>
@@ -185,12 +182,12 @@ const ManageFaculty = () => {
                             return (
                                 <div
                                     key={member.id}
-                                    className="group bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-6 hover:shadow-xl hover:shadow-slate-300/50 transition-all duration-300"
+                                    className="group bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow relative"
                                 >
                                     {/* Avatar */}
                                     <div className="flex justify-center mb-4">
-                                        <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${getDesignationColor(member.designation || 'Lecturer')} flex items-center justify-center shadow-lg`}>
-                                            <span className="text-white font-bold text-lg">
+                                        <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
+                                            <span className="text-blue-700 font-bold text-sm">
                                                 {getInitials(name)}
                                             </span>
                                         </div>
@@ -198,16 +195,16 @@ const ManageFaculty = () => {
 
                                     {/* Info */}
                                     <div className="text-center mb-4">
-                                        <h3 className="font-bold text-slate-800 text-lg">{name}</h3>
-                                        <p className="text-sm text-slate-500 mt-1">{member.designation || member.role || 'Faculty'}</p>
+                                        <h3 className="font-semibold text-slate-800 text-sm">{name}</h3>
+                                        <p className="text-xs text-slate-500 mt-1">{member.designation || member.role || 'Faculty'}</p>
                                         {member.department && (
                                             <p className="text-xs text-slate-400 mt-1">{member.department}</p>
                                         )}
                                     </div>
 
                                     {/* Email */}
-                                    <div className="flex items-center justify-center gap-2 text-sm text-slate-500 mb-4">
-                                        <MdEmail className="w-4 h-4" />
+                                    <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500 mb-4 bg-slate-50 py-1.5 px-2 rounded-lg">
+                                        <MdEmail className="w-3.5 h-3.5 flex-shrink-0" />
                                         <span className="truncate">{member.email}</span>
                                     </div>
 
@@ -217,29 +214,29 @@ const ManageFaculty = () => {
                                             <button
                                                 onClick={() => handleApprove(member.id)}
                                                 disabled={approveMutation.isPending && approveMutation.variables === member.id}
-                                                className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-emerald-100 text-emerald-700 rounded-xl text-sm font-medium hover:bg-emerald-200 transition-colors disabled:opacity-50"
+                                                className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-semibold hover:bg-emerald-200 transition-colors disabled:opacity-50"
                                             >
-                                                <MdCheckCircle className="w-4 h-4" />
+                                                <MdCheckCircle className="w-3.5 h-3.5" />
                                                 Approve
                                             </button>
                                             <button
                                                 onClick={() => handleReject(member.id)}
                                                 disabled={rejectMutation.isPending && rejectMutation.variables === member.id}
-                                                className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-100 text-red-700 rounded-xl text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50"
+                                                className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-semibold hover:bg-red-200 transition-colors disabled:opacity-50"
                                             >
-                                                <MdCancel className="w-4 h-4" />
+                                                <MdCancel className="w-3.5 h-3.5" />
                                                 Reject
                                             </button>
                                         </div>
                                     ) : (
-                                        <div className="flex justify-center">
+                                        <div className="absolute top-2 right-2">
                                             <button
                                                 onClick={() => handleDelete(member.id)}
                                                 disabled={deleteMutation.isPending && deleteMutation.variables === member.id}
-                                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                                                className="p-1.5 text-slate-300 hover:text-red-500 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
                                                 title="Remove faculty"
                                             >
-                                                <MdDelete className="w-5 h-5" />
+                                                <MdDelete className="w-4 h-4" />
                                             </button>
                                         </div>
                                     )}
