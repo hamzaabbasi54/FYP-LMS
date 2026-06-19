@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const InfoField = ({ icon: Icon, label, value, field, type = 'text', options, editable = true, editing, editData, handleChange }) => (
-    <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+    <div className="flex items-start gap-4 p-4 bg-white border-2 border-slate-300 rounded-xl shadow-sm border-2 border-slate-200">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center flex-shrink-0">
             <Icon className="w-5 h-5 text-slate-600" />
         </div>
@@ -15,13 +15,13 @@ const InfoField = ({ icon: Icon, label, value, field, type = 'text', options, ed
             {editing && editable ? (
                 options ? (
                     <select value={editData[field] || ''} onChange={(e) => handleChange(field, e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white">
+                        className="w-full px-3 py-2 border-2 border-slate-300 shadow-sm rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white">
                         <option value="">Select...</option>
                         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                 ) : (
                     <input type={type} value={editData[field] ?? ''} onChange={(e) => handleChange(field, e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                        className="w-full px-3 py-2 border-2 border-slate-300 shadow-sm rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                 )
             ) : (
                 <p className={`text-sm font-medium ${value ? 'text-slate-800' : 'text-red-400 italic'}`}>
@@ -136,7 +136,7 @@ const StudentDetails = () => {
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
             <div className="max-w-4xl mx-auto animate-pulse">
                 <div className="h-8 bg-slate-200 rounded w-1/3 mb-8"></div>
                 <div className="h-64 bg-slate-200 rounded-2xl mb-6"></div>
@@ -146,7 +146,7 @@ const StudentDetails = () => {
     );
 
     if (!student) return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-8 flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8 flex items-center justify-center">
             <div className="text-center">
                 <h2 className="text-xl font-bold text-slate-600 mb-2">Student not found</h2>
                 <Link to={`/admin-managebatches/${batchId}/students`} className="text-blue-600 hover:underline">Back to Students</Link>
@@ -157,7 +157,7 @@ const StudentDetails = () => {
     const missingFields = getMissingFields();
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
             <div className="p-8 max-w-4xl mx-auto">
                 <div className="mb-6">
                     <Link to={`/admin-managebatches/${batchId}/students`} className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 text-sm">
@@ -165,7 +165,7 @@ const StudentDetails = () => {
                     </Link>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-6">
+                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6 mb-6">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
@@ -196,7 +196,7 @@ const StudentDetails = () => {
                             {editing ? (
                                 <>
                                     <button onClick={handleCancel} disabled={updateMutation.isPending}
-                                        className="inline-flex items-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-medium text-sm hover:bg-slate-50 disabled:opacity-50">
+                                        className="inline-flex items-center gap-2 px-4 py-2.5 border-2 border-slate-300 shadow-sm text-slate-600 rounded-xl font-medium text-sm hover:bg-slate-50 disabled:opacity-50">
                                         <MdClose className="w-4 h-4" /> Cancel
                                     </button>
                                     <button onClick={handleSave} disabled={updateMutation.isPending}
@@ -227,7 +227,7 @@ const StudentDetails = () => {
                     </div>
                 )}
 
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-6">
+                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6 mb-6">
                     <div className="flex items-center gap-3 mb-5">
                         <div className="w-2 h-6 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full"></div>
                         <h3 className="text-lg font-bold text-slate-800">Personal Information</h3>
@@ -240,7 +240,7 @@ const StudentDetails = () => {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-6">
+                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6 mb-6">
                     <div className="flex items-center gap-3 mb-5">
                         <div className="w-2 h-6 bg-gradient-to-b from-violet-500 to-purple-600 rounded-full"></div>
                         <h3 className="text-lg font-bold text-slate-800">Academic Information</h3>
@@ -269,7 +269,7 @@ const StudentDetails = () => {
                 </div>
 
                 {student.parent && (
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                    <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6">
                         <div className="flex items-center gap-3 mb-5">
                             <div className="w-2 h-6 bg-gradient-to-b from-emerald-500 to-teal-600 rounded-full"></div>
                             <h3 className="text-lg font-bold text-slate-800">Parent / Guardian</h3>

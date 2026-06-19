@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MdEmail, MdLock, MdSchool, MdVisibility, MdVisibilityOff } from 'react-icons/md';
-import { authApi } from '../../services/api';
+import { MdEmail, MdLock, MdVisibility, MdVisibilityOff } from 'react-icons/md';
+import { useAuth } from '../../context/AuthContext';
+import bgImage from '../../assets/484916933_1125377312721811_3180112978211178051_n.jpg';
+import qauLogo from '../../assets/QAU-Logo.png';
 
 const Login = () => {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -57,12 +60,9 @@ const Login = () => {
         if (validateForm()) {
             setLoading(true);
             try {
-                const data = await authApi.login(formData.email, formData.password, formData.role);
+                const data = await login(formData.email, formData.password, formData.role);
 
                 if (data.success) {
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.data));
-
                     // Redirect based on role
                     const redirectMap = {
                         super_admin: '/admin-dashboard',
@@ -84,30 +84,34 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md">
-                {/* Logo and Header */}
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-green-800 rounded-2xl mb-4">
-                        <MdSchool className="w-10 h-10 text-white" />
-                    </div>
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">University LMS</h1>
-                    <p className="text-gray-600">Sign in to your account</p>
-                </div>
+        <div 
+            className="min-h-screen bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-4 relative"
+            style={{ backgroundImage: `url(${bgImage})` }}
+        >
+            {/* Subtle Overlay */}
+            <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]"></div>
 
+            <div className="w-full max-w-md relative z-10">
                 {/* Login Card */}
-                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+                <div className="bg-white/20 backdrop-blur-xl rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] p-8 border border-white/40">
+                    {/* Logo and Header */}
+                    <div className="text-center mb-6">
+                        <img src={qauLogo} alt="University Logo" className="h-20 mx-auto mb-3 object-contain drop-shadow-md" />
+                        <h1 className="text-2xl font-bold text-white mb-1 drop-shadow-md">University LMS</h1>
+                        <p className="text-white/80 text-sm font-medium">Sign in to your account</p>
+                    </div>
+
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Role Selection */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <label className="block text-sm font-semibold text-white mb-2 drop-shadow-md">
                                 Select Role
                             </label>
                             <select
                                 name="role"
                                 value={formData.role}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white text-gray-800"
+                                className="w-full px-4 py-3 border border-white/40 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200 bg-white/60 backdrop-blur-sm text-gray-900 font-medium"
                             >
                                 <option value="super_admin">{roleLabels.super_admin}</option>
                                 <option value="deptadmin">{roleLabels.deptadmin}</option>
@@ -117,12 +121,12 @@ const Login = () => {
 
                         {/* Email Input */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <label className="block text-sm font-semibold text-white mb-2 drop-shadow-md">
                                 Email Address
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <MdEmail className="h-5 w-5 text-gray-400" />
+                                    <MdEmail className="h-5 w-5 text-gray-600" />
                                 </div>
                                 <input
                                     type="email"
@@ -130,7 +134,7 @@ const Login = () => {
                                     value={formData.email}
                                     onChange={handleChange}
                                     placeholder="Enter your email"
-                                    className={`w-full pl-10 pr-4 py-3 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
+                                    className={`w-full pl-10 pr-4 py-3 border ${errors.email ? 'border-red-500' : 'border-white/40'} rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200 bg-white/60 backdrop-blur-sm placeholder-gray-600 text-gray-900 font-medium`}
                                 />
                             </div>
                             {errors.email && (
@@ -140,12 +144,12 @@ const Login = () => {
 
                         {/* Password Input */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <label className="block text-sm font-semibold text-white mb-2 drop-shadow-md">
                                 Password
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <MdLock className="h-5 w-5 text-gray-400" />
+                                    <MdLock className="h-5 w-5 text-gray-600" />
                                 </div>
                                 <input
                                     type={showPassword ? 'text' : 'password'}
@@ -153,7 +157,7 @@ const Login = () => {
                                     value={formData.password}
                                     onChange={handleChange}
                                     placeholder="Enter your password"
-                                    className={`w-full pl-10 pr-12 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
+                                    className={`w-full pl-10 pr-12 py-3 border ${errors.password ? 'border-red-500' : 'border-white/40'} rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200 bg-white/60 backdrop-blur-sm placeholder-gray-600 text-gray-900 font-medium`}
                                 />
                                 <button
                                     type="button"
@@ -161,9 +165,9 @@ const Login = () => {
                                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                                 >
                                     {showPassword ? (
-                                        <MdVisibilityOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                                        <MdVisibilityOff className="h-5 w-5 text-gray-600 hover:text-gray-800" />
                                     ) : (
-                                        <MdVisibility className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                                        <MdVisibility className="h-5 w-5 text-gray-600 hover:text-gray-800" />
                                     )}
                                 </button>
                             </div>
@@ -180,13 +184,13 @@ const Login = () => {
                                     name="rememberMe"
                                     checked={formData.rememberMe}
                                     onChange={handleChange}
-                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    className="w-4 h-4 text-blue-600 border-white/50 rounded focus:ring-blue-400 bg-white/40"
                                 />
-                                <span className="ml-2 text-sm text-gray-600">Remember me</span>
+                                <span className="ml-2 text-sm font-medium text-white drop-shadow-md">Remember me</span>
                             </label>
                             <Link
                                 to="/forgot-password"
-                                className="text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+                                className="text-sm font-semibold text-white hover:text-blue-200 hover:underline drop-shadow-md"
                             >
                                 Forgot password?
                             </Link>
@@ -196,7 +200,7 @@ const Login = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
+                            className="w-full bg-blue-600/90 backdrop-blur-md border border-blue-400/50 text-white py-3.5 rounded-xl font-bold tracking-wide hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
                         >
                             {loading ? 'Signing In...' : 'Sign In'}
                         </button>
@@ -206,8 +210,8 @@ const Login = () => {
                 </div>
 
                 {/* Footer */}
-                <div className="mt-8 text-center text-sm text-gray-500">
-                    <p>&copy; 2026 University LMS. All rights reserved.</p>
+                <div className="mt-6 text-center text-sm text-white/80 font-medium tracking-wide">
+                    <p>&copy; 2026 Quaid-i-Azam University. All rights reserved.</p>
                 </div>
             </div>
         </div>

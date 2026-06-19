@@ -8,8 +8,9 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            staleTime: 5 * 60 * 1000, // 5 minutes
-            refetchOnWindowFocus: false,
+            staleTime: 0,                // data is immediately stale, ensuring fresh fetches
+            refetchOnMount: true,         // refetch when component mounts (e.g. navigating back)
+            refetchOnWindowFocus: true,   // refetch when browser tab regains focus
         },
     },
 });
@@ -70,7 +71,8 @@ import Schedule from "./pages/faculty-pages/Schedule.jsx";
 import ManageStudents from "./pages/faculty-pages/ManageStudents.jsx";
 import AssessmentDetails from "./pages/faculty-pages/AssessmentDetails.jsx";
 import { CourseProvider } from "./context/CourseContext.jsx";
-
+import { AuthProvider } from "./context/AuthContext.jsx";
+import { SocketProvider } from "./context/SocketContext.jsx";
 
 // Protected Route
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -78,8 +80,10 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 function App() {
     return (
         <QueryClientProvider client={queryClient}>
-            <Routes>
-                {/* Authentication Routes */}
+            <AuthProvider>
+                <SocketProvider>
+                    <Routes>
+                        {/* Authentication Routes */}
                 <Route path="/" element={<Login />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
@@ -126,6 +130,8 @@ function App() {
 
                         <Route path="/admin-curricula" element={<ManageCurricula />} />
                         <Route path="/admin-curricula/:id" element={<CurriculumDetails />} />
+
+                        <Route path="/admin-messages" element={<Messages />} />
                     </Route>
                 </Route>
 
@@ -160,9 +166,11 @@ function App() {
                 </Route>
 
             </Routes>
-            <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
-            <ReactQueryDevtools initialIsOpen={false} />
-        </QueryClientProvider>
+                    </SocketProvider>
+                    <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
+                </AuthProvider>
+                <ReactQueryDevtools initialIsOpen={false} />
+            </QueryClientProvider>
     );
 }
 

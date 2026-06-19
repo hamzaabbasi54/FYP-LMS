@@ -89,12 +89,12 @@ const Grading = () => {
     // Get status color
     const getStatusColor = (status) => {
         switch (status) {
-            case 'graded': return 'bg-purple-100 text-purple-700';
+            case 'graded': return 'bg-emerald-100 text-emerald-700';
             case 'needs_grading': return 'bg-red-100 text-red-700';
-            case 'published': return 'bg-green-100 text-green-700';
-            case 'scheduled': return 'bg-yellow-100 text-yellow-700';
-            case 'draft': return 'bg-gray-100 text-gray-700';
-            default: return 'bg-gray-100 text-gray-700';
+            case 'published': return 'bg-blue-100 text-blue-700';
+            case 'scheduled': return 'bg-amber-100 text-amber-700';
+            case 'draft': return 'bg-slate-100 text-slate-700';
+            default: return 'bg-slate-100 text-slate-700';
         }
     };
 
@@ -179,17 +179,17 @@ const Grading = () => {
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
                 <div className="flex-1">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-3">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-3">
                         Grading & Assessments
                     </h1>
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
                         <div className="flex items-center gap-2">
                             <MdDiamond className="w-4 h-4 text-blue-600" />
-                            <span className="font-medium">{courseCode}</span>
+                            <span className="font-semibold text-slate-800">{courseCode}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <MdGrade className="w-4 h-4 text-gray-400" />
-                            <span>{totalStudents} Students</span>
+                            <MdGrade className="w-4 h-4 text-slate-400" />
+                            <span className="font-medium">{totalStudents} Students</span>
                         </div>
                     </div>
                 </div>
@@ -206,28 +206,28 @@ const Grading = () => {
                         </svg>
                     </button>
                     {showNewAssessmentDropdown && (
-                        <div className="absolute top-full right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-50 min-w-[200px] py-2">
+                        <div className="absolute top-full right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-lg z-50 min-w-[200px] py-2">
                             <button 
                                 onClick={() => handleNewAssessment('quiz')}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 font-medium transition-colors"
                             >
                                 Quiz
                             </button>
                             <button 
                                 onClick={() => handleNewAssessment('assignment')}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 font-medium transition-colors"
                             >
                                 Assignment
                             </button>
                             <button 
                                 onClick={() => handleNewAssessment('midterm')}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 font-medium transition-colors"
                             >
                                 Midterm Exam
                             </button>
                             <button 
                                 onClick={() => handleNewAssessment('final')}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 font-medium transition-colors"
                             >
                                 Final Exam
                             </button>
@@ -237,17 +237,17 @@ const Grading = () => {
             </div>
 
             {/* Filters Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                 {/* Tabs */}
-                <div className="flex flex-wrap items-center gap-2 mb-6 pb-4 border-b border-gray-200">
+                <div className="flex flex-wrap items-center gap-2 mb-6 pb-4 border-b border-slate-200">
                     {tabs.map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                                 activeTab === tab
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'bg-white text-slate-600 hover:bg-slate-50'
                             }`}
                         >
                             {tab}
@@ -262,7 +262,7 @@ const Grading = () => {
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white cursor-pointer pr-8"
+                            className="px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white cursor-pointer pr-8 text-slate-700 font-medium"
                         >
                             {statusOptions.map((status) => (
                                 <option key={status} value={status}>
@@ -271,7 +271,7 @@ const Grading = () => {
                             ))}
                         </select>
                         <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
                         </div>
@@ -279,25 +279,25 @@ const Grading = () => {
 
                     {/* Search Filter */}
                     <div className="relative flex-1 max-w-md">
-                        <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                         <input
                             type="text"
                             placeholder="Filter list..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
                 </div>
             </div>
 
             {/* Assessments Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 {/* Loading State */}
                 {loading && (
                     <div className="p-12 text-center">
                         <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-                        <p className="text-gray-500 text-sm">Loading assessments...</p>
+                        <p className="text-slate-500 text-sm">Loading assessments...</p>
                     </div>
                 )}
 
@@ -305,26 +305,26 @@ const Grading = () => {
                 {!loading && (
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                            <thead className="bg-gray-50 border-b border-gray-200">
+                            <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                                         ASSESSMENT NAME
                                     </th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                                         DUE DATE
                                     </th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                                         WEIGHT
                                     </th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                                         STATUS
                                     </th>
-                                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                                         ACTIONS
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
+                            <tbody className="divide-y divide-slate-100">
                                 {filteredAssessments.map((assessment) => {
                                     const { icon: Icon, iconColor } = getTypeStyle(assessment.type);
                                     const { date: dueDate, time: dueTime } = formatDate(assessment.due_date);
@@ -336,7 +336,7 @@ const Grading = () => {
                                     const canGrade = assessment.status !== 'scheduled' || isDatePassed;
 
                                     return (
-                                        <tr key={assessment.id} className="hover:bg-gray-50 transition-colors">
+                                        <tr key={assessment.id} className="hover:bg-slate-50 transition-colors">
                                             {/* Assessment Name */}
                                             <td className="px-6 py-4">
                                                 <Link 
@@ -347,8 +347,8 @@ const Grading = () => {
                                                         <Icon className="w-5 h-5" />
                                                     </div>
                                                     <div>
-                                                        <p className="font-semibold text-gray-800 text-sm hover:text-blue-600 transition-colors">{assessment.title}</p>
-                                                        <p className="text-gray-500 text-xs">{typeLabel}</p>
+                                                        <p className="font-semibold text-slate-800 text-sm hover:text-blue-600 transition-colors">{assessment.title}</p>
+                                                        <p className="text-slate-500 text-xs">{typeLabel}</p>
                                                     </div>
                                                 </Link>
                                             </td>
@@ -356,21 +356,21 @@ const Grading = () => {
                                             {/* Due Date */}
                                             <td className="px-6 py-4">
                                                 <div>
-                                                    <p className="text-sm text-gray-800 font-medium">{dueDate}</p>
-                                                    <p className="text-xs text-gray-500">{dueTime}</p>
+                                                    <p className="text-sm text-slate-800 font-medium">{dueDate}</p>
+                                                    <p className="text-xs text-slate-500">{dueTime}</p>
                                                 </div>
                                             </td>
 
                                             {/* Weight */}
                                             <td className="px-6 py-4">
-                                                <span className="text-sm font-semibold text-gray-800">
+                                                <span className="text-sm font-semibold text-slate-800">
                                                     {assessment.weight ? `${assessment.weight}%` : '-'}
                                                 </span>
                                             </td>
 
                                             {/* Status */}
                                             <td className="px-6 py-4">
-                                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${statusColor}`}>
+                                                <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusColor}`}>
                                                     {formatStatus(assessment.status)}
                                                 </span>
                                             </td>
@@ -380,7 +380,7 @@ const Grading = () => {
                                                 <div className="flex items-center justify-end gap-2">
                                                     {!canGrade ? (
                                                         <span
-                                                            className="flex items-center px-3 py-1.5 bg-gray-300 text-gray-500 rounded-lg text-xs font-medium cursor-not-allowed"
+                                                            className="flex items-center px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-semibold cursor-not-allowed"
                                                             title="Cannot grade a scheduled assignment before its due date"
                                                         >
                                                             Grade Now
@@ -395,7 +395,7 @@ const Grading = () => {
                                                     )}
                                                     <button
                                                         onClick={() => navigate(`/faculty-mycourses/${courseAssignmentId}/grading/${assessment.id}/edit`)}
-                                                        className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                         title="Edit assessment"
                                                     >
                                                         <MdEdit className="w-5 h-5" />
@@ -403,7 +403,7 @@ const Grading = () => {
                                                     <button 
                                                         onClick={() => handleDelete(assessment.id, assessment.title)}
                                                         disabled={deleteMutation.isPending && deleteMutation.variables === assessment.id}
-                                                        className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                                                        className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                                                     >
                                                         <MdDelete className="w-5 h-5" />
                                                     </button>
@@ -414,7 +414,7 @@ const Grading = () => {
                                 })}
                                 {filteredAssessments.length === 0 && (
                                     <tr>
-                                        <td colSpan="5" className="px-6 py-8 text-center text-gray-500 text-sm">
+                                        <td colSpan="5" className="px-6 py-8 text-center text-slate-500 text-sm">
                                             {assessments.length === 0 ? 'No assessments created yet. Click "New Assessment" to get started.' : 'No assessments match your filters.'}
                                         </td>
                                     </tr>
@@ -426,9 +426,9 @@ const Grading = () => {
 
                 {/* Pagination */}
                 {!loading && filteredAssessments.length > 0 && (
-                    <div className="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                        <p className="text-sm text-gray-500">
-                            Showing <span className="font-semibold text-gray-700">{filteredAssessments.length}</span> of <span className="font-semibold text-gray-700">{assessments.length}</span> assessments
+                    <div className="px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                        <p className="text-sm text-slate-500">
+                            Showing <span className="font-semibold text-slate-800">{filteredAssessments.length}</span> of <span className="font-semibold text-slate-800">{assessments.length}</span> assessments
                         </p>
                     </div>
                 )}

@@ -83,7 +83,7 @@ router.get('/students-per-department', async (req, res) => {
 router.get('/enrollment-trends', async (req, res) => {
     try {
         const deptId = getDeptId(req);
-        let query = `SELECT DATE_FORMAT(e.enrolled_at, '%Y-%m') as month,
+        let query = `SELECT DATE_FORMAT(e.created_at, '%Y-%m') as month,
                     COUNT(*) as enrollment_count
              FROM enrollments e`;
         const params = [];

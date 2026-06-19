@@ -55,7 +55,7 @@ const Schedule = () => {
     };
 
     const ClassCard = ({ classItem }) => (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
                     <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getShiftColor(classItem.shift)}`}>
@@ -71,16 +71,16 @@ const Schedule = () => {
                 <span className="text-sm font-bold text-blue-600">{classItem.course_code}</span>
             </div>
 
-            <h3 className="text-lg font-bold text-gray-800 mb-1">{classItem.course_name}</h3>
-            <p className="text-xs text-gray-400 mb-3">{classItem.batch_name}</p>
+            <h3 className="text-lg font-bold text-slate-800 mb-1">{classItem.course_name}</h3>
+            <p className="text-xs text-slate-400 mb-3">{classItem.batch_name}</p>
 
-            <div className="space-y-2 text-sm text-gray-600">
+            <div className="space-y-2 text-sm text-slate-600">
                 <div className="flex items-center gap-2">
-                    <MdSchedule className="w-4 h-4 text-gray-400" />
+                    <MdSchedule className="w-4 h-4 text-slate-400" />
                     <span>{formatTime(classItem.start_time)} — {formatTime(classItem.end_time)}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <MdPeople className="w-4 h-4 text-gray-400" />
+                    <MdPeople className="w-4 h-4 text-slate-400" />
                     <span>{classItem.student_count || 0} Students</span>
                 </div>
             </div>
@@ -91,10 +91,10 @@ const Schedule = () => {
         return (
             <div className="p-4 sm:p-6 lg:p-8 space-y-6">
                 <div className="animate-pulse">
-                    <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
-                    <div className="h-32 bg-gray-200 rounded-xl mb-6"></div>
+                    <div className="h-8 bg-slate-200 rounded w-1/3 mb-6"></div>
+                    <div className="h-32 bg-slate-200 rounded-xl mb-6"></div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[1,2,3].map(i => <div key={i} className="h-40 bg-gray-200 rounded-xl"></div>)}
+                        {[1,2,3].map(i => <div key={i} className="h-40 bg-slate-200 rounded-xl"></div>)}
                     </div>
                 </div>
             </div>
@@ -106,19 +106,19 @@ const Schedule = () => {
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Class Schedule</h1>
-                    <p className="text-gray-600 text-sm">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">Class Schedule</h1>
+                    <p className="text-slate-600 text-sm">
                         View your upcoming classes
                     </p>
                 </div>
 
                 {/* View Toggle */}
-                <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+                <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
                     <button
                         onClick={() => setViewMode('today')}
                         className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${viewMode === 'today'
                             ? 'bg-white text-blue-600 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-800'
+                            : 'text-slate-600 hover:text-slate-800'
                             }`}
                     >
                         <MdToday className="w-4 h-4 mr-2" />
@@ -128,7 +128,7 @@ const Schedule = () => {
                         onClick={() => setViewMode('week')}
                         className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${viewMode === 'week'
                             ? 'bg-white text-blue-600 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-800'
+                            : 'text-slate-600 hover:text-slate-800'
                             }`}
                     >
                         <MdCalendarMonth className="w-4 h-4 mr-2" />
@@ -170,7 +170,7 @@ const Schedule = () => {
 
                     {todayClasses.length > 0 ? (
                         <>
-                            <h2 className="text-lg font-bold text-gray-800 mb-4">Today's Classes</h2>
+                            <h2 className="text-lg font-bold text-slate-800 mb-4">Today's Classes</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {todayClasses.map((classItem) => (
                                     <ClassCard key={classItem.id} classItem={classItem} />
@@ -178,10 +178,10 @@ const Schedule = () => {
                             </div>
                         </>
                     ) : (
-                        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
-                            <MdCalendarMonth className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                            <h3 className="text-lg font-semibold text-gray-600 mb-1">No Classes Today</h3>
-                            <p className="text-gray-400 text-sm">You don't have any classes scheduled for today.</p>
+                        <div className="text-center py-16 bg-white rounded-xl border border-slate-200 shadow-sm">
+                            <MdCalendarMonth className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                            <h3 className="text-lg font-semibold text-slate-600 mb-1">No Classes Today</h3>
+                            <p className="text-slate-500 text-sm">You don't have any classes scheduled for today.</p>
                         </div>
                     )}
                 </div>
@@ -190,14 +190,14 @@ const Schedule = () => {
                 <div className="space-y-6">
                     {weekSchedule.map((daySchedule) => (
                         <div key={daySchedule.dayKey} className={`bg-white rounded-xl shadow-sm border overflow-hidden ${
-                            daySchedule.dayKey === todayKey ? 'border-blue-300 ring-2 ring-blue-100' : 'border-gray-200'
+                            daySchedule.dayKey === todayKey ? 'border-blue-300 ring-2 ring-blue-100' : 'border-slate-200'
                         }`}>
                             <div className={`px-6 py-3 border-b flex items-center justify-between ${
-                                daySchedule.dayKey === todayKey ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
+                                daySchedule.dayKey === todayKey ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'
                             }`}>
-                                <h3 className="font-bold text-gray-800">{daySchedule.day}</h3>
+                                <h3 className="font-bold text-slate-800">{daySchedule.day}</h3>
                                 {daySchedule.dayKey === todayKey && (
-                                    <span className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">Today</span>
+                                    <span className="text-xs font-bold tracking-wider uppercase text-blue-700 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded">Today</span>
                                 )}
                             </div>
                             <div className="p-4">
@@ -213,8 +213,8 @@ const Schedule = () => {
                                                 }`}
                                             >
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <span className="font-bold text-gray-800">{classItem.course_code}</span>
-                                                    <span className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${getShiftColor(classItem.shift)}`}>
+                                                    <span className="font-bold text-slate-800">{classItem.course_code}</span>
+                                                    <span className={`text-[10px] tracking-wider uppercase font-bold px-2 py-0.5 rounded flex items-center gap-1 ${getShiftColor(classItem.shift)}`}>
                                                         {classItem.shift === 'morning'
                                                             ? <MdWbSunny className="w-3 h-3" />
                                                             : <MdNightsStay className="w-3 h-3" />
@@ -222,13 +222,13 @@ const Schedule = () => {
                                                         {classItem.shift === 'morning' ? 'Morning' : 'Evening'}
                                                     </span>
                                                 </div>
-                                                <p className="text-sm text-gray-600 mb-1">{classItem.course_name}</p>
-                                                <p className="text-xs text-gray-400 mb-2">{classItem.batch_name}</p>
-                                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                <p className="text-sm text-slate-600 mb-1">{classItem.course_name}</p>
+                                                <p className="text-xs text-slate-500 mb-2">{classItem.batch_name}</p>
+                                                <div className="flex items-center gap-2 text-xs text-slate-500">
                                                     <MdSchedule className="w-3 h-3" />
                                                     <span>{formatTime(classItem.start_time)} — {formatTime(classItem.end_time)}</span>
                                                 </div>
-                                                <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                                                <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
                                                     <MdPeople className="w-3 h-3" />
                                                     <span>{classItem.student_count || 0} Students</span>
                                                 </div>
@@ -236,7 +236,7 @@ const Schedule = () => {
                                         ))}
                                     </div>
                                 ) : (
-                                    <p className="text-gray-500 text-sm py-4 text-center">No classes scheduled</p>
+                                    <p className="text-slate-500 text-sm py-4 text-center">No classes scheduled</p>
                                 )}
                             </div>
                         </div>

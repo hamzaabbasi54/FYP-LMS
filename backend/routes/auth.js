@@ -10,6 +10,7 @@ import { signup, login, getProfile, updateProfile, changePassword } from '../con
 import { verifyToken, isAdmin } from '../middleware/auth.js';
 import pool from '../config/db.js';
 import { sendInviteEmail, sendPasswordResetEmail } from '../utils/email.js';
+import { cacheDel } from '../config/redis.js';
 
 const router = express.Router();
 
@@ -20,6 +21,54 @@ router.post('/login', login);
 router.get('/profile', verifyToken, getProfile);
 router.put('/profile', verifyToken, updateProfile);
 router.put('/change-password', verifyToken, changePassword);
+
+// GET /api/auth/me — Restore auth state on page refresh (reads cookie)
+router.get('/me', verifyToken, async (req, res) => {
+    try {
+        const [users] = await pool.query(
+            `SELECT u.id, u.full_name, u.email, u.role, u.phone_number, u.status, u.is_active,
+                    u.faculty_id, u.department_id,
+                    f.name as faculty_name, d.name as department_name
+             FROM users u
+             LEFT JOIN faculties f ON u.faculty_id = f.id
+             LEFT JOIN departments d ON u.department_id = d.id
+             WHERE u.id = ?`,
+            [req.user.id]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const user = users[0];
+        res.status(200).json({
+            success: true,
+            data: {
+                id: user.id,
+                fullName: user.full_name,
+                email: user.email,
+                role: user.role,
+                faculty: user.faculty_name || '',
+                department: user.department_name || '',
+                faculty_id: user.faculty_id,
+                department_id: user.department_id
+            }
+        });
+    } catch (error) {
+        console.error('Get /me error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching user' });
+    }
+});
+
+// POST /api/auth/logout — Clear the HTTP-Only cookie
+router.post('/logout', (req, res) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    });
+    res.status(200).json({ success: true, message: 'Logged out' });
+});
 
 // Get faculties list (from DB now, not hardcoded)
 router.get('/faculties', async (req, res) => {
@@ -153,40 +202,11 @@ router.post('/create-account', verifyToken, isAdmin, async (req, res) => {
         const [existing] = await conn.query('SELECT id, role, full_name FROM users WHERE email = ?', [email.toLowerCase()]);
         
         if (existing.length > 0) {
-            const existingUser = existing[0];
-            
-            // If we are creating a deptadmin and email exists, fail.
-            if (role === 'deptadmin') {
-                await conn.rollback();
-                return res.status(400).json({ success: false, message: 'Email already registered as a different role.' });
-            }
-
-            // If we are creating a faculty, and existing is faculty, add them to user_departments
-            if (role === 'faculty') {
-                if (existingUser.role !== 'faculty') {
-                    await conn.rollback();
-                    return res.status(400).json({ success: false, message: 'Email is already registered under a non-faculty role.' });
-                }
-
-                // Check if already in this department
-                const [userDepts] = await conn.query('SELECT * FROM user_departments WHERE user_id = ? AND department_id = ?', [existingUser.id, departmentId]);
-                if (userDepts.length > 0) {
-                    await conn.rollback();
-                    return res.status(400).json({ success: false, message: 'Faculty member is already associated with this department.' });
-                }
-
-                // Associate faculty with this new department
-                await conn.query(
-                    'INSERT INTO user_departments (user_id, department_id, employment_type, is_primary) VALUES (?, ?, ?, false)',
-                    [existingUser.id, departmentId, employment_type]
-                );
-
-                await conn.commit();
-                return res.status(200).json({
-                    success: true,
-                    message: `Existing faculty member ${existingUser.full_name} has been successfully added to this department as a ${employment_type} faculty.`
-                });
-            }
+            await conn.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'This email is already registered. Visiting faculty must use a separate email for each department.'
+            });
         }
 
         // --- CREATE NEW USER ---
@@ -213,13 +233,8 @@ router.post('/create-account', verifyToken, isAdmin, async (req, res) => {
 
         const newUserId = result.insertId;
 
-        // If faculty, also insert into user_departments
-        if (role === 'faculty') {
-            await conn.query(
-                'INSERT INTO user_departments (user_id, department_id, employment_type, is_primary) VALUES (?, ?, ?, true)',
-                [newUserId, departmentId, employment_type]
-            );
-        }
+        // Note: Visiting faculty use separate accounts per department.
+        // users.department_id is the sole source of truth.
 
         await conn.commit();
 
@@ -270,8 +285,8 @@ router.get('/users', verifyToken, isAdmin, async (req, res) => {
             if (deptId) {
                 whereClause += ' AND u.role = ?';
                 params.push('faculty');
-                whereClause += ' AND (u.department_id = ? OR u.id IN (SELECT user_id FROM user_departments WHERE department_id = ?))';
-                params.push(deptId, deptId);
+                whereClause += ' AND u.department_id = ?';
+                params.push(deptId);
                 whereClause += ' AND u.id != ?';
                 params.push(req.user.id);
             }
@@ -314,9 +329,26 @@ router.put('/users/:id', verifyToken, isAdmin, async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        // Don't let admin delete themselves
+        // Don't let admin modify themselves
         if (parseInt(id) === req.user.id) {
             return res.status(400).json({ success: false, message: 'Cannot modify your own account from here' });
+        }
+
+        // CRIT-2: Department admin can only modify users in their own department
+        if (req.user.role === 'deptadmin') {
+            if (existing[0].department_id !== req.user.department_id) {
+                return res.status(403).json({ success: false, message: 'Access denied. User belongs to a different department.' });
+            }
+        }
+
+        // CRIT-3: Role hierarchy — deptadmins can only assign 'faculty' role
+        if (role !== undefined) {
+            const allowedRoles = req.user.role === 'super_admin'
+                ? ['super_admin', 'deptadmin', 'faculty']
+                : ['faculty'];
+            if (!allowedRoles.includes(role)) {
+                return res.status(403).json({ success: false, message: 'You do not have permission to assign this role.' });
+            }
         }
 
         const updates = [];
@@ -335,6 +367,16 @@ router.put('/users/:id', verifyToken, isAdmin, async (req, res) => {
 
         values.push(id);
         await pool.query(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, values);
+
+        // If is_active was set to false, bump token_version and invalidate session cache
+        // (mirrors the behavior in PATCH /users/:id/status)
+        if (is_active !== undefined && !is_active) {
+            await pool.query('UPDATE users SET token_version = token_version + 1 WHERE id = ?', [id]);
+            await cacheDel(`session:user:${id}`);
+        } else if (is_active !== undefined) {
+            // Even on reactivation, clear stale cache
+            await cacheDel(`session:user:${id}`);
+        }
 
         res.status(200).json({
             success: true,
@@ -359,6 +401,11 @@ router.delete('/users/:id', verifyToken, isAdmin, async (req, res) => {
         // Don't let admin delete themselves
         if (parseInt(id) === req.user.id) {
             return res.status(400).json({ success: false, message: 'Cannot delete your own account' });
+        }
+
+        // Department scoping: deptadmin can only delete users in own department
+        if (req.user.role === 'deptadmin' && users[0].department_id !== req.user.department_id) {
+            return res.status(403).json({ success: false, message: 'Access denied. User belongs to a different department.' });
         }
 
         await pool.query('DELETE FROM users WHERE id = ?', [id]);
@@ -388,8 +435,21 @@ router.patch('/users/:id/status', verifyToken, isAdmin, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Cannot toggle your own account status' });
         }
 
+        // Department scoping: deptadmin can only toggle users in own department
+        if (req.user.role === 'deptadmin' && users[0].department_id !== req.user.department_id) {
+            return res.status(403).json({ success: false, message: 'Access denied. User belongs to a different department.' });
+        }
+
         const newStatus = !users[0].is_active;
-        await pool.query('UPDATE users SET is_active = ? WHERE id = ?', [newStatus, id]);
+        // Bump token_version on deactivation to invalidate existing sessions
+        if (!newStatus) {
+            await pool.query('UPDATE users SET is_active = ?, token_version = token_version + 1 WHERE id = ?', [newStatus, id]);
+        } else {
+            await pool.query('UPDATE users SET is_active = ? WHERE id = ?', [newStatus, id]);
+        }
+
+        // Invalidate Redis session cache so auth middleware reads fresh data
+        await cacheDel(`session:user:${id}`);
 
         res.status(200).json({
             success: true,
@@ -603,11 +663,14 @@ router.post('/reset-password', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Update password and clear reset token
+        // Update password, clear reset token, and invalidate existing sessions
         await pool.query(
-            'UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?',
+            'UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL, token_version = token_version + 1 WHERE id = ?',
             [hashedPassword, user.id]
         );
+
+        // Invalidate Redis session cache so token_version check is fresh
+        await cacheDel(`session:user:${user.id}`);
 
         res.status(200).json({
             success: true,

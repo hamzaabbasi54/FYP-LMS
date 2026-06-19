@@ -62,31 +62,28 @@ const Parents = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
             <div className="p-8 max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
                     <div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-2 h-8 bg-gradient-to-b from-purple-500 to-violet-600 rounded-full"></div>
-                            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                                Parents Directory
-                            </h1>
-                        </div>
-                        <p className="text-slate-500 ml-5 mt-1">Manage parent information and contacts</p>
+                        <h1 className="text-2xl font-bold text-slate-800">
+                            Parents Directory
+                        </h1>
+                        <p className="text-sm text-slate-500 mt-1">Manage parent information and contacts</p>
                     </div>
 
                     <div className="flex items-center gap-3">
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx,.xls,.csv" className="hidden" />
 
-                        <button onClick={() => setShowAddModal(true)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300">
-                            <MdPersonAdd className="w-5 h-5" /> Add
+                        <button onClick={() => setShowAddModal(true)} className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 font-medium shadow-sm transition-colors text-sm">
+                            <MdPersonAdd className="w-4 h-4" /> Add
                         </button>
-                        <button onClick={handleImportClick} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
-                            <MdFileUpload className="w-5 h-5 text-emerald-500" /> Import
+                        <button onClick={handleImportClick} className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors text-sm">
+                            <MdFileUpload className="w-4 h-4" /> Import
                         </button>
-                        <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
-                            <MdFileDownload className="w-5 h-5 text-blue-500" /> Export
+                        <button className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors text-sm">
+                            <MdFileDownload className="w-4 h-4" /> Export
                         </button>
                     </div>
                 </div>
@@ -103,12 +100,12 @@ const Parents = () => {
                                 setSearchQuery(e.target.value);
                                 setPage(1); // Reset page on search
                             }}
-                            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all shadow-sm"
+                            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
                         />
                     </div>
-                    <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-xl">
-                        <MdPeople className="w-5 h-5 text-purple-500" />
-                        <span className="text-sm font-medium text-purple-700">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg">
+                        <MdPeople className="w-4 h-4 text-blue-600" />
+                        <span className="text-xs font-semibold text-blue-700">
                             Total: {loading ? '...' : total}
                         </span>
                     </div>
@@ -127,42 +124,42 @@ const Parents = () => {
                     <>
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
                             {parents.map((parent) => (
-                                <div key={parent.id} className="bg-white rounded-2xl border border-slate-100 p-5 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300">
+                                <div key={parent.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
                                     {/* Student Info */}
                                     <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100">
-                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                                            <MdSchool className="w-6 h-6 text-white" />
+                                        <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center">
+                                            <MdSchool className="w-5 h-5 text-slate-500" />
                                         </div>
                                         <div>
-                                            <p className="font-semibold text-slate-800">{parent.studentName}</p>
-                                            <p className="text-xs text-slate-400 font-mono">{parent.studentId}</p>
+                                            <p className="font-semibold text-sm text-slate-800">{parent.studentName}</p>
+                                            <p className="text-xs text-slate-500 font-mono mt-0.5">{parent.studentId}</p>
                                         </div>
                                     </div>
 
                                     {/* Parent Info */}
                                     <div className="flex items-center gap-3 mb-4">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-violet-500 flex items-center justify-center">
-                                            <span className="text-white font-bold text-sm">
+                                        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                                            <span className="text-blue-700 font-bold text-sm">
                                                 {(parent.name || 'P').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                                             </span>
                                         </div>
                                         <div>
-                                            <p className="font-medium text-slate-700 text-sm">{parent.name || 'Unknown'}</p>
-                                            <p className="text-xs text-slate-400">Parent/Guardian</p>
+                                            <p className="font-medium text-slate-800 text-sm">{parent.name || 'Unknown'}</p>
+                                            <p className="text-xs text-slate-500 mt-0.5">Parent/Guardian</p>
                                         </div>
                                     </div>
 
                                     {/* Contact */}
-                                    <div className="space-y-2">
+                                    <div className="space-y-2.5">
                                         <a
                                             href={`mailto:${parent.email || ''}`}
-                                            className="flex items-center gap-2 text-sm text-slate-500 hover:text-purple-600 transition-colors"
+                                            className="flex items-center gap-2 text-xs text-slate-500 hover:text-blue-600 transition-colors"
                                         >
-                                            <MdEmail className="w-4 h-4" />
+                                            <MdEmail className="w-4 h-4 flex-shrink-0" />
                                             <span className="truncate">{parent.email || 'No email provided'}</span>
                                         </a>
-                                        <div className="flex items-center gap-2 text-sm text-slate-500">
-                                            <MdPhone className="w-4 h-4" />
+                                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                                            <MdPhone className="w-4 h-4 flex-shrink-0" />
                                             <span>{parent.phone || 'No phone provided'}</span>
                                         </div>
                                     </div>
@@ -176,7 +173,7 @@ const Parents = () => {
                                 <button
                                     onClick={() => setPage(p => Math.max(1, p - 1))}
                                     disabled={page === 1}
-                                    className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     <MdChevronLeft className="w-5 h-5" />
                                 </button>
@@ -186,7 +183,7 @@ const Parents = () => {
                                 <button
                                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                     disabled={page === totalPages}
-                                    className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     <MdChevronRight className="w-5 h-5" />
                                 </button>
@@ -198,44 +195,44 @@ const Parents = () => {
                 {/* Add Modal */}
                 {showAddModal && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-                            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-violet-50">
-                                <h3 className="text-lg font-bold text-slate-800">Add New Parent</h3>
-                                <button onClick={() => setShowAddModal(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden border border-slate-200">
+                            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50">
+                                <h3 className="text-lg font-semibold text-slate-800">Add New Parent</h3>
+                                <button onClick={() => setShowAddModal(false)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">
                                     <MdClose className="w-5 h-5" />
                                 </button>
                             </div>
                             <form onSubmit={handleAddParent} className="p-5 space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Student Name</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Student Name</label>
                                     <input type="text" required value={newParent.studentName} onChange={(e) => setNewParent({ ...newParent, studentName: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="Enter student name" />
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all" placeholder="Enter student name" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Student ID</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Student ID</label>
                                     <input type="text" required value={newParent.studentId} onChange={(e) => setNewParent({ ...newParent, studentId: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="U2024XXX" />
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all" placeholder="U2024XXX" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Parent Name</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Parent Name</label>
                                     <input type="text" required value={newParent.parentName} onChange={(e) => setNewParent({ ...newParent, parentName: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="Enter parent name" />
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all" placeholder="Enter parent name" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
                                     <input type="email" required value={newParent.email} onChange={(e) => setNewParent({ ...newParent, email: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="parent@email.com" />
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all" placeholder="parent@email.com" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Phone</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
                                     <input type="tel" value={newParent.phone} onChange={(e) => setNewParent({ ...newParent, phone: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" placeholder="+1 XXX-XXX-XXXX" />
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all" placeholder="+1 XXX-XXX-XXXX" />
                                 </div>
-                                <div className="flex gap-3 pt-2">
-                                    <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium">
+                                <div className="flex gap-3 pt-4 border-t border-slate-100 mt-6">
+                                    <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2 border border-slate-200 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium">
                                         Cancel
                                     </button>
-                                    <button type="submit" className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-xl hover:shadow-lg transition-all font-medium">
+                                    <button type="submit" className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors text-sm font-medium">
                                         Add Parent
                                     </button>
                                 </div>

@@ -127,13 +127,13 @@ const ManageCLOs = () => {
     const renderCloRow = (clo) => {
         const isExpanded = expandedCloId === clo.id;
         return (
-            <div key={clo.id} className="rounded-xl border border-slate-200 overflow-hidden transition-shadow hover:shadow-md">
+            <div key={clo.id} className="border-b border-slate-100 overflow-hidden bg-white">
                 <div
-                    className={`flex items-center justify-between p-4 cursor-pointer transition-all ${isExpanded ? 'bg-amber-50' : 'hover:bg-slate-50'}`}
+                    className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-all ${isExpanded ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
                     onClick={() => setExpandedCloId(isExpanded ? null : clo.id)}
                 >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <span className="px-3 py-1.5 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold rounded-lg flex-shrink-0 shadow-sm">
+                        <span className="bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0">
                             {clo.title}
                         </span>
                         <div className="min-w-0 flex-1">
@@ -154,17 +154,17 @@ const ManageCLOs = () => {
                         <button
                             onClick={(e) => { e.stopPropagation(); handleDeleteCLO(clo.id, clo.title); }}
                             disabled={deleteCloMutation.isPending && deleteCloMutation.variables === clo.id}
-                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
+                            className="p-1.5 text-slate-300 hover:text-slate-600 transition-colors disabled:opacity-50"
                             title={`Delete ${clo.title}`}
                         >
                             <MdDelete className="w-5 h-5" />
                         </button>
-                        {isExpanded ? <MdExpandLess className="w-5 h-5 text-slate-400" /> : <MdExpandMore className="w-5 h-5 text-slate-400" />}
+                        {isExpanded ? <MdExpandLess className="w-5 h-5 text-slate-300 hover:text-slate-600 transition-colors" /> : <MdExpandMore className="w-5 h-5 text-slate-300 hover:text-slate-600 transition-colors" />}
                     </div>
                 </div>
 
                 {isExpanded && (
-                    <div className="border-t border-slate-200 bg-gradient-to-br from-slate-50 to-white">
+                    <div className="border-t border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200">
                         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Left column */}
                             <div className="space-y-4">
@@ -193,7 +193,7 @@ const ManageCLOs = () => {
                                     {clo.mapped_courses && clo.mapped_courses.length > 0 ? (
                                         <div className="space-y-2">
                                             {clo.mapped_courses.map(c => (
-                                                <div key={c.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200">
+                                                <div key={c.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border-2 border-slate-300 shadow-sm">
                                                     <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                                                         {c.code?.substring(0, 3)}
                                                     </div>
@@ -236,7 +236,7 @@ const ManageCLOs = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
             <OverlayLoader isLoading={isImporting} text="Importing CLOs..." />
             <div className="max-w-6xl mx-auto">
                 {/* Breadcrumb */}
@@ -274,39 +274,39 @@ const ManageCLOs = () => {
                 </div>
 
                 {/* Search */}
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-6">
+                <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-4 mb-6">
                     <div className="relative">
                         <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input type="text" placeholder="Search CLOs by number (e.g. CLO-1), course code, title, or description..."
                             value={cloSearch} onChange={(e) => setCloSearch(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:bg-white transition-all" />
+                            className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-300 rounded-xl shadow-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:bg-white transition-all" />
                     </div>
                 </div>
 
                 {/* Stats bar */}
                 {!loading && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                        <div className="bg-white rounded-xl border border-slate-100 p-4 text-center shadow-sm">
-                            <p className="text-2xl font-bold text-slate-800">{allCLOs.length}</p>
-                            <p className="text-xs text-slate-500 font-medium">Total CLOs</p>
+                        <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
+                            <p className="text-2xl font-bold text-slate-900">{allCLOs.length}</p>
+                            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mt-1">Total CLOs</p>
                         </div>
-                        <div className="bg-white rounded-xl border border-slate-100 p-4 text-center shadow-sm">
-                            <p className="text-2xl font-bold text-indigo-600">
+                        <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
+                            <p className="text-2xl font-bold text-slate-900">
                                 {allCLOs.filter(c => c.mapped_courses && c.mapped_courses.length > 0).length}
                             </p>
-                            <p className="text-xs text-slate-500 font-medium">Course Mapped</p>
+                            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mt-1">Course Mapped</p>
                         </div>
-                        <div className="bg-white rounded-xl border border-slate-100 p-4 text-center shadow-sm">
-                            <p className="text-2xl font-bold text-emerald-600">
+                        <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
+                            <p className="text-2xl font-bold text-slate-900">
                                 {allCLOs.filter(c => c.mapped_plos && c.mapped_plos.length > 0).length}
                             </p>
-                            <p className="text-xs text-slate-500 font-medium">PLO Mapped</p>
+                            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mt-1">PLO Mapped</p>
                         </div>
-                        <div className="bg-white rounded-xl border border-slate-100 p-4 text-center shadow-sm">
-                            <p className="text-2xl font-bold text-amber-600">
+                        <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
+                            <p className="text-2xl font-bold text-slate-900">
                                 {allCLOs.filter(c => !c.mapped_plos || c.mapped_plos.length === 0).length}
                             </p>
-                            <p className="text-xs text-slate-500 font-medium">Unmapped</p>
+                            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mt-1">Unmapped</p>
                         </div>
                     </div>
                 )}
@@ -315,7 +315,7 @@ const ManageCLOs = () => {
                 {loading ? (
                     <div className="space-y-3">
                         {[1, 2, 3, 4, 5].map(i => (
-                            <div key={i} className="bg-white rounded-xl p-5 animate-pulse border border-slate-100">
+                            <div key={i} className="bg-white rounded-xl p-5 animate-pulse border-2 border-slate-200">
                                 <div className="flex items-center gap-3">
                                     <div className="h-7 w-16 bg-slate-200 rounded-lg"></div>
                                     <div className="flex-1"><div className="h-4 bg-slate-200 rounded w-2/3"></div></div>
@@ -324,7 +324,7 @@ const ManageCLOs = () => {
                         ))}
                     </div>
                 ) : filteredCLOs.length === 0 ? (
-                    <div className="text-center py-16 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="text-center py-16 bg-white rounded-2xl border-2 border-slate-200 shadow-sm">
                         <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <MdSearch className="w-8 h-8 text-amber-400" />
                         </div>

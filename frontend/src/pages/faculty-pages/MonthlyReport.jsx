@@ -24,8 +24,8 @@ const MonthlyReport = () => {
     const avatarColors = [
         "bg-purple-100 text-purple-700",
         "bg-pink-100 text-pink-700",
-        "bg-green-100 text-green-700",
-        "bg-yellow-100 text-yellow-700",
+        "bg-emerald-100 text-emerald-700",
+        "bg-amber-100 text-amber-700",
         "bg-indigo-100 text-indigo-700",
         "bg-blue-100 text-blue-700",
         "bg-red-100 text-red-700",
@@ -233,14 +233,14 @@ const MonthlyReport = () => {
     const getStatusIcon = (status) => {
         switch (status) {
             case 'present':
-                return <MdCheckCircle className="w-5 h-5 text-green-600" />;
+                return <MdCheckCircle className="w-5 h-5 text-emerald-600" />;
             case 'absent':
                 return <MdClose className="w-5 h-5 text-red-600" />;
             case 'late':
-                return <MdAccessTime className="w-5 h-5 text-orange-600" />;
+                return <MdAccessTime className="w-5 h-5 text-amber-600" />;
             case 'na':
             default:
-                return <MdRadioButtonUnchecked className="w-5 h-5 text-gray-400" />;
+                return <MdRadioButtonUnchecked className="w-5 h-5 text-slate-400" />;
         }
     };
 
@@ -277,7 +277,7 @@ const MonthlyReport = () => {
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">
                         Monthly Attendance Report {selectedCourse ? selectedCourse.code : ''}
                     </h1>
                 </div>
@@ -291,7 +291,7 @@ const MonthlyReport = () => {
             </div>
 
             {/* Controls Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                 <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
                     {/* Left Side - Date Selector and Search */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-1">
@@ -299,18 +299,18 @@ const MonthlyReport = () => {
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handlePreviousMonth}
-                                className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-600 hover:text-gray-800 transition-colors"
+                                className="p-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-600 hover:text-slate-800 transition-colors"
                             >
                                 <MdChevronLeft className="w-5 h-5" />
                             </button>
-                            <div className="px-4 py-2 border border-gray-300 rounded-lg bg-white min-w-[180px] text-center">
-                                <span className="text-sm font-semibold text-gray-700">
+                            <div className="px-4 py-2 border border-slate-300 rounded-lg bg-white min-w-[180px] text-center shadow-sm">
+                                <span className="text-sm font-semibold text-slate-700">
                                     {monthNames[currentMonth.month - 1]} {currentMonth.year}
                                 </span>
                             </div>
                             <button
                                 onClick={handleNextMonth}
-                                className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-600 hover:text-gray-800 transition-colors"
+                                className="p-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-600 hover:text-slate-800 transition-colors"
                             >
                                 <MdChevronRight className="w-5 h-5" />
                             </button>
@@ -318,13 +318,13 @@ const MonthlyReport = () => {
 
                         {/* Search Bar */}
                         <div className="relative flex-1 max-w-md">
-                            <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                            <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                             <input
                                 type="text"
                                 placeholder="Search student..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium text-slate-800 placeholder-slate-400"
                             />
                         </div>
                     </div>
@@ -332,22 +332,22 @@ const MonthlyReport = () => {
                     {/* Right Side - Legend and Export */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                         {/* Legend */}
-                        <div className="flex flex-wrap items-center gap-4 text-xs">
+                        <div className="flex flex-wrap items-center gap-4 text-xs font-medium">
                             <div className="flex items-center gap-2">
-                                <MdCheckCircle className="w-4 h-4 text-green-600" />
-                                <span className="text-gray-600">Present</span>
+                                <MdCheckCircle className="w-4 h-4 text-emerald-600" />
+                                <span className="text-slate-600">Present</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <MdClose className="w-4 h-4 text-red-600" />
-                                <span className="text-gray-600">Absent</span>
+                                <span className="text-slate-600">Absent</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <MdAccessTime className="w-4 h-4 text-orange-600" />
-                                <span className="text-gray-600">Late</span>
+                                <MdAccessTime className="w-4 h-4 text-amber-600" />
+                                <span className="text-slate-600">Late</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <MdRadioButtonUnchecked className="w-4 h-4 text-gray-400" />
-                                <span className="text-gray-600">N/A</span>
+                                <MdRadioButtonUnchecked className="w-4 h-4 text-slate-400" />
+                                <span className="text-slate-600">N/A</span>
                             </div>
                         </div>
 
@@ -355,7 +355,7 @@ const MonthlyReport = () => {
                         <button
                             onClick={handleExportCSV}
                             disabled={exporting}
-                            className="flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
+                            className="flex items-center px-4 py-2 bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm transition-colors font-semibold text-sm whitespace-nowrap"
                         >
                             <MdDownload className="w-5 h-5 mr-2" />
                             {exporting ? 'Exporting...' : 'Export CSV'}
@@ -365,19 +365,19 @@ const MonthlyReport = () => {
             </div>
 
             {/* Attendance Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 {/* Loading State */}
                 {loading && (
                     <div className="p-12 text-center">
                         <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-                        <p className="text-gray-500 text-sm">Loading attendance data...</p>
+                        <p className="text-slate-500 text-sm">Loading attendance data...</p>
                     </div>
                 )}
 
                 {/* Empty State */}
                 {!loading && students.length === 0 && (
                     <div className="p-12 text-center">
-                        <p className="text-gray-500 text-sm">No students enrolled in this course.</p>
+                        <p className="text-slate-500 text-sm font-medium">No students enrolled in this course.</p>
                     </div>
                 )}
 
@@ -386,43 +386,43 @@ const MonthlyReport = () => {
                     <>
                         <div className="overflow-auto max-h-[600px]">
                             <table className="w-full min-w-[800px] border-collapse">
-                                <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-20">
+                                <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-20">
                                     <tr>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider sticky left-0 bg-gray-50 z-30 border-r border-gray-200 shadow-sm">
+                                        <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-30 border-r border-slate-200 shadow-sm">
                                             STUDENT DETAILS
                                         </th>
                                         {weekdays.map((day) => (
                                             <th
                                                 key={day.day}
-                                                className={`px-3 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[80px] ${day.isWeekend ? 'bg-gray-100' : 'bg-gray-50'
+                                                className={`px-3 py-4 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider min-w-[80px] ${day.isWeekend ? 'bg-slate-100' : 'bg-slate-50'
                                                     }`}
                                             >
                                                 <div className="flex flex-col">
                                                     <span>{day.dayName}</span>
-                                                    <span className="font-normal">{day.day.toString().padStart(2, '0')}</span>
+                                                    <span className="font-semibold">{day.day.toString().padStart(2, '0')}</span>
                                                 </div>
                                             </th>
                                         ))}
-                                        <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50">
+                                        <th className="px-6 py-4 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50">
                                             STATS
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-200 bg-white">
+                                <tbody className="divide-y divide-slate-100 bg-white">
                                     {filteredStudents.map((student, rowIndex) => {
                                         const isEvenRow = rowIndex % 2 === 0;
                                         return (
-                                            <tr key={student.id} className={`hover:bg-gray-50 transition-colors ${isEvenRow ? 'bg-white' : 'bg-gray-50'}`}>
+                                            <tr key={student.id} className={`hover:bg-slate-50 transition-colors ${isEvenRow ? 'bg-white' : 'bg-slate-50'}`}>
                                                 {/* Student Details */}
-                                                <td className={`px-6 py-4 sticky left-0 z-10 border-r border-gray-200 shadow-sm ${isEvenRow ? 'bg-white' : 'bg-gray-50'
+                                                <td className={`px-6 py-4 sticky left-0 z-10 border-r border-slate-200 shadow-sm ${isEvenRow ? 'bg-white' : 'bg-slate-50'
                                                     }`}>
                                                     <div className="flex items-center gap-3">
                                                         <div className={`w-10 h-10 rounded-full ${student.avatarColor} flex items-center justify-center flex-shrink-0`}>
                                                             <span className="font-bold text-sm">{student.initials}</span>
                                                         </div>
                                                         <div>
-                                                            <p className="font-semibold text-gray-800 text-sm">{student.name}</p>
-                                                            <p className="text-gray-500 text-xs">ID: {student.studentId}</p>
+                                                            <p className="font-semibold text-slate-800 text-sm">{student.name}</p>
+                                                            <p className="text-slate-500 text-xs font-medium">ID: {student.studentId}</p>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -432,13 +432,13 @@ const MonthlyReport = () => {
                                                     <td
                                                         key={day.day}
                                                         className={`px-3 py-4 text-center ${day.isWeekend
-                                                                ? 'bg-gray-50'
-                                                                : `cursor-pointer hover:bg-blue-50 ${isEvenRow ? 'bg-white' : 'bg-gray-50'}`
+                                                                ? 'bg-slate-100'
+                                                                : `cursor-pointer hover:bg-blue-50 ${isEvenRow ? 'bg-white' : 'bg-slate-50'}`
                                                             }`}
                                                         onClick={() => !day.isWeekend && toggleAttendance(student.id, day.day)}
                                                     >
                                                         {day.isWeekend ? (
-                                                            <span className="text-gray-300 text-xs">•</span>
+                                                            <span className="text-slate-300 text-xs">•</span>
                                                         ) : (
                                                             <div className="flex justify-center">
                                                                 {getStatusIcon(student.attendance[day.day] || 'na')}
@@ -448,8 +448,8 @@ const MonthlyReport = () => {
                                                 ))}
 
                                                 {/* Stats */}
-                                                <td className={`px-6 py-4 text-center ${isEvenRow ? 'bg-white' : 'bg-gray-50'}`}>
-                                                    <span className="text-sm font-bold text-gray-800">
+                                                <td className={`px-6 py-4 text-center ${isEvenRow ? 'bg-white' : 'bg-slate-50'}`}>
+                                                    <span className="text-sm font-bold text-slate-800">
                                                         {calculateStats(student)}%
                                                     </span>
                                                 </td>
@@ -461,11 +461,11 @@ const MonthlyReport = () => {
                         </div>
 
                         {/* Footer */}
-                        <div className="p-6 border-t border-gray-200">
+                        <div className="p-6 border-t border-slate-200">
                             {/* Save Message */}
                             {saveMessage && (
                                 <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${saveMessage.type === 'success'
-                                        ? 'bg-green-50 text-green-700 border border-green-200'
+                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                         : saveMessage.type === 'info'
                                             ? 'bg-blue-50 text-blue-700 border border-blue-200'
                                             : 'bg-red-50 text-red-700 border border-red-200'
@@ -474,10 +474,10 @@ const MonthlyReport = () => {
                                 </div>
                             )}
                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-slate-500 font-medium">
                                     Click on any cell to toggle attendance status.
                                     {Object.keys(pendingChanges).length > 0 && (
-                                        <span className="ml-2 text-blue-600 font-medium">
+                                        <span className="ml-2 text-blue-600 font-bold">
                                             ({Object.keys(pendingChanges).length} unsaved change{Object.keys(pendingChanges).length !== 1 ? 's' : ''})
                                         </span>
                                     )}
@@ -485,7 +485,7 @@ const MonthlyReport = () => {
                                 <div className="flex items-center gap-3">
                                     <button
                                         onClick={() => navigate(backUrl)}
-                                        className="px-6 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors font-medium text-sm"
+                                        className="px-6 py-2 bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm transition-colors font-semibold text-sm"
                                     >
                                         Cancel
                                     </button>

@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { MdSearch, MdNotifications, MdChevronRight, MdHelp, MdAssignment, MdSchool, MdAnnouncement, MdCircle } from 'react-icons/md';
+import { MdSearch, MdNotifications, MdChevronRight, MdHelp, MdAssignment, MdSchool, MdAnnouncement, MdCircle, MdEmail, MdEventNote, MdDescription, MdWarning } from 'react-icons/md';
 import { useCourse } from '../../../context/CourseContext';
+import { useAuth } from '../../../context/AuthContext';
 import { notificationApi } from '../../../services/api';
 import { toast } from 'react-toastify';
 
@@ -74,7 +75,12 @@ const Navbar = () => {
     const getNotificationIcon = (type) => {
         switch (type) {
             case 'course_assignment': return { icon: MdSchool, color: 'bg-green-100 text-green-600' };
-            case 'assignment': return { icon: MdAssignment, color: 'bg-blue-100 text-blue-600' };
+            case 'course_unassignment': return { icon: MdSchool, color: 'bg-red-100 text-red-600' };
+            case 'syllabus_update': return { icon: MdDescription, color: 'bg-indigo-100 text-indigo-600' };
+            case 'schedule_update': return { icon: MdEventNote, color: 'bg-orange-100 text-orange-600' };
+            case 'unread_messages': return { icon: MdEmail, color: 'bg-blue-100 text-blue-600' };
+            case 'ungraded_assessment': return { icon: MdAssignment, color: 'bg-yellow-100 text-yellow-600' };
+            case 'missing_attendance': return { icon: MdWarning, color: 'bg-red-100 text-red-600' };
             default: return { icon: MdAnnouncement, color: 'bg-purple-100 text-purple-600' };
         }
     };
@@ -122,8 +128,8 @@ const Navbar = () => {
     const assignmentIdMatch = location.pathname.match(/\/faculty-mycourses\/(\d+)/);
     const assignmentId = assignmentIdMatch ? assignmentIdMatch[1] : null;
 
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const professorName = user.fullName || 'Professor';
+    const { user } = useAuth();
+    const professorName = user?.fullName || 'Professor';
 
     return (
         <div className="flex flex-col h-full bg-white border-b">

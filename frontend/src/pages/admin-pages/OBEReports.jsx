@@ -1,44 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { MdExpandMore, MdExpandLess, MdTrendingUp, MdCheckCircle, MdWarning, MdSchool, MdBook, MdCloudDownload } from 'react-icons/md';
 import { obeApi } from '../../services/api';
 import { toast } from 'react-toastify';
+import { useQuery } from '@tanstack/react-query';
 
 const OBEReports = () => {
     const [expandedBatch, setExpandedBatch] = useState(null);
     const [expandedSemester, setExpandedSemester] = useState(null);
-    const [batches, setBatches] = useState([]);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchReports();
-    }, []);
-
-    const fetchReports = async () => {
-        try {
-            setLoading(true);
+    const { data: batches = [], isLoading: loading } = useQuery({
+        queryKey: ['obeReports'],
+        queryFn: async () => {
             const res = await obeApi.getReports();
-            if (res.success) {
-                setBatches(res.data || []);
-            }
-        } catch (error) {
-            console.error('Failed to fetch OBE reports:', error);
-            toast.error('Failed to fetch OBE reports');
-        } finally {
-            setLoading(false);
-        }
-    };
+            if (res.success) return res.data || [];
+            throw new Error('Failed to fetch OBE reports');
+        },
+        staleTime: 5 * 60 * 1000, // Cache for 5 minutes (this is an expensive query)
+        onError: () => toast.error('Failed to fetch OBE reports')
+    });
 
     const getAchievementColor = (percentage) => {
-        if (percentage >= 85) return 'text-green-600 bg-green-50';
-        if (percentage >= 70) return 'text-blue-600 bg-blue-50';
-        if (percentage >= 60) return 'text-amber-600 bg-amber-50';
-        return 'text-red-600 bg-red-50';
+        if (percentage >= 70) return 'text-emerald-700 bg-emerald-100';
+        if (percentage >= 40) return 'text-amber-700 bg-amber-100';
+        return 'text-red-700 bg-red-100';
     };
 
     const getAchievementBadge = (percentage) => {
-        if (percentage >= 85) return { icon: MdCheckCircle, color: 'text-green-500', label: 'Excellent' };
-        if (percentage >= 70) return { icon: MdTrendingUp, color: 'text-blue-500', label: 'Good' };
-        if (percentage >= 60) return { icon: MdWarning, color: 'text-amber-500', label: 'Average' };
+        if (percentage >= 70) return { icon: MdCheckCircle, color: 'text-emerald-500', label: 'Excellent' };
+        if (percentage >= 40) return { icon: MdTrendingUp, color: 'text-amber-500', label: 'Average' };
         return { icon: MdWarning, color: 'text-red-500', label: 'Needs Improvement' };
     };
 
@@ -80,37 +69,43 @@ const OBEReports = () => {
     return (
         <div className="p-6 lg:p-8 space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">OBE Reports</h1>
-                    <p className="text-gray-500 text-sm mt-1">Outcome-Based Education - PLO & CLO Achievement Tracking</p>
+                    <h1 className="text-2xl font-bold text-slate-800">OBE Reports</h1>
+                    <p className="text-sm text-slate-500 mt-0.5">Outcome-Based Education - PLO & CLO Achievement Tracking</p>
                 </div>
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl p-5 text-white shadow-lg">
+            <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
                     <div className="flex items-center justify-between mb-2">
-                        <MdSchool className="w-8 h-8 opacity-80" />
-                        <span className="text-3xl font-bold">{batches.length}</span>
+                        <div className="bg-blue-50 text-blue-500 p-2 rounded-lg">
+                            <MdSchool className="w-6 h-6" />
+                        </div>
+                        <span className="text-2xl font-bold text-slate-900">{batches.length}</span>
                     </div>
-                    <p className="text-sm opacity-90">Active Batches</p>
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Active Batches</p>
                 </div>
-                <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-lg">
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
                     <div className="flex items-center justify-between mb-2">
-                        <MdTrendingUp className="w-8 h-8 opacity-80" />
-                        <span className="text-3xl font-bold">
-                            {Math.round(batches.reduce((acc, b) => acc + b.overallAchievement, 0) / batches.length)}%
+                        <div className="bg-emerald-50 text-emerald-500 p-2 rounded-lg">
+                            <MdTrendingUp className="w-6 h-6" />
+                        </div>
+                        <span className="text-2xl font-bold text-slate-900">
+                            {batches.length > 0 ? Math.round(batches.reduce((acc, b) => acc + b.overallAchievement, 0) / batches.length) : 0}%
                         </span>
                     </div>
-                    <p className="text-sm opacity-90">Average Achievement</p>
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Average Achievement</p>
                 </div>
-                <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-5 text-white shadow-lg">
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
                     <div className="flex items-center justify-between mb-2">
-                        <MdBook className="w-8 h-8 opacity-80" />
-                        <span className="text-3xl font-bold">{batches.reduce((acc, b) => acc + (b.totalPLOs || 0), 0)}</span>
+                        <div className="bg-purple-50 text-purple-500 p-2 rounded-lg">
+                            <MdBook className="w-6 h-6" />
+                        </div>
+                        <span className="text-2xl font-bold text-slate-900">{batches.reduce((acc, b) => acc + (b.totalPLOs || 0), 0)}</span>
                     </div>
-                    <p className="text-sm opacity-90">Total PLOs</p>
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total PLOs</p>
                 </div>
             </div>
 
@@ -121,35 +116,35 @@ const OBEReports = () => {
                     const BadgeIcon = badge.icon;
 
                     return (
-                        <div key={batch.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div key={batch.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-3">
                             {/* Batch Header */}
                             <div
                                 onClick={() => toggleBatch(batch.id)}
-                                className="w-full p-5 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+                                className="w-full px-5 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer"
                             >
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-                                        <MdSchool className="w-6 h-6 text-white" />
+                                    <div className="bg-blue-50 text-blue-600 p-2 rounded-lg">
+                                        <MdSchool className="w-5 h-5" />
                                     </div>
                                     <div className="text-left">
-                                        <h3 className="font-bold text-gray-800">{batch.name}</h3>
-                                        <p className="text-sm text-gray-500">{batch.year} • {batch.totalPLOs} PLOs</p>
+                                        <h3 className="text-sm font-semibold text-slate-800">{batch.name}</h3>
+                                        <p className="text-xs text-slate-400">{batch.year} • {batch.totalPLOs} PLOs</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <div className="text-right">
                                         <div className="flex items-center gap-2">
-                                            <BadgeIcon className={`w-5 h-5 ${badge.color}`} />
-                                            <span className="text-2xl font-bold text-gray-800">{batch.overallAchievement}%</span>
+                                            <BadgeIcon className={`w-4 h-4 ${badge.color}`} />
+                                            <span className="text-lg font-bold text-slate-800">{batch.overallAchievement}%</span>
                                         </div>
-                                        <p className="text-xs text-gray-400">{badge.label}</p>
+                                        <p className={`text-[10px] font-semibold px-2 py-0.5 rounded-full inline-block mt-1 ${getAchievementColor(batch.overallAchievement)}`}>{badge.label}</p>
                                     </div>
                                     <button
                                         onClick={(e) => handleDownloadPLO(e, batch.name)}
-                                        className="p-2 hover:bg-gray-100 rounded-full text-indigo-500 hover:text-indigo-700 transition-colors"
+                                        className="p-2 hover:bg-slate-200 rounded-lg text-blue-500 hover:text-blue-700 transition-colors"
                                         title="Download PLO Report"
                                     >
-                                        <MdCloudDownload className="w-6 h-6" />
+                                        <MdCloudDownload className="w-5 h-5" />
                                     </button>
                                     {expandedBatch === batch.id ? (
                                         <MdExpandLess className="w-6 h-6 text-gray-400" />

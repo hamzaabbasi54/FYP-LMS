@@ -8,14 +8,21 @@ import express from 'express';
 import multer from 'multer';
 import pool from '../config/db.js';
 import { verifyToken, isAdmin, isAuthenticated } from '../middleware/auth.js';
+import { scopeToDepartment } from '../middleware/deptScope.js';
+import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
+
+// Students don't have a direct department_id — resolve via batch → department
+const scopeStudent = scopeToDepartment('students', 'id', {
+    joinQuery: `SELECT b.department_id FROM students s JOIN batches b ON s.batch_id = b.id WHERE s.id = ?`
+});
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
-import { parseExcel, generateExcel, getUploadDir } from '../utils/excel.js';
+import { parseExcel, generateExcel, getUploadDir, createExcelUpload, parseAcademicBackground } from '../utils/excel.js';
 
 const router = express.Router();
 router.use(verifyToken);
 
-// Multer config for Excel uploads
-const upload = multer({ dest: getUploadDir() });
+// Multer config for Excel uploads (validates extension + 5MB limit)
+const upload = createExcelUpload(multer);
 
 // ===================== STUDENTS =====================
 
@@ -63,9 +70,36 @@ router.get('/', async (req, res) => {
         res.status(500).json({ success: false, message: 'Error fetching students' });
     }
 });
+// GET download blank import template (must be before /:id to avoid param conflict)
+router.get('/import/template', isAdmin, (req, res) => {
+    try {
+        const templateData = [
+            {
+                roll_number: '',
+                first_name: '',
+                last_name: '',
+                email: '',
+                phone: '',
+                parent_name: '',
+                parent_email: '',
+                parent_phone: '',
+                matric_marks: '',
+                fsc_marks: '',
+                background: ''
+            }
+        ];
+        const buffer = generateExcel(templateData, 'Students Template');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=student_import_template.xlsx');
+        res.send(buffer);
+    } catch (error) {
+        console.error('Generate template error:', error);
+        res.status(500).json({ success: false, message: 'Error generating template' });
+    }
+});
 
 // GET single student with parent and enrollments
-router.get('/:id', async (req, res) => {
+router.get('/:id', scopeStudent, async (req, res) => {
     try {
         const [students] = await pool.query(
             `SELECT s.*, CONCAT(s.first_name, ' ', s.last_name) as name,
@@ -149,7 +183,7 @@ router.post('/', isAdmin, async (req, res) => {
 });
 
 // PUT update student
-router.put('/:id', isAdmin, async (req, res) => {
+router.put('/:id', isAdmin, scopeStudent, async (req, res) => {
     try {
         const { first_name, last_name, email, phone, batch_id, cgpa, is_active, matric_marks, fsc_marks, background, student_id_number } = req.body;
         const fields = [];
@@ -182,7 +216,7 @@ router.put('/:id', isAdmin, async (req, res) => {
 });
 
 // DELETE student
-router.delete('/:id', isAdmin, async (req, res) => {
+router.delete('/:id', isAdmin, scopeStudent, async (req, res) => {
     try {
         const [result] = await pool.query('DELETE FROM students WHERE id = ?', [req.params.id]);
         if (result.affectedRows === 0) {
@@ -203,6 +237,20 @@ router.post('/bulk-delete', isAdmin, async (req, res) => {
             return res.status(400).json({ success: false, message: 'No student IDs provided' });
         }
 
+        // Department scoping: verify all students belong to deptadmin's department
+        if (req.user.role === 'deptadmin') {
+            const placeholders = student_ids.map(() => '?').join(',');
+            const [foreignStudents] = await pool.query(
+                `SELECT s.id FROM students s
+                 JOIN batches b ON s.batch_id = b.id
+                 WHERE s.id IN (${placeholders}) AND b.department_id != ?`,
+                [...student_ids, req.user.department_id]
+            );
+            if (foreignStudents.length > 0) {
+                return res.status(403).json({ success: false, message: 'Access denied. Some students belong to a different department.' });
+            }
+        }
+
         const placeholders = student_ids.map(() => '?').join(',');
         const [result] = await pool.query(`DELETE FROM students WHERE id IN (${placeholders})`, student_ids);
 
@@ -216,7 +264,7 @@ router.post('/bulk-delete', isAdmin, async (req, res) => {
 // ===================== EXCEL IMPORT =====================
 
 // POST bulk import students from Excel
-router.post('/import', isAdmin, upload.single('file'), async (req, res) => {
+router.post('/import', isAdmin, upload.single('file'), validateMagicBytes, async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'Excel file is required. Upload as form-data with key "file".' });
     }
@@ -263,6 +311,9 @@ router.post('/import', isAdmin, upload.single('file'), async (req, res) => {
 
                 const studentBatchId = row.batch_id || targetBatchId;
 
+                // Robust background parsing
+                const cleanBackground = parseAcademicBackground(row.background);
+
                 const [result] = await conn.query(
                     `INSERT INTO students (student_id_number, first_name, last_name, email, phone, batch_id, matric_marks, fsc_marks, background)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -275,7 +326,7 @@ router.post('/import', isAdmin, upload.single('file'), async (req, res) => {
                         matric_marks = VALUES(matric_marks),
                         fsc_marks = VALUES(fsc_marks),
                         background = VALUES(background)`,
-                    [rollNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', studentBatchId, row.matric_marks || null, row.fsc_marks || null, row.background || null]
+                    [rollNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', studentBatchId, row.matric_marks || null, row.fsc_marks || null, cleanBackground]
                 );
 
                 const studentId = result.insertId;
@@ -311,7 +362,7 @@ router.post('/import', isAdmin, upload.single('file'), async (req, res) => {
 });
 
 // POST bulk import students and enroll them into a course assignment (Faculty)
-router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file'), async (req, res) => {
+router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file'), validateMagicBytes, async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'Excel file is required. Upload as form-data with key "file".' });
     }
@@ -369,6 +420,9 @@ router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file
                     throw new Error('Roll number is required');
                 }
 
+                // Robust background parsing
+                const cleanBackground = parseAcademicBackground(row.background);
+
                 const [result] = await conn.query(
                     `INSERT INTO students (student_id_number, first_name, last_name, email, phone, batch_id, matric_marks, fsc_marks, background)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -380,7 +434,7 @@ router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file
                         matric_marks = VALUES(matric_marks),
                         fsc_marks = VALUES(fsc_marks),
                         background = VALUES(background)`,
-                    [rollNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', batchId, row.matric_marks || null, row.fsc_marks || null, row.background || null]
+                    [rollNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', batchId, row.matric_marks || null, row.fsc_marks || null, cleanBackground]
                 );
 
                 const studentId = result.insertId;
@@ -424,6 +478,38 @@ router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file
     }
 });
 
+// GET students by batch (for cross-batch enrollment picker)
+router.get('/by-batch/:batchId', isAuthenticated, async (req, res) => {
+    try {
+        const { batchId } = req.params;
+        const search = req.query.search || '';
+
+        let query = `SELECT s.id, s.student_id_number, s.first_name, s.last_name, s.email, s.phone,
+                            s.batch_id, s.matric_marks, s.fsc_marks, s.background,
+                            b.name as batch_name,
+                            p.name as parent_name, p.email as parent_email, p.phone as parent_phone
+                     FROM students s
+                     LEFT JOIN batches b ON s.batch_id = b.id
+                     LEFT JOIN parents p ON p.student_id = s.id
+                     WHERE s.batch_id = ?`;
+        const params = [batchId];
+
+        if (search.trim()) {
+            query += ` AND (s.first_name LIKE ? OR s.last_name LIKE ? OR s.student_id_number LIKE ? OR CONCAT(s.first_name, ' ', s.last_name) LIKE ?)`;
+            const searchParam = `%${search.trim()}%`;
+            params.push(searchParam, searchParam, searchParam, searchParam);
+        }
+
+        query += ' ORDER BY s.last_name, s.first_name LIMIT 100';
+
+        const [students] = await pool.query(query, params);
+        res.json({ success: true, data: students });
+    } catch (error) {
+        console.error('Get students by batch error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching students' });
+    }
+});
+
 // POST single student registration and enrollment into a course assignment (Faculty)
 router.post('/course/:assignmentId/register', isAuthenticated, async (req, res) => {
     const { assignmentId } = req.params;
@@ -446,8 +532,8 @@ router.post('/course/:assignmentId/register', isAuthenticated, async (req, res) 
             return res.status(404).json({ success: false, message: 'Course assignment not found' });
         }
 
-        const batchId = assignments[0].batch_id;
-        const { first_name, last_name, email, phone, parent_name, parent_email, parent_phone, matric_marks, fsc_marks, background, student_id_number } = req.body;
+        const courseBatchId = assignments[0].batch_id;
+        const { first_name, last_name, email, phone, parent_name, parent_email, parent_phone, matric_marks, fsc_marks, background, student_id_number, original_batch_id } = req.body;
 
         if (!first_name || !last_name || !email || !student_id_number) {
             await conn.rollback();
@@ -455,6 +541,10 @@ router.post('/course/:assignmentId/register', isAuthenticated, async (req, res) 
         }
 
         const rollNumber = student_id_number.trim();
+
+        // If original_batch_id is provided, the student is from a different batch.
+        // Use the student's home batch_id for the students table, not the course's batch.
+        const studentBatchId = original_batch_id || courseBatchId;
 
         const [result] = await conn.query(
             `INSERT INTO students (student_id_number, first_name, last_name, email, phone, batch_id, matric_marks, fsc_marks, background)
@@ -467,7 +557,7 @@ router.post('/course/:assignmentId/register', isAuthenticated, async (req, res) 
                 matric_marks = VALUES(matric_marks),
                 fsc_marks = VALUES(fsc_marks),
                 background = VALUES(background)`,
-            [rollNumber, first_name, last_name, String(email).toLowerCase(), phone || '', batchId, matric_marks || null, fsc_marks || null, background || null]
+            [rollNumber, first_name, last_name, String(email).toLowerCase(), phone || '', studentBatchId, matric_marks || null, fsc_marks || null, background || null]
         );
 
         const studentId = result.insertId;
@@ -481,10 +571,12 @@ router.post('/course/:assignmentId/register', isAuthenticated, async (req, res) 
         }
 
         // Enroll student in the course assignment
+        // Record original_batch_id if student is from a different batch
         if (studentId) {
+            const enrollOriginalBatchId = (original_batch_id && original_batch_id !== courseBatchId) ? original_batch_id : null;
             await conn.query(
-                `INSERT INTO enrollments (student_id, course_assignment_id) VALUES (?, ?)`,
-                [studentId, assignmentId]
+                `INSERT INTO enrollments (student_id, course_assignment_id, original_batch_id) VALUES (?, ?, ?)`,
+                [studentId, assignmentId, enrollOriginalBatchId]
             );
         }
 
@@ -617,7 +709,7 @@ router.get('/enrolled/:courseAssignmentId', async (req, res) => {
         );
 
         const [students] = await pool.query(
-            `SELECT s.*, e.id as enrollment_id, e.enrolled_at
+            `SELECT s.*, e.id as enrollment_id, e.created_at as enrolled_at
              FROM students s
              JOIN enrollments e ON s.id = e.student_id
              WHERE e.course_assignment_id = ?

@@ -58,45 +58,45 @@ const EditSyllabus = () => {
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
             {/* Page Header */}
             <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">
                     Edit Syllabus
                 </h1>
-                <p className="text-gray-500 text-sm sm:text-base">
+                <p className="text-slate-500 text-sm sm:text-base">
                     Update the course syllabus, learning objectives, and weekly schedule.
                 </p>
             </div>
 
             {/* Rich Text Editor */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 {/* Toolbar */}
-                <div className="border-b border-gray-200 bg-gray-50 px-4 py-3 flex flex-wrap items-center gap-2 sm:gap-4">
+                <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 flex flex-wrap items-center gap-2 sm:gap-4">
                     {/* Text Format Dropdown */}
                     <div className="relative">
-                        <button className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
+                        <button className="flex items-center px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50">
                             Normal Text
                             <MdArrowDropDown className="w-4 h-4 ml-1" />
                         </button>
                     </div>
 
                     {/* Divider */}
-                    <div className="h-6 w-px bg-gray-300"></div>
+                    <div className="h-6 w-px bg-slate-200"></div>
 
                     {/* Format Buttons */}
                     <div className="flex items-center gap-1">
                         <button
-                            className="p-2 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-colors"
+                            className="p-2 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
                             title="Bold"
                         >
                             <MdFormatBold className="w-5 h-5" />
                         </button>
                         <button
-                            className="p-2 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-colors"
+                            className="p-2 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
                             title="Italic"
                         >
                             <MdFormatItalic className="w-5 h-5" />
                         </button>
                         <button
-                            className="p-2 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-colors"
+                            className="p-2 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
                             title="Underline"
                         >
                             <MdFormatUnderlined className="w-5 h-5" />
@@ -104,18 +104,18 @@ const EditSyllabus = () => {
                     </div>
 
                     {/* Divider */}
-                    <div className="h-6 w-px bg-gray-300"></div>
+                    <div className="h-6 w-px bg-slate-200"></div>
 
                     {/* List Buttons */}
                     <div className="flex items-center gap-1">
                         <button
-                            className="p-2 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-colors"
+                            className="p-2 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
                             title="Bullet List"
                         >
                             <MdFormatListBulleted className="w-5 h-5" />
                         </button>
                         <button
-                            className="p-2 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-colors"
+                            className="p-2 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
                             title="Numbered List"
                         >
                             <MdFormatListNumbered className="w-5 h-5" />
@@ -123,11 +123,11 @@ const EditSyllabus = () => {
                     </div>
 
                     {/* Divider */}
-                    <div className="h-6 w-px bg-gray-300"></div>
+                    <div className="h-6 w-px bg-slate-200"></div>
 
                     {/* Link Button */}
                     <button
-                        className="p-2 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-colors"
+                        className="p-2 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
                         title="Insert Link"
                     >
                         <MdLink className="w-5 h-5" />
@@ -137,14 +137,14 @@ const EditSyllabus = () => {
                 {/* Editor Content Area */}
                 <div className="p-6 min-h-[500px]">
                     <div className="prose max-w-none">
-                        <div className="space-y-6 text-gray-800 text-sm sm:text-base leading-relaxed">
+                        <div className="space-y-6 text-slate-800 text-sm sm:text-base leading-relaxed">
                             {/* Course Overview Section */}
                             <div>
                                 <h3 className="font-bold text-lg mb-3">Course Overview</h3>
                                 <textarea
                                     value={courseOverview}
                                     onChange={(e) => setCourseOverview(e.target.value)}
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 resize-none"
+                                    className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-700 resize-none"
                                     rows="4"
                                     placeholder="Enter course overview..."
                                 />
@@ -164,12 +164,12 @@ const EditSyllabus = () => {
                                 <div className="space-y-2">
                                     {learningObjectives.map((objective, index) => (
                                         <div key={index} className="flex items-start gap-2">
-                                            <span className="text-gray-500 mt-2">•</span>
+                                            <span className="text-slate-400 mt-2">•</span>
                                             <input
                                                 type="text"
                                                 value={objective}
                                                 onChange={(e) => handleObjectiveChange(index, e.target.value)}
-                                                className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
+                                                className="flex-1 p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-700"
                                                 placeholder="Enter learning objective..."
                                             />
                                         </div>
@@ -195,7 +195,7 @@ const EditSyllabus = () => {
                                             type="text"
                                             value={schedule}
                                             onChange={(e) => handleScheduleChange(index, e.target.value)}
-                                            className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
+                                            className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-700"
                                             placeholder="Enter weekly schedule item..."
                                         />
                                     ))}
@@ -210,7 +210,7 @@ const EditSyllabus = () => {
             <div className="flex flex-col sm:flex-row justify-end gap-3">
                 <button
                     onClick={handleCancel}
-                    className="px-6 py-2.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 shadow-sm transition-colors font-medium text-sm sm:text-base"
+                    className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 shadow-sm transition-colors font-medium text-sm sm:text-base"
                 >
                     Cancel
                 </button>

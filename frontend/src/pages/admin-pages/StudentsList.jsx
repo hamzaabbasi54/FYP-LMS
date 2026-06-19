@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MdArrowBack, MdSearch, MdFileDownload, MdFileUpload, MdPersonAdd, MdClose, MdEmail, MdDelete } from 'react-icons/md';
+import { MdArrowBack, MdSearch, MdFileDownload, MdFileUpload, MdPersonAdd, MdClose, MdEmail, MdDelete, MdPerson, MdBadge, MdPhone, MdDescription, MdAdd } from 'react-icons/md';
 import { studentApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import OverlayLoader from '../../components/common/OverlayLoader';
@@ -14,8 +14,9 @@ const StudentList = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [newStudent, setNewStudent] = useState({
-        name: '', email: '', roll_number: '', contact_number: '', cgpa: '',
-        matric_marks: '', fsc_marks: '', background: ''
+        firstName: '', lastName: '', email: '', roll_number: '', contact_number: '', cgpa: '',
+        matric_marks: '', fsc_marks: '', background: '',
+        parentName: '', parentEmail: '', parentPhone: ''
     });
     const [showImportModal, setShowImportModal] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
@@ -60,7 +61,7 @@ const StudentList = () => {
         onSuccess: () => {
             toast.success('Student added successfully!');
             setShowAddModal(false);
-            setNewStudent({ name: '', email: '', roll_number: '', contact_number: '', cgpa: '', matric_marks: '', fsc_marks: '', background: '' });
+            setNewStudent({ firstName: '', lastName: '', email: '', roll_number: '', contact_number: '', cgpa: '', matric_marks: '', fsc_marks: '', background: '', parentName: '', parentEmail: '', parentPhone: '' });
             queryClient.invalidateQueries({ queryKey: ['students', id] });
         },
         onError: (error) => {
@@ -70,13 +71,9 @@ const StudentList = () => {
 
     const handleAddStudent = (e) => {
         e.preventDefault();
-        const nameParts = newStudent.name.split(' ');
-        const firstName = nameParts[0];
-        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Doe';
-        
-        addStudentMutation.mutate({
-            first_name: firstName,
-            last_name: lastName,
+        const payload = {
+            first_name: newStudent.firstName,
+            last_name: newStudent.lastName,
             email: newStudent.email,
             phone: newStudent.contact_number,
             student_id_number: newStudent.roll_number,
@@ -85,13 +82,32 @@ const StudentList = () => {
             fsc_marks: parseFloat(newStudent.fsc_marks) || null,
             background: newStudent.background || null,
             batch_id: parseInt(id)
-        });
+        };
+        if (newStudent.parentName) {
+            payload.parent = {
+                name: newStudent.parentName,
+                email: newStudent.parentEmail || null,
+                phone: newStudent.parentPhone || null
+            };
+        }
+        addStudentMutation.mutate(payload);
     };
 
     const handleImportClick = () => setShowImportModal(true);
     const triggerFileInput = () => {
         setShowImportModal(false);
         fileInputRef.current?.click();
+    };
+
+    const handleDownloadTemplate = async () => {
+        try {
+            await studentApi.downloadImportTemplate();
+            toast.success('Template downloaded!');
+        } catch (error) {
+            console.error('Download template error:', error);
+            const errMsg = error.response?.data?.message || error.message || 'Unknown error';
+            toast.error(`Failed to download template: ${errMsg}`);
+        }
     };
 
     const importMutation = useMutation({
@@ -195,7 +211,7 @@ const StudentList = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
             <OverlayLoader isLoading={isImporting} text="Importing students to batch..." />
             <div className="p-8 max-w-7xl mx-auto">
                 <div className="mb-6">
@@ -225,10 +241,10 @@ const StudentList = () => {
                         <button onClick={() => setShowAddModal(true)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/25 transition-all">
                             <MdPersonAdd className="w-5 h-5" /> Add
                         </button>
-                        <button onClick={handleImportClick} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                        <button onClick={handleImportClick} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 shadow-sm text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
                             <MdFileUpload className="w-5 h-5 text-emerald-500" /> Import
                         </button>
-                        <button onClick={handleExport} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                        <button onClick={handleExport} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 shadow-sm text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
                             <MdFileDownload className="w-5 h-5 text-blue-500" /> Export
                         </button>
                     </div>
@@ -239,12 +255,12 @@ const StudentList = () => {
                     <div className="relative max-w-md">
                         <MdSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                         <input type="text" placeholder="Search by name, ID, or email..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" />
+                            className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-300 shadow-sm rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" />
                     </div>
                 </div>
 
                 {/* Students Table */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
@@ -326,7 +342,7 @@ const StudentList = () => {
                                 <button 
                                     onClick={() => setPage(p => Math.max(1, p - 1))}
                                     disabled={!pagination.hasPrev}
-                                    className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                    className="px-3 py-1.5 border-2 border-slate-300 shadow-sm rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                 >
                                     Previous
                                 </button>
@@ -336,7 +352,7 @@ const StudentList = () => {
                                 <button 
                                     onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
                                     disabled={!pagination.hasNext}
-                                    className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                    className="px-3 py-1.5 border-2 border-slate-300 shadow-sm rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                 >
                                     Next
                                 </button>
@@ -345,69 +361,170 @@ const StudentList = () => {
                     </div>
                 </div>
 
-                {/* Add Modal */}
+                {/* Add Student Modal — Faculty-style layout */}
                 {showAddModal && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-                            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-                                <h3 className="text-lg font-bold text-slate-800">Add New Student</h3>
-                                <button onClick={() => setShowAddModal(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg">
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden flex flex-col" style={{ maxHeight: '90vh' }}>
+                            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-800">Register New Student</h3>
+                                    <p className="text-xs text-slate-500 mt-0.5 font-medium">Fill in the details below to add a student to this batch</p>
+                                </div>
+                                <button onClick={() => setShowAddModal(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
                                     <MdClose className="w-5 h-5" />
                                 </button>
                             </div>
-                            <form onSubmit={handleAddStudent} className="p-5 space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Full Name</label>
-                                    <input type="text" required value={newStudent.name} onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="Enter name" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
-                                    <input type="email" required value={newStudent.email} onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="student@university.edu" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Roll Number</label>
-                                    <input type="text" required value={newStudent.roll_number} onChange={(e) => setNewStudent({ ...newStudent, roll_number: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="e.g. 04162213027" />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Contact</label>
-                                        <input type="tel" value={newStudent.contact_number} onChange={(e) => setNewStudent({ ...newStudent, contact_number: e.target.value })}
-                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="+1 XXX-XXX" />
+                            <form onSubmit={handleAddStudent} className="p-6 overflow-y-auto flex-1">
+                                {/* Student Information Section */}
+                                <div className="mb-6">
+                                    <div className="flex items-center gap-2 mb-5">
+                                        <MdPerson className="w-5 h-5 text-slate-600" />
+                                        <h2 className="text-base font-bold text-slate-800">Student Information</h2>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">CGPA</label>
-                                        <input type="number" step="0.01" min="0" max="4" value={newStudent.cgpa} onChange={(e) => setNewStudent({ ...newStudent, cgpa: e.target.value })}
-                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="0.00" />
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        {/* First Name */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">First Name</label>
+                                            <input type="text" required value={newStudent.firstName} onChange={(e) => setNewStudent({ ...newStudent, firstName: e.target.value })}
+                                                placeholder="e.g. Sara"
+                                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400" />
+                                        </div>
+
+                                        {/* Last Name */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">Last Name</label>
+                                            <input type="text" required value={newStudent.lastName} onChange={(e) => setNewStudent({ ...newStudent, lastName: e.target.value })}
+                                                placeholder="e.g. Malik"
+                                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400" />
+                                        </div>
+
+                                        {/* Roll Number */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">Roll Number</label>
+                                            <div className="relative">
+                                                <MdBadge className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                                                <input type="text" required value={newStudent.roll_number} onChange={(e) => setNewStudent({ ...newStudent, roll_number: e.target.value })}
+                                                    placeholder="e.g. 04162213027"
+                                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400" />
+                                            </div>
+                                        </div>
+
+                                        {/* Phone Number */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">Phone Number <span className="text-slate-400 font-medium">(Optional)</span></label>
+                                            <div className="relative">
+                                                <MdPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                                                <input type="tel" value={newStudent.contact_number} onChange={(e) => setNewStudent({ ...newStudent, contact_number: e.target.value })}
+                                                    placeholder="+1 (555) 000-0000"
+                                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400" />
+                                            </div>
+                                        </div>
+
+                                        {/* University Email */}
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">University Email Address</label>
+                                            <div className="relative">
+                                                <MdEmail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                                                <input type="email" required value={newStudent.email} onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
+                                                    placeholder="sara.malik@university.edu"
+                                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400" />
+                                            </div>
+                                            <p className="text-xs text-slate-500 mt-1.5 font-medium">Must be a valid .edu email address</p>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Matric Marks</label>
-                                        <input type="number" value={newStudent.matric_marks} onChange={(e) => setNewStudent({ ...newStudent, matric_marks: e.target.value })}
-                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="e.g. 850" />
+
+                                {/* Additional Information Section */}
+                                <div className="mb-6 pt-6 border-t border-slate-200">
+                                    <div className="flex items-center gap-2 mb-5">
+                                        <MdDescription className="w-5 h-5 text-slate-600" />
+                                        <h2 className="text-base font-bold text-slate-800">Additional Information</h2>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">FSc Marks</label>
-                                        <input type="number" value={newStudent.fsc_marks} onChange={(e) => setNewStudent({ ...newStudent, fsc_marks: e.target.value })}
-                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="e.g. 920" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Background</label>
-                                        <select value={newStudent.background} onChange={(e) => setNewStudent({ ...newStudent, background: e.target.value })}
-                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white">
-                                            <option value="">Select...</option>
-                                            <option value="pre-med">Pre-Med</option>
-                                            <option value="pre-engineering">Pre-Engineering</option>
-                                            <option value="ics">ICS</option>
-                                        </select>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        {/* Parent Name */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">Parent Name <span className="text-slate-400 font-medium">(Optional)</span></label>
+                                            <input type="text" value={newStudent.parentName} onChange={(e) => setNewStudent({ ...newStudent, parentName: e.target.value })}
+                                                placeholder="Parent's full name"
+                                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400" />
+                                        </div>
+
+                                        {/* Parent Phone */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">Parent Phone <span className="text-slate-400 font-medium">(Optional)</span></label>
+                                            <input type="tel" value={newStudent.parentPhone} onChange={(e) => setNewStudent({ ...newStudent, parentPhone: e.target.value })}
+                                                placeholder="+1 (555) 000-0000"
+                                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400" />
+                                        </div>
+
+                                        {/* Parent Email */}
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">Parent Email <span className="text-slate-400 font-medium">(Optional)</span></label>
+                                            <input type="email" value={newStudent.parentEmail} onChange={(e) => setNewStudent({ ...newStudent, parentEmail: e.target.value })}
+                                                placeholder="parent@example.com"
+                                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400" />
+                                        </div>
+
+                                        {/* CGPA */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">CGPA <span className="text-slate-400 font-medium">(Optional)</span></label>
+                                            <input type="number" step="0.01" min="0" max="4" value={newStudent.cgpa} onChange={(e) => setNewStudent({ ...newStudent, cgpa: e.target.value })}
+                                                placeholder="0.00"
+                                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400" />
+                                        </div>
+
+                                        {/* Matric Marks */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">Matric Marks <span className="text-slate-400 font-medium">(Optional)</span></label>
+                                            <input type="number" value={newStudent.matric_marks} onChange={(e) => setNewStudent({ ...newStudent, matric_marks: e.target.value })}
+                                                placeholder="e.g. 950"
+                                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400" />
+                                        </div>
+
+                                        {/* FSc Marks */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">FSc Marks <span className="text-slate-400 font-medium">(Optional)</span></label>
+                                            <input type="number" value={newStudent.fsc_marks} onChange={(e) => setNewStudent({ ...newStudent, fsc_marks: e.target.value })}
+                                                placeholder="e.g. 900"
+                                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400" />
+                                        </div>
+
+                                        {/* Academic Background */}
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">Academic Background <span className="text-slate-400 font-medium">(Optional)</span></label>
+                                            <select value={newStudent.background} onChange={(e) => setNewStudent({ ...newStudent, background: e.target.value })}
+                                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white font-medium text-slate-800">
+                                                <option value="">Select background...</option>
+                                                <option value="pre-med">Pre-Medical</option>
+                                                <option value="pre-engineering">Pre-Engineering</option>
+                                                <option value="ics">ICS</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex gap-3 pt-2">
-                                    <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 font-medium">Cancel</button>
-                                    <button type="submit" className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:shadow-lg font-medium">Add Student</button>
+
+                                {/* Form Actions */}
+                                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-5 border-t border-slate-200">
+                                    <button type="button" onClick={() => setShowAddModal(false)}
+                                        className="px-6 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-semibold text-sm transition-colors">
+                                        Cancel
+                                    </button>
+                                    <button type="submit" disabled={addStudentMutation.isPending}
+                                        className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-sm transition-colors flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed shadow-sm">
+                                        {addStudentMutation.isPending ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                                Adding...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <MdAdd className="w-5 h-5 mr-1.5" />
+                                                Add Student
+                                            </>
+                                        )}
+                                    </button>
                                 </div>
                             </form>
                         </div>
@@ -430,7 +547,7 @@ const StudentList = () => {
                                 <h4 className="font-semibold text-slate-800 mb-2">Excel File Format Requirements</h4>
                                 <p className="text-sm text-slate-600 mb-4">Please ensure your Excel file (.xlsx or .csv) contains the following column headers exactly as shown:</p>
                                 
-                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6">
+                                <div className="bg-white border-2 border-slate-200 rounded-xl shadow-sm p-4 mb-4">
                                     <ul className="text-sm text-slate-600 space-y-2 font-mono">
                                         <li><span className="font-bold text-emerald-600">roll_number</span> (Required, Unique)</li>
                                         <li><span className="font-bold text-emerald-600">first_name</span> (Required)</li>
@@ -446,8 +563,14 @@ const StudentList = () => {
                                     </ul>
                                 </div>
 
+                                {/* Download Template Button */}
+                                <button onClick={handleDownloadTemplate} type="button"
+                                    className="w-full mb-6 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 text-blue-700 rounded-xl hover:from-blue-100 hover:to-indigo-100 font-semibold text-sm transition-all flex items-center justify-center gap-2">
+                                    <MdFileDownload className="w-5 h-5" /> Download Excel Template
+                                </button>
+
                                 <div className="flex gap-3">
-                                    <button onClick={() => setShowImportModal(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 font-medium">Cancel</button>
+                                    <button onClick={() => setShowImportModal(false)} className="flex-1 px-4 py-2.5 border-2 border-slate-300 shadow-sm text-slate-700 rounded-xl hover:bg-slate-50 font-medium">Cancel</button>
                                     <button onClick={triggerFileInput} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:shadow-lg font-medium flex items-center justify-center gap-2">
                                         <MdFileUpload className="w-5 h-5" /> Select File
                                     </button>

@@ -5,6 +5,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 // Create axios instance with default config
 const api = axios.create({
     baseURL: API_BASE_URL,
+    withCredentials: true, // Send HTTP-Only cookies with every request
     headers: {
         'Content-Type': 'application/json',
     },
@@ -38,30 +39,17 @@ export const getFileUrl = (path) => {
     return path;
 };
 
-// Add token to requests if available
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
+// No request interceptor needed — cookies are sent automatically by the browser
 
-// Auto-handle 401 (token expired)
+// Auto-handle 401 (token expired or missing)
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            // Only redirect if not already on login page
-            if (window.location.pathname !== '/') {
-                window.location.href = '/';
+            // Don't redirect if already on login, set-password, forgot-password, or reset-password pages
+            const publicPaths = ['/', '/set-password', '/forgot-password', '/reset-password'];
+            if (!publicPaths.includes(window.location.pathname)) {
+                window.dispatchEvent(new Event('auth:logout'));
             }
         }
         return Promise.reject(error);
@@ -148,6 +136,15 @@ export const authApi = {
     },
     register: async (userData) => {
         const response = await api.post('/auth/signup', userData);
+        return response.data;
+    },
+    // HTTP-Only cookie auth
+    getMe: async () => {
+        const response = await api.get('/auth/me');
+        return response.data;
+    },
+    logout: async () => {
+        const response = await api.post('/auth/logout');
         return response.data;
     }
 };
@@ -519,6 +516,21 @@ export const studentApi = {
     getEnrolledStudents: async (courseAssignmentId) => {
         const response = await api.get(`/students/enrolled/${courseAssignmentId}?limit=1000`);
         return response.data;
+    },
+    getStudentsByBatch: async (batchId, search = '') => {
+        const response = await api.get(`/students/by-batch/${batchId}`, { params: { search } });
+        return response.data;
+    },
+    downloadImportTemplate: async () => {
+        const response = await api.get('/students/import/template', { responseType: 'blob' });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'student_import_template.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
     }
 };
 
@@ -807,6 +819,32 @@ export const notificationApi = {
     },
     markAllRead: async () => {
         const response = await api.put('/notifications/read-all');
+        return response.data;
+    }
+};
+
+// ============================================
+// Message API
+// ============================================
+export const messageApi = {
+    getContacts: async () => {
+        const response = await api.get('/messages/contacts');
+        return response.data;
+    },
+    getConversation: async (userId) => {
+        const response = await api.get(`/messages/conversation/${userId}`);
+        return response.data;
+    },
+    send: async (recipientId, content) => {
+        const response = await api.post('/messages/send', { recipient_id: recipientId, content });
+        return response.data;
+    },
+    getUnreadCount: async () => {
+        const response = await api.get('/messages/unread-count');
+        return response.data;
+    },
+    markRead: async (userId) => {
+        const response = await api.put(`/messages/read/${userId}`);
         return response.data;
     }
 };

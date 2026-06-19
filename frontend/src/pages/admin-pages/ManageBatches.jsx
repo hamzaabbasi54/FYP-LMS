@@ -64,40 +64,37 @@ const ManageBatches = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-2 h-8 bg-gradient-to-b from-emerald-500 to-teal-600 rounded-full"></div>
-                            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                                Manage Batches
-                            </h1>
-                        </div>
+                        <h1 className="text-2xl font-bold text-slate-800">
+                            Manage Batches
+                        </h1>
                         <p className="text-slate-500 ml-5">
                             {loading ? 'Loading...' : `${batches.length} batches found`}
                         </p>
                     </div>
                     <Link
                         to="/admin-managebatches/addbatch"
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-emerald-500/25 transition-all duration-200"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors text-sm"
                     >
-                        <MdAdd className="w-5 h-5" />
+                        <MdAdd className="w-4 h-4" />
                         Add Batch
                     </Link>
                 </div>
 
                 {/* Search Bar */}
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-8">
+                <div className="mb-8">
                     <div className="relative">
-                        <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
                             placeholder="Search batches by name or department..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all"
+                            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
                         />
                     </div>
                 </div>
@@ -127,9 +124,9 @@ const ManageBatches = () => {
                         {!searchQuery && (
                             <Link
                                 to="/admin-managebatches/addbatch"
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-medium rounded-xl"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors text-sm"
                             >
-                                <MdAdd className="w-5 h-5" />
+                                <MdAdd className="w-4 h-4" />
                                 Add Batch
                             </Link>
                         )}
@@ -141,42 +138,42 @@ const ManageBatches = () => {
                             <Link
                                 key={batch.id}
                                 to={`/admin-managebatches/${batch.id}`}
-                                className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:shadow-slate-300/50 transition-all duration-300 hover:-translate-y-1"
+                                className="group bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow border-t-4 border-t-blue-500 flex flex-col gap-3"
                             >
                                 {/* Card Header */}
-                                <div className={`bg-gradient-to-r ${colorPalette[index % colorPalette.length]} p-6`}>
+                                <div>
                                     <div className="flex items-center justify-between">
-                                        <h3 className="text-xl font-bold text-white">{batch.name}</h3>
+                                        <h3 className="text-lg font-bold text-slate-800">{batch.name}</h3>
                                         <button
                                             onClick={(e) => handleDelete(batch.id, e)}
-                                            className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
+                                            className="text-slate-300 hover:text-red-500 transition-colors"
                                             title="Delete batch"
                                         >
-                                            <MdDelete className="w-4 h-4 text-white" />
+                                            <MdDelete className="w-5 h-5" />
                                         </button>
                                     </div>
-                                    <p className="text-white/80 text-sm mt-1">
+                                    <p className="text-xs text-slate-500 mt-0.5">
                                         {batch.department_name || 'No Department'}
                                     </p>
                                 </div>
 
                                 {/* Card Body */}
-                                <div className="p-6">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-2 text-slate-600">
-                                            <MdPeople className="w-5 h-5 text-slate-400" />
-                                            <span className="text-sm font-medium">{batch.student_count || 0} Students</span>
+                                <div className="mt-auto pt-2">
+                                    <div className="flex gap-4 text-sm text-slate-600 mb-4">
+                                        <div className="flex items-center gap-1.5">
+                                            <MdPeople className="w-4 h-4 text-slate-400" />
+                                            <span>{batch.student_count || 0} Students</span>
                                         </div>
-                                        <div className="flex items-center gap-2 text-slate-600">
-                                            <MdBook className="w-5 h-5 text-slate-400" />
-                                            <span className="text-sm font-medium">{batch.semester_count || 0} Semesters</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <MdBook className="w-4 h-4 text-slate-400" />
+                                            <span>{batch.semester_count || 0} Semesters</span>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center justify-between">
-                                        <span className={`inline-flex px-3 py-1 rounded-lg text-xs font-semibold
+                                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider
                                             ${batch.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
-                                            batch.status === 'completed' ? 'bg-slate-100 text-slate-600' :
+                                            batch.status === 'completed' ? 'bg-blue-50 text-blue-700' :
                                             'bg-amber-100 text-amber-700'}`}
                                         >
                                             {getStatusLabel(batch.status)}

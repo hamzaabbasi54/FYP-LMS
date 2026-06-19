@@ -1,13 +1,23 @@
 import jwt from 'jsonwebtoken';
+import pool from '../config/db.js';
+import { cacheGet, cacheSet } from '../config/redis.js';
 
-// Verify JWT Token Middleware
-export const verifyToken = (req, res, next) => {
+// Verify JWT Token Middleware (with Redis-cached token_version check)
+export const verifyToken = async (req, res, next) => {
     try {
         let token;
-        const authHeader = req.headers.authorization;
 
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            token = authHeader.split(' ')[1];
+        // 1. Try HTTP-Only cookie first
+        if (req.cookies?.token) {
+            token = req.cookies.token;
+        }
+
+        // 2. Fall back to Authorization header (backward compat)
+        if (!token) {
+            const authHeader = req.headers.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                token = authHeader.split(' ')[1];
+            }
         }
 
         if (!token) {
@@ -17,11 +27,36 @@ export const verifyToken = (req, res, next) => {
             });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'KEY');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // HIGH-4: Verify token_version hasn't been bumped (password change / deactivation)
+        // Strategy: Check Redis first (fast), fall back to MySQL on cache miss
+        const cacheKey = `session:user:${decoded.id}`;
+        let user = await cacheGet(cacheKey);
+
+        if (!user) {
+            // Cache miss — query MySQL and populate cache (TTL: 1 hour)
+            const [[dbUser]] = await pool.query(
+                'SELECT token_version, is_active FROM users WHERE id = ?',
+                [decoded.id]
+            );
+            if (!dbUser) {
+                return res.status(401).json({ success: false, message: 'Account not found.' });
+            }
+            user = { token_version: dbUser.token_version, is_active: dbUser.is_active };
+            await cacheSet(cacheKey, user, 3600); // Cache for 1 hour
+        }
+
+        if (!user.is_active) {
+            return res.status(401).json({ success: false, message: 'Account deactivated or not found.' });
+        }
+        if (user.token_version !== (decoded.token_version ?? 0)) {
+            return res.status(401).json({ success: false, message: 'Session expired. Please log in again.' });
+        }
+
         req.user = decoded;
         next();
     } catch (error) {
-        console.error('Token verification error:', error);
         return res.status(401).json({
             success: false,
             message: 'Invalid or expired token. Access denied.'

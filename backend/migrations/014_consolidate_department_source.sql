@@ -1,0 +1,18 @@
+-- ============================================
+-- Migration: 014_consolidate_department_source.sql
+-- Consolidates department scoping to users.department_id only.
+-- The user_departments table is no longer read/written by code.
+-- Visiting faculty use separate accounts (emails) per department.
+-- ============================================
+
+-- No schema changes required.
+-- The user_departments table is kept for historical reference
+-- but is no longer the source of truth for any code path.
+-- 
+-- Code changes made in this migration:
+-- 1. auth.js: Removed INSERT INTO user_departments on invite/create
+-- 2. auth.js: Simplified faculty listing to use users.department_id only
+-- 3. messageRoutes.js: Removed user_departments fallback checks
+--
+-- Business rule: Visiting faculty get separate email/password per department.
+-- Each user row = 1 person in 1 department. users.department_id is the sole FK.

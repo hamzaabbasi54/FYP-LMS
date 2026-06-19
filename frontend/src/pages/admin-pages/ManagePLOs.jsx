@@ -113,7 +113,7 @@ const ManagePLOs = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
             <OverlayLoader isLoading={isImporting} text="Importing PLOs..." />
             <div className="p-8 max-w-5xl mx-auto">
                 {/* Header */}
@@ -131,11 +131,11 @@ const ManagePLOs = () => {
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                         <button onClick={handleExport}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-all text-sm shadow-sm">
+                            className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 shadow-sm text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-all text-sm shadow-sm">
                             <MdFileDownload className="w-4 h-4" /> Export
                         </button>
                         <button onClick={() => setShowImportInfo(true)}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-all text-sm shadow-sm">
+                            className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 shadow-sm text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-all text-sm shadow-sm">
                             <MdFileUpload className="w-4 h-4" /> Import
                         </button>
                         <button onClick={handleOpenAddModal}
@@ -146,7 +146,7 @@ const ManagePLOs = () => {
                 </div>
 
                 {/* Search */}
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-6">
+                <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-4 mb-6">
                     <div className="relative">
                         <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
@@ -154,7 +154,7 @@ const ManagePLOs = () => {
                             placeholder="Search PLOs by number or description..."
                             value={ploSearch}
                             onChange={(e) => setPloSearch(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all"
+                            className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-300 rounded-xl shadow-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all"
                         />
                     </div>
                 </div>
@@ -163,14 +163,14 @@ const ManagePLOs = () => {
                 {loading ? (
                     <div className="space-y-3">
                         {[1, 2, 3, 4].map(i => (
-                            <div key={i} className="bg-white rounded-xl p-5 animate-pulse border border-slate-100">
+                            <div key={i} className="bg-white rounded-xl p-5 animate-pulse border-2 border-slate-200">
                                 <div className="h-5 bg-slate-200 rounded w-1/3 mb-2"></div>
                                 <div className="h-4 bg-slate-200 rounded w-2/3"></div>
                             </div>
                         ))}
                     </div>
                 ) : filteredPLOs.length === 0 ? (
-                    <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
+                    <div className="text-center py-16 bg-white rounded-2xl border-2 border-slate-200">
                         <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
                             <MdAdd className="w-8 h-8 text-indigo-400" />
                         </div>
@@ -192,7 +192,7 @@ const ManagePLOs = () => {
                         {filteredPLOs.map((plo, index) => {
                             const isExpanded = expandedPloId === plo.id;
                             return (
-                                <div key={plo.id} className="rounded-xl border border-slate-200 overflow-hidden transition-shadow hover:shadow-md bg-white">
+                                <div key={plo.id} className="rounded-xl border-2 border-slate-300 shadow-sm overflow-hidden transition-shadow hover:shadow-md bg-white">
                                     <div
                                         className={`flex items-center justify-between p-4 cursor-pointer transition-all ${isExpanded ? 'bg-indigo-50' : 'hover:bg-slate-50'}`}
                                         onClick={() => setExpandedPloId(isExpanded ? null : plo.id)}
@@ -217,7 +217,7 @@ const ManagePLOs = () => {
                                     </div>
 
                                     {isExpanded && (
-                                        <div className="border-t border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6">
+                                        <div className="border-t border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200 p-6">
                                             <div className="space-y-3">
                                                 <div>
                                                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">PLO Number</h4>
@@ -263,7 +263,7 @@ const ManagePLOs = () => {
                                     value={newPlo.plo_number}
                                     onChange={(e) => setNewPlo(prev => ({ ...prev, plo_number: e.target.value }))}
                                     placeholder="e.g., 1"
-                                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-700"
+                                    className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-700"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -273,7 +273,7 @@ const ManagePLOs = () => {
                                     value={newPlo.description}
                                     onChange={(e) => setNewPlo(prev => ({ ...prev, description: e.target.value }))}
                                     placeholder="Describe the Program Learning Outcome..."
-                                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-700 resize-none"
+                                    className="w-full px-4 py-3 border-2 border-slate-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-700 resize-none"
                                 />
                             </div>
                         </div>
@@ -308,7 +308,7 @@ const ManagePLOs = () => {
                             <p className="text-sm text-slate-600">
                                 Your Excel file should have the following columns:
                             </p>
-                            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                            <div className="bg-white border-2 border-slate-300 rounded-xl shadow-sm p-4 border-2 border-slate-200">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-gray-200">

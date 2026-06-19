@@ -1,12 +1,12 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ allowedRole, allowedRoles }) => {
-    const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    const { user } = useAuth();
 
     // Check if user is logged in
-    if (!token || !user) {
+    if (!user) {
         // Not logged in, redirect to login page
         return <Navigate to="/" replace />;
     }
@@ -25,4 +25,3 @@ const ProtectedRoute = ({ allowedRole, allowedRoles }) => {
 };
 
 export default ProtectedRoute;
-

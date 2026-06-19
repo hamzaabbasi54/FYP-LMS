@@ -7,13 +7,19 @@ import express from 'express';
 import multer from 'multer';
 import pool from '../config/db.js';
 import { verifyToken, isAdmin, isAuthenticated } from '../middleware/auth.js';
+import { scopeToDepartment } from '../middleware/deptScope.js';
+import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
+import { cacheDel } from '../config/redis.js';
+
+const scopeCourse = scopeToDepartment('courses');
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
-import { parseExcel, generateExcel, getUploadDir } from '../utils/excel.js';
+import { parseExcel, generateExcel, getUploadDir, createExcelUpload } from '../utils/excel.js';
+import { emitToDepartment } from '../utils/emitHelper.js';
 
 const router = express.Router();
 router.use(verifyToken);
 
-const upload = multer({ dest: getUploadDir() });
+const upload = createExcelUpload(multer);
 
 // ===================== COURSES =====================
 
@@ -172,7 +178,7 @@ router.put('/clos/:id', isAdmin, async (req, res) => {
 });
 
 // POST import CLOs from Excel
-router.post('/clos/import', upload.single('file'), async (req, res) => {
+router.post('/clos/import', upload.single('file'), validateMagicBytes, async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
@@ -278,12 +284,12 @@ router.delete('/clos/:cloId', isAdmin, async (req, res) => {
 
 
 // POST import courses from Excel
-router.post('/import', upload.single('file'), async (req, res) => {
+router.post('/import', upload.single('file'), validateMagicBytes, async (req, res) => {
     if (!req.file) {
         return res.status(400).json({
             success: false,
             message: 'Excel file required.',
-            expected_columns: ['title', 'code', 'department_name', 'credit_hours', 'prerequisites', 'description']
+            expected_columns: ['title', 'code', 'department_name', 'credit_hours', 'description']
         });
     }
 
@@ -316,18 +322,17 @@ router.post('/import', upload.single('file'), async (req, res) => {
                 }
 
                 await conn.query(
-                    `INSERT INTO courses (title, code, department_id, credit_hours, prerequisites, description)
-                     VALUES (?, ?, ?, ?, ?, ?)
+                    `INSERT INTO courses (title, code, department_id, credit_hours, description)
+                     VALUES (?, ?, ?, ?, ?)
                      ON DUPLICATE KEY UPDATE 
                      title = VALUES(title), department_id = VALUES(department_id), 
-                     credit_hours = VALUES(credit_hours), prerequisites = VALUES(prerequisites), 
+                     credit_hours = VALUES(credit_hours), 
                      description = VALUES(description)`,
                     [
                         row.title,
                         row.code,
                         departmentId,
                         parseInt(row.credit_hours) || 3,
-                        row.prerequisites || '',
                         row.description || ''
                     ]
                 );
@@ -357,7 +362,7 @@ router.post('/import', upload.single('file'), async (req, res) => {
 router.get('/export', async (req, res) => {
     try {
         const [courses] = await pool.query(
-            `SELECT c.title, c.code, d.name as department_name, c.credit_hours, c.prerequisites, c.description
+            `SELECT c.title, c.code, d.name as department_name, c.credit_hours, c.description
              FROM courses c
              JOIN departments d ON c.department_id = d.id
              ORDER BY d.name, c.code`
@@ -393,7 +398,9 @@ router.get('/my-schedule', async (req, res) => {
              FROM class_schedules cs
              JOIN courses c ON cs.course_id = c.id
              JOIN batches b ON cs.batch_id = b.id
-             WHERE cs.faculty_id = ?
+             JOIN semesters s ON s.batch_id = b.id
+             JOIN course_assignments ca ON ca.course_id = c.id AND ca.semester_id = s.id
+             WHERE ca.faculty_id = ?
              ORDER BY FIELD(cs.day_of_week, 'monday','tuesday','wednesday','thursday','friday','saturday','sunday'),
                       cs.start_time`,
             [req.user.id]
@@ -555,23 +562,16 @@ router.post('/', isAdmin, async (req, res) => {
     const conn = await pool.getConnection();
     try {
         await conn.beginTransaction();
-        const { title, code, department_id, credit_hours, semester_level, prerequisites, description, clos, prerequisite_ids } = req.body;
+        const { title, code, department_id, credit_hours, semester_level, description, clos, prerequisite_ids } = req.body;
 
         if (!title || !code || !department_id || !credit_hours) {
             return res.status(400).json({ success: false, message: 'title, code, department_id, credit_hours are required' });
         }
 
-        // Build prereq display string from IDs if provided
-        let prereqDisplay = prerequisites || '';
-        if (prerequisite_ids && Array.isArray(prerequisite_ids) && prerequisite_ids.length > 0) {
-            const [prereqCourses] = await conn.query('SELECT code FROM courses WHERE id IN (?)', [prerequisite_ids]);
-            prereqDisplay = prereqCourses.map(c => c.code).join(', ');
-        }
-
         const [result] = await conn.query(
-            `INSERT INTO courses (title, code, department_id, credit_hours, semester_level, prerequisites, description)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [title, code.toUpperCase(), department_id, credit_hours, semester_level || null, prereqDisplay, description || null]
+            `INSERT INTO courses (title, code, department_id, credit_hours, semester_level, description)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [title, code.toUpperCase(), department_id, credit_hours, semester_level || null, description || null]
         );
         const courseId = result.insertId;
 
@@ -611,6 +611,14 @@ router.post('/', isAdmin, async (req, res) => {
         }
 
         await conn.commit();
+
+        // Emit real-time event to department
+        emitToDepartment(department_id, 'course_created', {
+            courseId, title, code: code.toUpperCase(),
+            message: `New course "${title}" created by Admin`,
+            updatedBy: req.user.email
+        });
+
         res.status(201).json({
             success: true,
             message: 'Course created',
@@ -629,9 +637,9 @@ router.post('/', isAdmin, async (req, res) => {
 });
 
 // PUT update course
-router.put('/:id', isAdmin, async (req, res) => {
+router.put('/:id', isAdmin, scopeCourse, async (req, res) => {
     try {
-        const { title, code, department_id, credit_hours, semester_level, prerequisites, description } = req.body;
+        const { title, code, department_id, credit_hours, semester_level, description } = req.body;
         const fields = [];
         const values = [];
         if (title) { fields.push('title = ?'); values.push(title); }
@@ -639,7 +647,6 @@ router.put('/:id', isAdmin, async (req, res) => {
         if (department_id) { fields.push('department_id = ?'); values.push(department_id); }
         if (credit_hours) { fields.push('credit_hours = ?'); values.push(credit_hours); }
         if (semester_level !== undefined) { fields.push('semester_level = ?'); values.push(semester_level); }
-        if (prerequisites !== undefined) { fields.push('prerequisites = ?'); values.push(prerequisites); }
         if (description !== undefined) { fields.push('description = ?'); values.push(description); }
 
         if (fields.length === 0) {
@@ -650,7 +657,22 @@ router.put('/:id', isAdmin, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Course not found' });
         }
+
+        // Emit real-time event to department
+        const [[course]] = await pool.query('SELECT department_id, title FROM courses WHERE id = ?', [req.params.id]);
+        if (course) {
+            emitToDepartment(course.department_id, 'course_updated', {
+                courseId: req.params.id,
+                title: title || course.title,
+                message: `Course "${title || course.title}" updated by Admin`,
+                updatedBy: req.user.email
+            });
+        }
+
         res.json({ success: true, message: 'Course updated' });
+
+        // Invalidate scope cache (department_id may have changed)
+        await cacheDel(`scope:courses:${req.params.id}`);
     } catch (error) {
         console.error('Update course error:', error);
         res.status(500).json({ success: false, message: 'Error updating course' });
@@ -658,13 +680,29 @@ router.put('/:id', isAdmin, async (req, res) => {
 });
 
 // DELETE course
-router.delete('/:id', isAdmin, async (req, res) => {
+router.delete('/:id', isAdmin, scopeCourse, async (req, res) => {
     try {
+        // Get department_id before deletion
+        const [[course]] = await pool.query('SELECT department_id, title FROM courses WHERE id = ?', [req.params.id]);
+
         const [result] = await pool.query('DELETE FROM courses WHERE id = ?', [req.params.id]);
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Course not found' });
         }
+
+        // Emit real-time event to department
+        if (course) {
+            emitToDepartment(course.department_id, 'course_deleted', {
+                courseId: req.params.id,
+                message: `Course "${course.title}" deleted by Admin`,
+                updatedBy: req.user.email
+            });
+        }
+
         res.json({ success: true, message: 'Course deleted' });
+
+        // Invalidate scope cache for deleted resource
+        await cacheDel(`scope:courses:${req.params.id}`);
     } catch (error) {
         console.error('Delete course error:', error);
         res.status(500).json({ success: false, message: 'Error deleting course' });
@@ -814,6 +852,19 @@ router.put('/:id/syllabus', isAdmin, async (req, res) => {
                 weekly_schedule ? JSON.stringify(weekly_schedule) : null
             ]
         );
+        // Notify assigned faculty about syllabus update
+        const [course] = await pool.query('SELECT code, title FROM courses WHERE id = ?', [req.params.id]);
+        const [assignments] = await pool.query(
+            'SELECT DISTINCT faculty_id FROM course_assignments WHERE course_id = ? AND faculty_id IS NOT NULL',
+            [req.params.id]
+        );
+        for (const a of assignments) {
+            await pool.query(
+                'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+                [a.faculty_id, 'Syllabus Updated', `The syllabus for ${course[0]?.code || ''}: ${course[0]?.title || ''} has been updated.`, 'syllabus_update']
+            );
+        }
+
         res.json({ success: true, message: 'Syllabus saved' });
     } catch (error) {
         console.error('Save syllabus error:', error);
@@ -982,6 +1033,31 @@ router.put('/assign/:id', isAdmin, async (req, res) => {
         }
 
         await conn.commit();
+
+        // Emit real-time WebSocket event to faculty's department
+        try {
+            const [[assignment]] = await pool.query(
+                `SELECT c.title, c.code, b.department_id
+                 FROM course_assignments ca
+                 JOIN courses c ON ca.course_id = c.id
+                 JOIN semesters s ON ca.semester_id = s.id
+                 JOIN batches b ON s.batch_id = b.id
+                 WHERE ca.id = ?`,
+                [req.params.id]
+            );
+            if (assignment && assignment.department_id) {
+                emitToDepartment(assignment.department_id, 'faculty_assigned', {
+                    assignmentId: req.params.id,
+                    courseCode: assignment.code,
+                    courseTitle: assignment.title,
+                    message: `Faculty assignment updated for ${assignment.code}: ${assignment.title}`,
+                    updatedBy: req.user.email
+                });
+            }
+        } catch (emitErr) {
+            console.error('Socket emit error (non-blocking):', emitErr);
+        }
+
         res.json({ success: true, message: 'Course assignment updated' });
     } catch (error) {
         await conn.rollback();
@@ -995,10 +1071,25 @@ router.put('/assign/:id', isAdmin, async (req, res) => {
 // DELETE course assignment
 router.delete('/assign/:id', isAdmin, async (req, res) => {
     try {
+        // Get assignment details before deleting (for notification)
+        const [existing] = await pool.query(
+            `SELECT ca.faculty_id, c.code, c.title FROM course_assignments ca
+             JOIN courses c ON ca.course_id = c.id WHERE ca.id = ?`, [req.params.id]
+        );
+
         const [result] = await pool.query('DELETE FROM course_assignments WHERE id = ?', [req.params.id]);
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Assignment not found' });
         }
+
+        // Notify faculty about unassignment
+        if (existing.length > 0 && existing[0].faculty_id) {
+            await pool.query(
+                'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+                [existing[0].faculty_id, 'Course Unassigned', `You have been removed from ${existing[0].code}: ${existing[0].title}.`, 'course_unassignment']
+            );
+        }
+
         res.json({ success: true, message: 'Course assignment removed' });
     } catch (error) {
         console.error('Delete assignment error:', error);

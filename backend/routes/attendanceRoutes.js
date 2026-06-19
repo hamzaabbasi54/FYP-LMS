@@ -7,13 +7,15 @@ import express from 'express';
 import multer from 'multer';
 import pool from '../config/db.js';
 import { verifyToken, isAuthenticated } from '../middleware/auth.js';
+import { scopeFaculty } from '../middleware/facultyScope.js';
+import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
-import { parseExcel, generateExcel, getUploadDir } from '../utils/excel.js';
+import { parseExcel, generateExcel, getUploadDir, createExcelUpload } from '../utils/excel.js';
 
 const router = express.Router();
 router.use(verifyToken);
 
-const upload = multer({ dest: getUploadDir() });
+const upload = createExcelUpload(multer);
 
 // GET attendance for a course on a specific date (paginated)
 router.get('/course/:courseAssignmentId', async (req, res) => {
@@ -104,7 +106,7 @@ router.get('/student/:studentId', async (req, res) => {
 });
 
 // POST save attendance (bulk upsert for a date)
-router.post('/course/:courseAssignmentId', async (req, res) => {
+router.post('/course/:courseAssignmentId', scopeFaculty('course_assignment', 'params', 'courseAssignmentId'), async (req, res) => {
     const conn = await pool.getConnection();
     try {
         await conn.beginTransaction();
@@ -137,7 +139,7 @@ router.post('/course/:courseAssignmentId', async (req, res) => {
 // ===================== EXCEL IMPORT =====================
 
 // POST import attendance from Excel
-router.post('/import/:courseAssignmentId', upload.single('file'), async (req, res) => {
+router.post('/import/:courseAssignmentId', scopeFaculty('course_assignment', 'params', 'courseAssignmentId'), upload.single('file'), validateMagicBytes, async (req, res) => {
     if (!req.file) {
         return res.status(400).json({
             success: false,

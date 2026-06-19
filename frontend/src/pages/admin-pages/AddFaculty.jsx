@@ -77,7 +77,7 @@ const AddFaculty = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
             <div className="p-6 max-w-5xl mx-auto">
                 {/* Breadcrumb */}
                 <div className="mb-6">
@@ -86,51 +86,51 @@ const AddFaculty = () => {
                     </Link>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
                     <form onSubmit={handleSubmit}>
                         {/* Section 1: Personal Information */}
                         <div className="mb-8">
-                            <h3 className="text-lg font-bold text-gray-800 mb-1">Personal Information</h3>
-                            <p className="text-sm text-gray-500 mb-6">Enter the basic details of the new faculty member.</p>
+                            <h3 className="text-lg font-semibold text-slate-800 mb-1">Personal Information</h3>
+                            <p className="text-sm text-slate-500 mb-6">Enter the basic details of the new faculty member.</p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name <span className="text-red-500">*</span></label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Full Name <span className="text-red-500">*</span></label>
                                     <input type="text" name="fullName" value={formData.fullName} onChange={handleChange}
-                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm"
                                         placeholder="e.g. Dr. Jane Doe" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address <span className="text-red-500">*</span></label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Email Address <span className="text-red-500">*</span></label>
                                     <input type="email" name="email" value={formData.email} onChange={handleChange}
-                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm"
                                         placeholder="e.g. jane.doe@university.edu" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Temporary Password</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Temporary Password</label>
                                     <input type="password" name="password" value={formData.password} onChange={handleChange}
-                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm"
                                         placeholder="Leave empty for default" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Contact Number</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Contact Number</label>
                                     <input type="text" name="contactNumber" value={formData.contactNumber} onChange={handleChange}
-                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm"
                                         placeholder="e.g. +1 (555) 123-4567" />
                                 </div>
                             </div>
                         </div>
 
-                        <hr className="my-8 border-gray-100" />
+                        <hr className="my-8 border-slate-100" />
 
                         {/* Section 2: Professional Details */}
                         <div className="mb-8">
-                            <h3 className="text-lg font-bold text-gray-800 mb-1">Professional Details</h3>
-                            <p className="text-sm text-gray-500 mb-6">Specify the faculty member's role and department.</p>
+                            <h3 className="text-lg font-semibold text-slate-800 mb-1">Professional Details</h3>
+                            <p className="text-sm text-slate-500 mb-6">Specify the faculty member's role and department.</p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Designation</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Designation</label>
                                     <select name="designation" value={formData.designation} onChange={handleChange}
-                                        className="w-full p-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                                        className="w-full p-2.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm">
                                         <option value="">Select Designation</option>
                                         <option value="Professor">Professor</option>
                                         <option value="Associate Professor">Associate Professor</option>
@@ -140,17 +140,17 @@ const AddFaculty = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Faculty <span className="text-red-500">*</span></label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Faculty <span className="text-red-500">*</span></label>
                                     <select value={selectedFaculty} onChange={(e) => { setSelectedFaculty(e.target.value); setFormData({...formData, department_id: ''}); }}
-                                        className="w-full p-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                                        className="w-full p-2.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm">
                                         <option value="">Select Faculty</option>
                                         {faculties.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Department <span className="text-red-500">*</span></label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Department <span className="text-red-500">*</span></label>
                                     <select name="department_id" value={formData.department_id} onChange={handleChange} disabled={!selectedFaculty}
-                                        className="w-full p-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100">
+                                        className="w-full p-2.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:bg-slate-50 transition-all text-sm">
                                         <option value="">{selectedFaculty ? 'Select Department' : 'Select Faculty first'}</option>
                                         {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                     </select>
@@ -158,21 +158,21 @@ const AddFaculty = () => {
                             </div>
 
                             <div className="mt-6">
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Areas of Expertise</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Areas of Expertise</label>
                                 <input type="text" name="expertise" value={formData.expertise} onChange={handleChange}
-                                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm"
                                     placeholder="e.g. Artificial Intelligence, Machine Learning" />
                             </div>
                         </div>
 
                         {/* Footer */}
-                        <div className="flex justify-end items-center space-x-4 pt-4 border-t border-gray-100">
+                        <div className="flex justify-end items-center space-x-4 pt-4 border-t border-slate-100">
                             <button type="button" onClick={() => navigate('/admin-managefaculty')}
-                                className="px-6 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+                                className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors text-sm">
                                 Cancel
                             </button>
                             <button type="submit" disabled={loading}
-                                className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 shadow-md transition-colors disabled:opacity-50">
+                                className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50 text-sm">
                                 {loading ? 'Submitting...' : 'Add Faculty'}
                             </button>
                         </div>

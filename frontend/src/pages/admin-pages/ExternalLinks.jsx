@@ -6,7 +6,7 @@ const ExternalLinks = () => {
         {
             category: 'University Portal',
             icon: MdSchool,
-            color: 'from-indigo-500 to-violet-600',
+            color: 'from-blue-500 to-violet-600',
             items: [
                 { name: 'University Main Website', url: 'https://university.edu.pk', description: 'Official university website' },
                 { name: 'Student Portal', url: 'https://portal.university.edu.pk', description: 'Access grades, transcripts, and records' },
@@ -69,8 +69,8 @@ const ExternalLinks = () => {
         <div className="p-6 lg:p-8 space-y-6">
             {/* Header */}
             <div>
-                <h1 className="text-2xl font-bold text-gray-800">External Links</h1>
-                <p className="text-gray-500 text-sm mt-1">Quick access to university resources and external services</p>
+                <h1 className="text-2xl font-bold text-slate-800">External Links</h1>
+                <p className="text-slate-500 text-sm mt-1">Quick access to university resources and external services</p>
             </div>
 
             {/* Links Grid */}
@@ -78,7 +78,7 @@ const ExternalLinks = () => {
                 {links.map((category, idx) => {
                     const CategoryIcon = category.icon;
                     return (
-                        <div key={idx} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div key={idx} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                             {/* Category Header */}
                             <div className={`bg-gradient-to-r ${category.color} p-4 flex items-center gap-3`}>
                                 <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
@@ -95,15 +95,15 @@ const ExternalLinks = () => {
                                         href={link.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="group p-4 rounded-xl border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all bg-gray-50 hover:bg-white"
+                                        className="group p-4 rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all bg-slate-50 hover:bg-white"
                                     >
                                         <div className="flex items-start justify-between mb-2">
-                                            <h3 className="font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">
+                                            <h3 className="font-semibold text-slate-800 group-hover:text-blue-600 transition-colors">
                                                 {link.name}
                                             </h3>
-                                            <MdOpenInNew className="w-4 h-4 text-gray-400 group-hover:text-indigo-500 transition-colors flex-shrink-0 ml-2" />
+                                            <MdOpenInNew className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors flex-shrink-0 ml-2" />
                                         </div>
-                                        <p className="text-sm text-gray-500">{link.description}</p>
+                                        <p className="text-sm text-slate-500">{link.description}</p>
                                     </a>
                                 ))}
                             </div>
