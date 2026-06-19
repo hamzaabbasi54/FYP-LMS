@@ -389,13 +389,13 @@ export const changePassword = async (req, res) => {
             [hashedPassword, req.user.id]
         );
 
+        // Invalidate Redis session cache so token_version is re-verified
+        await cacheDel(`session:user:${req.user.id}`);
+
         res.status(200).json({
             success: true,
             message: 'Password changed successfully'
         });
-
-        // Invalidate Redis session cache so token_version is re-verified
-        await cacheDel(`session:user:${req.user.id}`);
     } catch (error) {
         console.error('Change password error:', error);
         res.status(500).json({

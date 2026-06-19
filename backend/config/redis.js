@@ -103,14 +103,14 @@ export const cacheDel = async (key) => {
 export const cacheDelPattern = async (pattern) => {
     if (!isConnected || !redisClient) return;
     try {
-        let cursor = 0;
+        let cursor = '0';
         do {
             const result = await redisClient.scan(cursor, { MATCH: pattern, COUNT: 100 });
-            cursor = result.cursor;
+            cursor = String(result.cursor);
             if (result.keys.length > 0) {
                 await redisClient.del(result.keys);
             }
-        } while (cursor !== 0);
+        } while (cursor !== '0');
     } catch (err) {
         console.error(`Redis DEL pattern error [${pattern}]:`, err.message);
     }

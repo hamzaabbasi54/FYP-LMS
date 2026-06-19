@@ -368,6 +368,16 @@ router.put('/users/:id', verifyToken, isAdmin, async (req, res) => {
         values.push(id);
         await pool.query(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, values);
 
+        // If is_active was set to false, bump token_version and invalidate session cache
+        // (mirrors the behavior in PATCH /users/:id/status)
+        if (is_active !== undefined && !is_active) {
+            await pool.query('UPDATE users SET token_version = token_version + 1 WHERE id = ?', [id]);
+            await cacheDel(`session:user:${id}`);
+        } else if (is_active !== undefined) {
+            // Even on reactivation, clear stale cache
+            await cacheDel(`session:user:${id}`);
+        }
+
         res.status(200).json({
             success: true,
             message: 'User updated successfully'
@@ -438,14 +448,14 @@ router.patch('/users/:id/status', verifyToken, isAdmin, async (req, res) => {
             await pool.query('UPDATE users SET is_active = ? WHERE id = ?', [newStatus, id]);
         }
 
+        // Invalidate Redis session cache so auth middleware reads fresh data
+        await cacheDel(`session:user:${id}`);
+
         res.status(200).json({
             success: true,
             message: `${users[0].full_name} is now ${newStatus ? 'active' : 'inactive'}`,
             data: { id: parseInt(id), is_active: newStatus }
         });
-
-        // Invalidate Redis session cache so auth middleware reads fresh data
-        await cacheDel(`session:user:${id}`);
     } catch (error) {
         console.error('Toggle status error:', error);
         res.status(500).json({ success: false, message: 'Error toggling user status' });
@@ -659,13 +669,13 @@ router.post('/reset-password', async (req, res) => {
             [hashedPassword, user.id]
         );
 
+        // Invalidate Redis session cache so token_version check is fresh
+        await cacheDel(`session:user:${user.id}`);
+
         res.status(200).json({
             success: true,
             message: 'Password reset successfully! You can now log in with your new password.'
         });
-
-        // Invalidate Redis session cache so token_version check is fresh
-        await cacheDel(`session:user:${user.id}`);
     } catch (error) {
         console.error('Reset password error:', error);
         res.status(500).json({

@@ -12,9 +12,9 @@ ALTER TABLE enrollments DROP INDEX idx_enroll_date;
 ALTER TABLE enrollments DROP COLUMN enrolled_at;
 
 -- CHANGE 3 Phase 1: Add soft-delete columns (non-breaking, no feature change)
-ALTER TABLE courses ADD COLUMN is_active BOOLEAN DEFAULT TRUE;
-ALTER TABLE assessments ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
-ALTER TABLE semesters ADD COLUMN is_active BOOLEAN DEFAULT TRUE;
+ALTER TABLE courses ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE assessments ADD COLUMN is_deleted BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE semesters ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- CHANGE 1: Drop redundant courses.prerequisites VARCHAR column
 -- (junction table course_prerequisites is the correct source of truth)
