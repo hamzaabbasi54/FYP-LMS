@@ -120,7 +120,7 @@ const SuperAdminPanel = () => {
     );
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans">
+        <div className="min-h-full bg-slate-50 font-sans">
             {/* Top Bar */}
             <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
                 <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">

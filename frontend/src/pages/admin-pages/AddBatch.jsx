@@ -106,8 +106,8 @@ const AddBatch = () => {
     const loading = createBatchMutation.isPending;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
-            <div className="p-8 max-w-3xl mx-auto">
+        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col">
+            <div className="max-w-7xl mx-auto w-full flex flex-col">
                 <div className="mb-6">
                     <Link to="/admin-managebatches" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors text-sm font-medium">
                         <MdArrowBack className="w-4 h-4" /> Back to Batches
@@ -125,21 +125,21 @@ const AddBatch = () => {
 
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                     <form onSubmit={handleSubmit}>
-                        <div className="p-6 space-y-5">
+                        <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Batch Name */}
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Batch Name <span className="text-red-500">*</span></label>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Batch Name <span className="text-red-500">*</span></label>
                                 <input type="text" name="batchName" value={formData.batchName} onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
+                                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
                                     placeholder="e.g., Batch 2026-2030" />
                             </div>
 
                             {/* Faculty Selection */}
                             {!isDeptAdmin && (
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Faculty <span className="text-red-500">*</span></label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Faculty <span className="text-red-500">*</span></label>
                                     <select value={selectedFaculty} onChange={(e) => { setSelectedFaculty(e.target.value); setFormData({...formData, department_id: ''}); }}
-                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all">
+                                        className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all">
                                         <option value="">Select Faculty...</option>
                                         {faculties.map(fac => <option key={fac.id} value={fac.name}>{fac.name}</option>)}
                                     </select>
@@ -149,34 +149,32 @@ const AddBatch = () => {
                             {/* Department Selection */}
                             {!isDeptAdmin ? (
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Department <span className="text-red-500">*</span></label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Department <span className="text-red-500">*</span></label>
                                     <select name="department_id" value={formData.department_id} onChange={handleChange} disabled={!selectedFaculty}
-                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all disabled:bg-slate-50 disabled:cursor-not-allowed">
+                                        className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all disabled:bg-slate-50 disabled:cursor-not-allowed">
                                         <option value="">{selectedFaculty ? 'Select Department...' : 'Select Faculty first'}</option>
                                         {departments.map(dept => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
                                     </select>
                                 </div>
                             ) : (
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Department</label>
-                                    <div className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Department</label>
+                                    <div className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">
                                         {user.department || 'Your Department'}
                                     </div>
                                 </div>
                             )}
 
                             {/* Dates */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Start Date <span className="text-red-500">*</span></label>
-                                    <input type="date" name="startDate" value={formData.startDate} onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">End Date <span className="text-red-500">*</span></label>
-                                    <input type="date" name="endDate" value={formData.endDate} onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all" />
-                                </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Start Date <span className="text-red-500">*</span></label>
+                                <input type="date" name="startDate" value={formData.startDate} onChange={handleChange}
+                                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">End Date <span className="text-red-500">*</span></label>
+                                <input type="date" name="endDate" value={formData.endDate} onChange={handleChange}
+                                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all" />
                             </div>
                         </div>
 

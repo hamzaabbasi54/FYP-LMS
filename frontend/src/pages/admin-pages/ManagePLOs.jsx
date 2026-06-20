@@ -4,6 +4,7 @@ import { departmentApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import OverlayLoader from '../../components/common/OverlayLoader';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import useUndoStore from '../../stores/useUndoStore';
 
 const ManagePLOs = () => {
     const queryClient = useQueryClient();
@@ -62,20 +63,32 @@ const ManagePLOs = () => {
         });
     };
 
-    const deletePloMutation = useMutation({
-        mutationFn: (ploId) => departmentApi.deletePLO(ploId),
-        onSuccess: () => {
-            toast.success('PLO deleted');
-            queryClient.invalidateQueries({ queryKey: ['global_plos'] });
-        },
-        onError: (err) => {
-            toast.error(err.response?.data?.message || 'Failed to delete PLO');
-        }
-    });
+    const enqueueUndo = useUndoStore(s => s.enqueue);
+    const isPendingUndo = useUndoStore(s => s.isPending);
 
-    const handleDelete = (ploId) => {
-        if (!window.confirm('Are you sure you want to delete this PLO?')) return;
-        deletePloMutation.mutate(ploId);
+    const handleDelete = (plo) => {
+        const undoId = `plo-${plo.id}`;
+        if (isPendingUndo(undoId)) return;
+
+        // Optimistically remove
+        queryClient.setQueryData(['global_plos'], (old) =>
+            (old || []).filter(p => p.id !== plo.id)
+        );
+
+        enqueueUndo({
+            id: undoId,
+            type: 'PLO',
+            label: `PLO-${plo.plo_number}`,
+            apiCall: async () => {
+                await departmentApi.deletePLO(plo.id);
+                queryClient.invalidateQueries({ queryKey: ['global_plos'] });
+                toast.success(`PLO-${plo.plo_number} deleted`);
+            },
+            onUndo: () => {
+                queryClient.invalidateQueries({ queryKey: ['global_plos'] });
+                toast.info(`Deletion of PLO-${plo.plo_number} undone`);
+            }
+        });
     };
 
     const importMutation = useMutation({
@@ -113,9 +126,9 @@ const ManagePLOs = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
+        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col">
             <OverlayLoader isLoading={isImporting} text="Importing PLOs..." />
-            <div className="p-8 max-w-5xl mx-auto">
+            <div className="max-w-5xl mx-auto w-full flex flex-col">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
@@ -205,8 +218,8 @@ const ManagePLOs = () => {
                                         </div>
                                         <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); handleDelete(plo.id); }}
-                                                disabled={deletePloMutation.isPending && deletePloMutation.variables === plo.id}
+                                                onClick={(e) => { e.stopPropagation(); handleDelete(plo); }}
+                                                disabled={isPendingUndo(`plo-${plo.id}`)}
                                                 className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                                                 title="Delete PLO"
                                             >
@@ -242,8 +255,8 @@ const ManagePLOs = () => {
             </div>
 
             {/* ========== Add PLO Modal ========== */}
-            {showAddModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            {showAddModal && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                         <div className="flex items-center justify-between p-6 border-b border-slate-200">
                             <div className="flex items-center gap-3">
@@ -288,12 +301,12 @@ const ManagePLOs = () => {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>, document.body
             )}
 
             {/* ========== Import PLOs Modal ========== */}
-            {showImportInfo && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            {showImportInfo && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
                         <div className="flex items-center justify-between p-6 border-b border-slate-200">
                             <div className="flex items-center gap-3">
@@ -325,12 +338,13 @@ const ManagePLOs = () => {
                             <p className="text-xs text-gray-500 mb-4">PLOs are scoped to your department. Duplicate PLO numbers will update the existing description.</p>
                             <input type="file" accept=".xlsx,.xls" className="hidden" ref={ploFileRef} onChange={handleImportFile} />
                             <button onClick={() => ploFileRef.current.click()}
-                                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-emerald-500/25 transition-all">
-                                <MdFileUpload className="w-5 h-5" /> Choose Excel File & Import
+                                disabled={isImporting}
+                                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-emerald-500/25 transition-all flex justify-center items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                <MdFileUpload className="w-5 h-5" /> {isImporting ? 'Importing...' : 'Select File to Import'}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>, document.body
             )}
         </div>
     );

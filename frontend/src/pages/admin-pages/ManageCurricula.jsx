@@ -4,7 +4,9 @@ import { MdSearch, MdAdd, MdMenuBook, MdDelete, MdSchool, MdLibraryBooks, MdGrou
 import { curriculumApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import useUndoStore from '../../stores/useUndoStore';
 import { useAuth } from '../../context/AuthContext';
+import { createPortal } from 'react-dom';
 
 const ManageCurricula = () => {
     const { user } = useAuth();
@@ -17,7 +19,6 @@ const ManageCurricula = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [newCurriculum, setNewCurriculum] = useState({ name: '', department_id: isDeptAdmin ? (deptId || '') : '', description: '' });
-    const [deletingId, setDeletingId] = useState(null);
 
     const colorPalette = [
         "from-indigo-500 to-blue-600",
@@ -47,26 +48,34 @@ const ManageCurricula = () => {
         }
     });
 
-    const deleteMutation = useMutation({
-        mutationFn: (id) => curriculumApi.delete(id),
-        onSuccess: () => {
-            toast.success('Curriculum deleted successfully');
-            queryClient.invalidateQueries({ queryKey: ['curricula'] });
-        },
-        onError: (error) => {
-            console.error('Error deleting curriculum:', error);
-            toast.error('Failed to delete curriculum');
-        },
-        onSettled: () => setDeletingId(null)
-    });
+    const enqueueUndo = useUndoStore(s => s.enqueue);
+    const isPendingUndo = useUndoStore(s => s.isPending);
 
-    const handleDelete = (id, e) => {
+    const handleDelete = (curr, e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (window.confirm('Are you sure you want to delete this curriculum? All semester-course mappings will be removed.')) {
-            setDeletingId(id);
-            deleteMutation.mutate(id);
-        }
+        const undoId = `curriculum-${curr.id}`;
+        if (isPendingUndo(undoId)) return;
+
+        // Optimistically remove from cache
+        queryClient.setQueryData(['curricula'], (old) =>
+            (old || []).filter(c => c.id !== curr.id)
+        );
+
+        enqueueUndo({
+            id: undoId,
+            type: 'Curriculum',
+            label: curr.name,
+            apiCall: async () => {
+                await curriculumApi.delete(curr.id);
+                queryClient.invalidateQueries({ queryKey: ['curricula'] });
+                toast.success(`Curriculum "${curr.name}" deleted`);
+            },
+            onUndo: () => {
+                queryClient.invalidateQueries({ queryKey: ['curricula'] });
+                toast.info(`Deletion of "${curr.name}" undone`);
+            }
+        });
     };
 
     const createMutation = useMutation({
@@ -97,8 +106,8 @@ const ManageCurricula = () => {
     );
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
-            <div className="max-w-7xl mx-auto">
+        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col">
+            <div className="max-w-7xl mx-auto w-full flex flex-col">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
@@ -181,8 +190,8 @@ const ManageCurricula = () => {
                                             <h3 className="text-base font-semibold text-slate-800 truncate hover:text-blue-600 transition-colors">{curr.name}</h3>
                                         </div>
                                         <button
-                                            onClick={(e) => handleDelete(curr.id, e)}
-                                            disabled={deletingId === curr.id}
+                                            onClick={(e) => handleDelete(curr, e)}
+                                            disabled={isPendingUndo(`curriculum-${curr.id}`)}
                                             className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors disabled:opacity-50"
                                             title="Delete curriculum"
                                         >
@@ -226,8 +235,8 @@ const ManageCurricula = () => {
             </div>
 
             {/* Create Curriculum Dialog */}
-            {showCreateDialog && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            {showCreateDialog && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200">
                         <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50">
                             <h2 className="text-lg font-semibold text-slate-800">Create New Curriculum</h2>
@@ -296,7 +305,8 @@ const ManageCurricula = () => {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

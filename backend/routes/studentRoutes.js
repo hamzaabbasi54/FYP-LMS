@@ -10,6 +10,7 @@ import pool from '../config/db.js';
 import { verifyToken, isAdmin, isAuthenticated } from '../middleware/auth.js';
 import { scopeToDepartment } from '../middleware/deptScope.js';
 import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
+import { deleteGuard } from '../middleware/deleteGuard.js';
 
 // Students don't have a direct department_id — resolve via batch → department
 const scopeStudent = scopeToDepartment('students', 'id', {
@@ -230,7 +231,7 @@ router.delete('/:id', isAdmin, scopeStudent, async (req, res) => {
 });
 
 // POST bulk delete students
-router.post('/bulk-delete', isAdmin, async (req, res) => {
+router.post('/bulk-delete', isAdmin, deleteGuard('students_bulk'), async (req, res) => {
     try {
         const { student_ids } = req.body;
         if (!student_ids || !Array.isArray(student_ids) || student_ids.length === 0) {

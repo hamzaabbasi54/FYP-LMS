@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { MdDashboard, MdPeople, MdAssignment, MdBook, MdSchool, MdSettings, MdExpandMore, MdExpandLess, MdBuild, MdLink, MdTrackChanges, MdLogout, MdMenuBook, MdAdminPanelSettings, MdMessage } from 'react-icons/md';
 import { useAuth } from '../../../context/AuthContext';
 import { useSocket } from '../../../context/SocketContext';
@@ -47,14 +47,14 @@ const Sidebar = () => {
             <NavLink
                 to={to}
                 className={({ isActive }) => `
-                    ${indent 
-                        ? 'flex items-center justify-between w-full text-sm font-normal text-slate-600 hover:text-slate-900 hover:bg-slate-50 px-3 py-1.5 rounded-lg transition-all duration-200 mb-0.5' 
+                    ${indent
+                        ? 'flex items-center justify-between w-full text-sm font-normal text-slate-600 hover:text-slate-900 hover:bg-slate-50 px-3 py-1.5 rounded-lg transition-all duration-200 mb-0.5'
                         : 'flex items-center justify-between w-full h-9 px-3 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 mb-1'}
                     ${isActive && !indent
                         ? 'bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600'
                         : isActive && indent
-                        ? 'text-blue-700 font-medium bg-blue-50'
-                        : ''
+                            ? 'text-blue-700 font-medium bg-blue-50'
+                            : ''
                     }
                 `}
             >
@@ -76,9 +76,9 @@ const Sidebar = () => {
     };
 
     return (
-        <div className="flex flex-col w-full h-full px-4 py-6 bg-slate-50 border-r border-slate-200 overflow-y-auto shadow-sm">
+        <div className="flex flex-col w-full h-full px-4 py-4 bg-slate-50 border-r border-slate-200 overflow-y-auto shadow-sm">
             {/* Logo */}
-            <div className="flex items-center mb-8 px-2">
+            <div className="flex items-center mb-5 px-2">
                 <div className="w-10 h-10 flex items-center justify-center mr-3">
                     <img src={qauLogo} alt="QAU Logo" className="w-full h-full object-contain drop-shadow-sm" />
                 </div>
@@ -89,16 +89,16 @@ const Sidebar = () => {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 flex flex-col">
-                <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-5 mb-1 px-3">Main</p>
+            <nav className="flex flex-col">
+                <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-2 mb-1 px-3">Main</p>
                 <NavItem to="/deptadmin-dashboard" icon={MdDashboard} label="Dashboard" />
 
                 {/* User Management Section */}
-                <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-5 mb-1 px-3">User Management</p>
+                <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-4 mb-1 pt-3 border-t border-slate-200 px-3">User Management</p>
                 <NavItem to="/admin-manageusers" icon={MdPeople} label="Manage Users" />
 
                 {/* Operations Section */}
-                <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-5 mb-1 px-3">Operations</p>
+                <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-4 mb-1 pt-3 border-t border-slate-200 px-3">Operations</p>
                 <button
                     onClick={() => setOperationsExpanded(!operationsExpanded)}
                     className={`
@@ -130,27 +130,30 @@ const Sidebar = () => {
                     </div>
                 )}
 
-                <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-5 mb-1 px-3">Communication</p>
+                <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-4 mb-1 pt-3 border-t border-slate-200 px-3">Communication</p>
                 <NavItem to="/admin-messages" icon={MdMessage} label="Messages" badge={unreadCount > 0 ? unreadCount : undefined} />
 
-                <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-5 mb-1 px-3">Other</p>
+                <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-4 mb-1 pt-3 border-t border-slate-200 px-3">Other</p>
                 <NavItem to="/admin-parents" icon={MdPeople} label="Parents" />
-                <NavItem to="/admin-settings" icon={MdSettings} label="Settings" />
             </nav>
 
             {/* User Profile */}
-            <div className="mt-auto pt-4 border-t border-slate-200">
-                <div className="flex items-center gap-3 px-2 mb-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+            <div className="mt-4 pt-3 border-t border-slate-200">
+                <Link 
+                    to="/admin-settings" 
+                    className="flex items-center gap-3 p-2 mb-2 rounded-lg hover:bg-slate-100 transition-colors group cursor-pointer"
+                    title="Account Settings"
+                >
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
                         <span className="text-blue-700 font-bold text-sm">
                             {user.fullName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'AD'}
                         </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-800 truncate">{user.fullName || 'Admin'}</p>
+                        <p className="text-sm font-semibold text-slate-800 truncate group-hover:text-blue-600 transition-colors">{user.fullName || 'Admin'}</p>
                         <p className="text-xs text-slate-500 truncate">{user.department || 'Department'}</p>
                     </div>
-                </div>
+                </Link>
                 <button
                     onClick={handleLogout}
                     className="flex items-center w-full px-4 py-2.5 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all"

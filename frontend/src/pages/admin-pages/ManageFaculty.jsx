@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { MdAdd, MdSearch, MdEmail, MdMoreHoriz, MdDelete } from 'react-icons/md';
 import { approvalApi } from '../../services/api';
 import { toast } from 'react-toastify';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import useUndoStore from '../../stores/useUndoStore';
 
 const ManageFaculty = () => {
     const queryClient = useQueryClient();
@@ -18,19 +19,33 @@ const ManageFaculty = () => {
         }
     });
 
-    const deleteMutation = useMutation({
-        mutationFn: (userId) => approvalApi.deleteUser(userId),
-        onSuccess: () => {
-            toast.success('Faculty member removed');
-            queryClient.invalidateQueries({ queryKey: ['faculty_approved'] });
-        },
-        onError: () => toast.error('Failed to remove faculty')
-    });
+    const enqueueUndo = useUndoStore(s => s.enqueue);
+    const isPendingUndo = useUndoStore(s => s.isPending);
 
-    const handleDelete = (userId) => {
-        if (window.confirm('Are you sure you want to remove this faculty member?')) {
-            deleteMutation.mutate(userId);
-        }
+    const handleDelete = (member) => {
+        const undoId = `faculty-${member.id}`;
+        if (isPendingUndo(undoId)) return;
+
+        // Optimistically remove
+        queryClient.setQueryData(['faculty_approved'], (old) =>
+            (old || []).filter(m => m.id !== member.id)
+        );
+
+        enqueueUndo({
+            id: undoId,
+            type: 'Faculty',
+            label: member.full_name || member.fullName || 'Faculty member',
+            highRisk: true,
+            apiCall: async () => {
+                await approvalApi.deleteUser(member.id);
+                queryClient.invalidateQueries({ queryKey: ['faculty_approved'] });
+                toast.success('Faculty member removed');
+            },
+            onUndo: () => {
+                queryClient.invalidateQueries({ queryKey: ['faculty_approved'] });
+                toast.info('Faculty removal undone');
+            }
+        });
     };
 
     const getDesignationColor = (designation) => {
@@ -56,8 +71,8 @@ const ManageFaculty = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
-            <div className="max-w-7xl mx-auto">
+        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col">
+            <div className="max-w-7xl mx-auto w-full flex flex-col">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
@@ -147,8 +162,8 @@ const ManageFaculty = () => {
                                     {/* Actions */}
                                     <div className="absolute top-2 right-2">
                                             <button
-                                                onClick={() => handleDelete(member.id)}
-                                                disabled={deleteMutation.isPending && deleteMutation.variables === member.id}
+                                                onClick={() => handleDelete(member)}
+                                                disabled={isPendingUndo(`faculty-${member.id}`)}
                                                 className="p-1.5 text-slate-300 hover:text-red-500 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
                                                 title="Remove faculty"
                                             >

@@ -9,6 +9,7 @@ import { verifyToken, isAdmin, isFaculty } from '../middleware/auth.js';
 import { scopeToDepartment } from '../middleware/deptScope.js';
 import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
 import { cacheDel } from '../config/redis.js';
+import { deleteGuard } from '../middleware/deleteGuard.js';
 
 const scopeBatch = scopeToDepartment('batches');
 import { emitToDepartment } from '../utils/emitHelper.js';
@@ -297,7 +298,7 @@ router.put('/:id', isAdmin, scopeBatch, async (req, res) => {
 });
 
 // DELETE batch
-router.delete('/:id', isAdmin, scopeBatch, async (req, res) => {
+router.delete('/:id', isAdmin, scopeBatch, deleteGuard('batch'), async (req, res) => {
     try {
         const [result] = await pool.query('DELETE FROM batches WHERE id = ?', [req.params.id]);
         if (result.affectedRows === 0) {

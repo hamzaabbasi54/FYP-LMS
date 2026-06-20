@@ -103,7 +103,7 @@ const CourseAssignment = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
+        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200">
             <div className="p-8 max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="mb-8">

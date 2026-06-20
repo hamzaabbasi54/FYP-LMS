@@ -58,8 +58,8 @@ const ManageUsers = () => {
 
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
-            <div className="max-w-7xl mx-auto">
+        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-hidden flex flex-col">
+            <div className="max-w-7xl mx-auto w-full h-full flex flex-col">
                 {/* Header */}
                 <div className="mb-8">
                     <div className="flex items-center justify-between">
@@ -97,8 +97,8 @@ const ManageUsers = () => {
                 </div>
 
                 {/* Users Table */}
-                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                    <div className="overflow-x-auto">
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex-1 flex flex-col min-h-0">
+                    <div className="overflow-auto flex-1">
                         <table className="w-full">
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>

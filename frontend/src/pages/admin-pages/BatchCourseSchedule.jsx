@@ -353,7 +353,7 @@ const BatchCourseSchedule = () => {
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
+        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200 p-8">
             <div className="max-w-5xl mx-auto animate-pulse">
                 <div className="h-6 bg-slate-200 rounded w-48 mb-8"></div>
                 <div className="h-48 bg-slate-200 rounded-2xl mb-8"></div>
@@ -365,7 +365,7 @@ const BatchCourseSchedule = () => {
     );
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
+        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200">
             <OverlayLoader isLoading={savingMappings || uploading} text={savingMappings ? "Saving CLO-PLO mappings..." : "Uploading syllabus file..."} />
             <div className="p-8 max-w-5xl mx-auto">
                 {/* Breadcrumb */}

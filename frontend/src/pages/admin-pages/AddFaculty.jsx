@@ -72,8 +72,8 @@ const AddFaculty = () => {
     const loading = registerMutation.isPending;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
-            <div className="p-6 max-w-5xl mx-auto">
+        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col">
+            <div className="max-w-5xl mx-auto w-full flex flex-col">
                 {/* Breadcrumb */}
                 <div className="mb-6">
                     <Link to="/admin-managefaculty" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm">

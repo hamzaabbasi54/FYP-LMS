@@ -9,6 +9,7 @@ import pool from '../config/db.js';
 import { verifyToken, isAdmin } from '../middleware/auth.js';
 import { scopeToDepartment } from '../middleware/deptScope.js';
 import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
+import { deleteGuard } from '../middleware/deleteGuard.js';
 
 const scopeDept = scopeToDepartment('departments');
 const scopePLO = scopeToDepartment('plos', 'ploId', { deptColumn: 'department_id' });
@@ -83,7 +84,7 @@ router.put('/faculties/:id', isAdmin, async (req, res) => {
 });
 
 // DELETE faculty (admin only)
-router.delete('/faculties/:id', isAdmin, async (req, res) => {
+router.delete('/faculties/:id', isAdmin, deleteGuard('faculty'), async (req, res) => {
     try {
         const [result] = await pool.query('DELETE FROM faculties WHERE id = ?', [req.params.id]);
         if (result.affectedRows === 0) {
@@ -215,7 +216,7 @@ router.put('/:id', isAdmin, scopeDept, async (req, res) => {
 });
 
 // DELETE department
-router.delete('/:id', isAdmin, scopeDept, async (req, res) => {
+router.delete('/:id', isAdmin, scopeDept, deleteGuard('department'), async (req, res) => {
     try {
         const [result] = await pool.query('DELETE FROM departments WHERE id = ?', [req.params.id]);
         if (result.affectedRows === 0) {

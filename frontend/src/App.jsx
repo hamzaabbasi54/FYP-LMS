@@ -77,6 +77,9 @@ import { SocketProvider } from "./context/SocketContext.jsx";
 // Protected Route
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
+// Global Components
+import UndoToast from "./components/common/UndoToast.jsx";
+
 function App() {
     return (
         <QueryClientProvider client={queryClient}>
@@ -168,6 +171,7 @@ function App() {
             </Routes>
                     </SocketProvider>
                     <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
+                    <UndoToast />
                 </AuthProvider>
                 <ReactQueryDevtools initialIsOpen={false} />
             </QueryClientProvider>

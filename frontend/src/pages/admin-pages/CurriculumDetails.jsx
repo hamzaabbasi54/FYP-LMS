@@ -134,7 +134,7 @@ const CurriculumDetails = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
+            <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200 p-8">
                 <div className="max-w-7xl mx-auto">
                     <div className="animate-pulse">
                         <div className="h-8 bg-slate-200 rounded w-1/3 mb-8"></div>
@@ -150,7 +150,7 @@ const CurriculumDetails = () => {
 
     if (!curriculum) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8 flex items-center justify-center">
+            <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200 p-8 flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-xl font-bold text-slate-600 mb-2">Curriculum not found</h2>
                     <Link to="/admin-curricula" className="text-indigo-600 hover:underline">Back to Curricula</Link>
@@ -171,7 +171,7 @@ const CurriculumDetails = () => {
     }, 0) || 0;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
+        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200">
             <div className="p-8 max-w-7xl mx-auto">
                 {/* Breadcrumb */}
                 <div className="mb-6">

@@ -198,9 +198,9 @@ const AddCourse = () => {
     const handleExport = () => { courseApi.export(); };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
+        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col">
             <OverlayLoader isLoading={isImporting} text="Importing courses..." />
-            <div className="p-6 max-w-7xl mx-auto">
+            <div className="max-w-7xl mx-auto w-full flex flex-col">
                 <div className="mb-6">
                     <Link to="/admin-managecourses" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm">
                         <MdArrowBack className="w-4 h-4" /> Back to Courses

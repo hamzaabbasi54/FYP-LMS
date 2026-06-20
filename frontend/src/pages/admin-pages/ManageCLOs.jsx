@@ -5,6 +5,7 @@ import { courseApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import OverlayLoader from '../../components/common/OverlayLoader';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import useUndoStore from '../../stores/useUndoStore';
 
 const ManageCLOs = () => {
     const queryClient = useQueryClient();
@@ -91,20 +92,32 @@ const ManageCLOs = () => {
 
     const handleExport = () => { courseApi.exportCLOs(); };
 
-    const deleteCloMutation = useMutation({
-        mutationFn: (cloId) => courseApi.deleteGlobalCLO(cloId),
-        onSuccess: (_, cloId) => {
-            toast.success(`CLO deleted successfully`);
-            queryClient.invalidateQueries({ queryKey: ['global_clos'] });
-        },
-        onError: (err) => {
-            toast.error(err.response?.data?.message || 'Failed to delete CLO');
-        }
-    });
+    const enqueueUndo = useUndoStore(s => s.enqueue);
+    const isPendingUndo = useUndoStore(s => s.isPending);
 
-    const handleDeleteCLO = (cloId, cloTitle) => {
-        if (!window.confirm(`Are you sure you want to delete ${cloTitle}? This cannot be undone.`)) return;
-        deleteCloMutation.mutate(cloId);
+    const handleDeleteCLO = (clo) => {
+        const undoId = `clo-${clo.id}`;
+        if (isPendingUndo(undoId)) return;
+
+        // Optimistically remove
+        queryClient.setQueryData(['global_clos'], (old) =>
+            (old || []).filter(c => c.id !== clo.id)
+        );
+
+        enqueueUndo({
+            id: undoId,
+            type: 'CLO',
+            label: clo.title,
+            apiCall: async () => {
+                await courseApi.deleteGlobalCLO(clo.id);
+                queryClient.invalidateQueries({ queryKey: ['global_clos'] });
+                toast.success(`${clo.title} deleted`);
+            },
+            onUndo: () => {
+                queryClient.invalidateQueries({ queryKey: ['global_clos'] });
+                toast.info(`Deletion of ${clo.title} undone`);
+            }
+        });
     };
 
     const getCognitiveLabel = (level) => {
@@ -152,8 +165,8 @@ const ManageCLOs = () => {
                             </span>
                         )}
                         <button
-                            onClick={(e) => { e.stopPropagation(); handleDeleteCLO(clo.id, clo.title); }}
-                            disabled={deleteCloMutation.isPending && deleteCloMutation.variables === clo.id}
+                            onClick={(e) => { e.stopPropagation(); handleDeleteCLO(clo); }}
+                            disabled={isPendingUndo(`clo-${clo.id}`)}
                             className="p-1.5 text-slate-300 hover:text-slate-600 transition-colors disabled:opacity-50"
                             title={`Delete ${clo.title}`}
                         >
@@ -236,18 +249,18 @@ const ManageCLOs = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
+        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-4 md:p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col">
             <OverlayLoader isLoading={isImporting} text="Importing CLOs..." />
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-6xl mx-auto w-full flex flex-col">
                 {/* Breadcrumb */}
-                <Link to="/admin-managecourses" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm mb-6">
+                <Link to="/admin-managecourses" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm mb-4">
                     <MdArrowBack className="w-4 h-4" /> Back to Courses
                 </Link>
 
                 {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-5 gap-4">
                     <div>
-                        <div className="flex items-center gap-3 mb-2">
+                        <div className="flex items-center gap-3 mb-1">
                             <div className="w-2 h-8 bg-gradient-to-b from-amber-400 to-orange-500 rounded-full"></div>
                             <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
                                 CLO Management
@@ -274,35 +287,35 @@ const ManageCLOs = () => {
                 </div>
 
                 {/* Search */}
-                <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-4 mb-6">
+                <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-3 mb-5">
                     <div className="relative">
                         <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input type="text" placeholder="Search CLOs by number (e.g. CLO-1), course code, title, or description..."
                             value={cloSearch} onChange={(e) => setCloSearch(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-300 rounded-xl shadow-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:bg-white transition-all" />
+                            className="w-full pl-12 pr-4 py-2.5 bg-white border-2 border-slate-300 rounded-xl shadow-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:bg-white transition-all" />
                     </div>
                 </div>
 
                 {/* Stats bar */}
                 {!loading && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                        <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+                        <div className="bg-white rounded-xl border border-slate-200 p-3 text-center shadow-sm">
                             <p className="text-2xl font-bold text-slate-900">{allCLOs.length}</p>
                             <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mt-1">Total CLOs</p>
                         </div>
-                        <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
+                        <div className="bg-white rounded-xl border border-slate-200 p-3 text-center shadow-sm">
                             <p className="text-2xl font-bold text-slate-900">
                                 {allCLOs.filter(c => c.mapped_courses && c.mapped_courses.length > 0).length}
                             </p>
                             <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mt-1">Course Mapped</p>
                         </div>
-                        <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
+                        <div className="bg-white rounded-xl border border-slate-200 p-3 text-center shadow-sm">
                             <p className="text-2xl font-bold text-slate-900">
                                 {allCLOs.filter(c => c.mapped_plos && c.mapped_plos.length > 0).length}
                             </p>
                             <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mt-1">PLO Mapped</p>
                         </div>
-                        <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
+                        <div className="bg-white rounded-xl border border-slate-200 p-3 text-center shadow-sm">
                             <p className="text-2xl font-bold text-slate-900">
                                 {allCLOs.filter(c => !c.mapped_plos || c.mapped_plos.length === 0).length}
                             </p>
@@ -315,7 +328,7 @@ const ManageCLOs = () => {
                 {loading ? (
                     <div className="space-y-3">
                         {[1, 2, 3, 4, 5].map(i => (
-                            <div key={i} className="bg-white rounded-xl p-5 animate-pulse border-2 border-slate-200">
+                            <div key={i} className="bg-white rounded-xl p-4 animate-pulse border-2 border-slate-200">
                                 <div className="flex items-center gap-3">
                                     <div className="h-7 w-16 bg-slate-200 rounded-lg"></div>
                                     <div className="flex-1"><div className="h-4 bg-slate-200 rounded w-2/3"></div></div>
@@ -324,7 +337,7 @@ const ManageCLOs = () => {
                         ))}
                     </div>
                 ) : filteredCLOs.length === 0 ? (
-                    <div className="text-center py-16 bg-white rounded-2xl border-2 border-slate-200 shadow-sm">
+                    <div className="text-center py-10 bg-white rounded-2xl border-2 border-slate-200 shadow-sm">
                         <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <MdSearch className="w-8 h-8 text-amber-400" />
                         </div>

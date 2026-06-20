@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { MdSearch, MdAdd, MdPeople, MdBook, MdCalendarToday, MdDelete } from 'react-icons/md';
 import { batchApi } from '../../services/api';
 import { toast } from 'react-toastify';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import useUndoStore from '../../stores/useUndoStore';
 
 const ManageBatches = () => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -29,24 +30,49 @@ const ManageBatches = () => {
         }
     });
 
-    const deleteMutation = useMutation({
-        mutationFn: (id) => batchApi.delete(id),
-        onSuccess: () => {
-            toast.success('Batch deleted successfully');
-            queryClient.invalidateQueries({ queryKey: ['batches'] });
-        },
-        onError: (error) => {
-            console.error('Error deleting batch:', error);
-            toast.error('Failed to delete batch');
-        }
-    });
+    const enqueueUndo = useUndoStore(s => s.enqueue);
+    const isPending = useUndoStore(s => s.isPending);
 
-    const handleDelete = (id, e) => {
+    const handleDelete = async (batch, e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (window.confirm('Are you sure you want to delete this batch?')) {
-            deleteMutation.mutate(id);
+
+        const undoId = `batch-${batch.id}`;
+        if (isPending(undoId)) return;
+
+        // Pre-flight: check for active data via deleteGuard
+        try {
+            const guardRes = await batchApi.delete(batch.id);
+            if (guardRes.requiresConfirmation && guardRes.hasActiveData) {
+                const confirmed = window.confirm(guardRes.message);
+                if (!confirmed) return;
+            }
+        } catch {
+            // Guard failed — proceed with undo queue anyway
         }
+
+        // Optimistically remove from cache
+        queryClient.setQueryData(['batches'], (old) =>
+            (old || []).filter(b => b.id !== batch.id)
+        );
+
+        // Enqueue undo-able deletion
+        enqueueUndo({
+            id: undoId,
+            type: 'Batch',
+            label: batch.name,
+            highRisk: true,
+            apiCall: async () => {
+                await batchApi.delete(batch.id, { confirm: true });
+                queryClient.invalidateQueries({ queryKey: ['batches'] });
+                toast.success(`Batch "${batch.name}" deleted`);
+            },
+            onUndo: () => {
+                // Restore to cache
+                queryClient.invalidateQueries({ queryKey: ['batches'] });
+                toast.info(`Deletion of "${batch.name}" undone`);
+            }
+        });
     };
 
     const filteredBatches = batches.filter(batch =>
@@ -64,8 +90,8 @@ const ManageBatches = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
-            <div className="max-w-7xl mx-auto">
+        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col">
+            <div className="max-w-7xl mx-auto w-full flex flex-col">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
@@ -145,7 +171,7 @@ const ManageBatches = () => {
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-lg font-bold text-slate-800">{batch.name}</h3>
                                         <button
-                                            onClick={(e) => handleDelete(batch.id, e)}
+                                            onClick={(e) => handleDelete(batch, e)}
                                             className="text-slate-300 hover:text-red-500 transition-colors"
                                             title="Delete batch"
                                         >

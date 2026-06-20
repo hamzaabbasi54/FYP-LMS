@@ -80,7 +80,7 @@ const Dashboard = () => {
     ];
 
     return (
-        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-100 to-slate-200 rounded-3xl flex flex-col shadow-sm border border-slate-200/60 overflow-hidden">
+        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl flex flex-col shadow-md border border-slate-300/60 overflow-hidden">
             <div className="px-6 lg:px-8 py-4 max-w-7xl w-full mx-auto flex-1 flex flex-col">
 
                 {/* Hero Section */}

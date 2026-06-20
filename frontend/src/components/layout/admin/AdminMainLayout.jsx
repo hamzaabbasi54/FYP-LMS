@@ -55,21 +55,21 @@ const AdminMainLayout = () => {
     }, [socket, queryClient]);
 
     return (
-       <div className= "main-layout bg-slate-50">
-           <div className="sidebar z-20">
-               <Sidebar/>
-           </div>
-           <div className="navbar">
-               <Navbar/>
+        <div className="main-layout bg-slate-50">
+            <div className="sidebar z-20">
+                <Sidebar />
+            </div>
+            <div className="navbar">
+                <Navbar />
 
-           </div>
-           <div className="main">
-               <div className="page-container">
-                   <Outlet />
-               </div>
+            </div>
+            <div className="main">
+                <div className="page-container">
+                    <Outlet />
+                </div>
 
-           </div>
-       </div>
+            </div>
+        </div>
     );
 };
 

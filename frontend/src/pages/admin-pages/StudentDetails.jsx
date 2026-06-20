@@ -136,7 +136,7 @@ const StudentDetails = () => {
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
+        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200 p-8">
             <div className="max-w-4xl mx-auto animate-pulse">
                 <div className="h-8 bg-slate-200 rounded w-1/3 mb-8"></div>
                 <div className="h-64 bg-slate-200 rounded-2xl mb-6"></div>
@@ -146,7 +146,7 @@ const StudentDetails = () => {
     );
 
     if (!student) return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8 flex items-center justify-center">
+        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200 p-8 flex items-center justify-center">
             <div className="text-center">
                 <h2 className="text-xl font-bold text-slate-600 mb-2">Student not found</h2>
                 <Link to={`/admin-managebatches/${batchId}/students`} className="text-blue-600 hover:underline">Back to Students</Link>
@@ -157,7 +157,7 @@ const StudentDetails = () => {
     const missingFields = getMissingFields();
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
+        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200">
             <div className="p-8 max-w-4xl mx-auto">
                 <div className="mb-6">
                     <Link to={`/admin-managebatches/${batchId}/students`} className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 text-sm">

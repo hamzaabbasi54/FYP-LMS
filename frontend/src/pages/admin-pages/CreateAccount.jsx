@@ -101,7 +101,7 @@ const CreateAccount = () => {
     const loading = createAccountMutation.isPending;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
+        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto">
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="mb-8">

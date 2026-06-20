@@ -54,7 +54,7 @@ const OBEReports = () => {
 
     if (loading) {
         return (
-            <div className="p-6 lg:p-8 space-y-6">
+            <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col space-y-6">
                 <div className="animate-pulse space-y-4">
                     <div className="h-8 bg-gray-200 rounded w-1/4"></div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -67,7 +67,7 @@ const OBEReports = () => {
     }
 
     return (
-        <div className="p-6 lg:p-8 space-y-6">
+        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                 <div>

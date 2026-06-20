@@ -66,7 +66,7 @@ const ExternalLinks = () => {
     ];
 
     return (
-        <div className="p-6 lg:p-8 space-y-6">
+        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col space-y-6">
             {/* Header */}
             <div>
                 <h1 className="text-2xl font-bold text-slate-800">External Links</h1>

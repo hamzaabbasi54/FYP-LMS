@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { MdAdd, MdSearch, MdFilterList, MdChevronLeft, MdChevronRight, MdDelete, MdInfoOutline } from 'react-icons/md';
 import { courseApi } from '../../services/api';
 import { toast } from 'react-toastify';
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import useUndoStore from '../../stores/useUndoStore';
 
 const ManageCourses = () => {
     const queryClient = useQueryClient();
@@ -36,42 +37,47 @@ const ManageCourses = () => {
     const totalPages = data?.pagination?.totalPages || 1;
     const total = data?.pagination?.total || 0;
 
-    const deleteMutation = useMutation({
-        mutationFn: (id) => courseApi.delete(id),
-        onMutate: async (deletedId) => {
-            // Cancel any outgoing refetches so they don't overwrite our optimistic update
-            await queryClient.cancelQueries({ queryKey: ['courses'] });
-            // Snapshot the previous value for rollback
-            const previousData = queryClient.getQueryData(['courses', page, searchQuery]);
-            // Optimistically remove the course from the cache
-            queryClient.setQueryData(['courses', page, searchQuery], (old) => {
-                if (!old) return old;
-                return {
-                    ...old,
-                    data: old.data.filter(course => course.id !== deletedId),
-                    pagination: { ...old.pagination, total: (old.pagination?.total || 1) - 1 }
-                };
-            });
-            return { previousData };
-        },
-        onSuccess: () => {
-            toast.success('Course deleted successfully');
-            queryClient.invalidateQueries({ queryKey: ['courses'] });
-        },
-        onError: (error, _deletedId, context) => {
-            // Rollback on error
-            if (context?.previousData) {
-                queryClient.setQueryData(['courses', page, searchQuery], context.previousData);
-            }
-            console.error('Error deleting course:', error);
-            toast.error(error.response?.data?.message || 'Failed to delete course');
-        }
-    });
+    const enqueueUndo = useUndoStore(s => s.enqueue);
+    const isPending = useUndoStore(s => s.isPending);
 
-    const handleDelete = (id) => {
-        if (window.confirm('Are you sure you want to delete this course?')) {
-            deleteMutation.mutate(id);
-        }
+    const handleDelete = async (course) => {
+        const undoId = `course-${course.id}`;
+        if (isPending(undoId)) return;
+
+        // Pre-flight: check for active data
+        try {
+            const guardRes = await courseApi.delete(course.id);
+            if (guardRes.requiresConfirmation && guardRes.hasActiveData) {
+                const confirmed = window.confirm(guardRes.message);
+                if (!confirmed) return;
+            }
+        } catch { /* proceed */ }
+
+        // Optimistically remove from cache
+        queryClient.setQueryData(['courses', page, searchQuery], (old) => {
+            if (!old) return old;
+            return {
+                ...old,
+                data: old.data.filter(c => c.id !== course.id),
+                pagination: { ...old.pagination, total: (old.pagination?.total || 1) - 1 }
+            };
+        });
+
+        enqueueUndo({
+            id: undoId,
+            type: 'Course',
+            label: `${course.code} - ${course.title}`,
+            highRisk: true,
+            apiCall: async () => {
+                await courseApi.delete(course.id, { confirm: true });
+                queryClient.invalidateQueries({ queryKey: ['courses'] });
+                toast.success(`Course "${course.code}" deleted`);
+            },
+            onUndo: () => {
+                queryClient.invalidateQueries({ queryKey: ['courses'] });
+                toast.info(`Deletion of "${course.code}" undone`);
+            }
+        });
     };
 
     const getStatusStyle = (status) => {
@@ -88,8 +94,8 @@ const ManageCourses = () => {
         : courses.filter(c => (c.status || '').toLowerCase() === statusFilter);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
-            <div className="max-w-7xl mx-auto">
+        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col">
+            <div className="max-w-7xl mx-auto w-full flex flex-col">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
@@ -207,8 +213,8 @@ const ManageCourses = () => {
                                                     <MdInfoOutline className="w-4 h-4" />
                                                 </Link>
                                                 <button
-                                                    onClick={() => handleDelete(course.id)}
-                                                    disabled={deleteMutation.isPending && deleteMutation.variables === course.id}
+                                                    onClick={() => handleDelete(course)}
+                                                    disabled={isPending(`course-${course.id}`)}
                                                     className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
                                                     title="Delete"
                                                 >

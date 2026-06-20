@@ -5,6 +5,7 @@ import { studentApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import OverlayLoader from '../../components/common/OverlayLoader';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import useUndoStore from '../../stores/useUndoStore';
 
 const StudentList = () => {
     const queryClient = useQueryClient();
@@ -21,7 +22,6 @@ const StudentList = () => {
     const [showImportModal, setShowImportModal] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
     const [selectedStudents, setSelectedStudents] = useState(new Set());
-    const [deleting, setDeleting] = useState(false);
 
     // Pagination & Search
     const [page, setPage] = useState(1);
@@ -187,31 +187,53 @@ const StudentList = () => {
         setSelectedStudents(newSet);
     };
 
-    const bulkDeleteMutation = useMutation({
-        mutationFn: (ids) => studentApi.bulkDelete(ids),
-        onSuccess: (response) => {
-            toast.success(response.message || 'Students deleted successfully');
-            setSelectedStudents(new Set());
-            queryClient.invalidateQueries({ queryKey: ['students', id] });
-        },
-        onError: (error) => {
-            console.error('Bulk delete error:', error);
-            toast.error(error.response?.data?.message || 'Failed to delete students');
-        },
-        onMutate: () => setDeleting(true),
-        onSettled: () => setDeleting(false)
-    });
+    const enqueueUndo = useUndoStore(s => s.enqueue);
+    const isPendingUndo = useUndoStore(s => s.isPending);
 
-    const handleBulkDelete = () => {
+    const handleBulkDelete = async () => {
         if (selectedStudents.size === 0) return;
-        if (!window.confirm(`Are you sure you want to delete ${selectedStudents.size} students? This cannot be undone.`)) return;
-        
         const ids = Array.from(selectedStudents);
-        bulkDeleteMutation.mutate(ids);
+        const undoId = `students-bulk-${ids.join('-').substring(0, 30)}`;
+
+        // Pre-flight: check for active data via deleteGuard
+        try {
+            const guardRes = await studentApi.bulkDelete(ids);
+            if (guardRes.requiresConfirmation && guardRes.hasActiveData) {
+                const confirmed = window.confirm(guardRes.message);
+                if (!confirmed) return;
+            }
+        } catch { /* proceed */ }
+
+        // Optimistically remove from cache
+        queryClient.setQueryData(['students', id, page, debouncedSearch], (old) => {
+            if (!old) return old;
+            return {
+                ...old,
+                students: old.students.filter(s => !selectedStudents.has(s.id)),
+                pagination: { ...old.pagination, total: (old.pagination?.total || ids.length) - ids.length }
+            };
+        });
+        setSelectedStudents(new Set());
+
+        enqueueUndo({
+            id: undoId,
+            type: 'Students',
+            label: `${ids.length} student(s)`,
+            highRisk: true,
+            apiCall: async () => {
+                await studentApi.bulkDelete(ids, { confirm: true });
+                queryClient.invalidateQueries({ queryKey: ['students', id] });
+                toast.success(`${ids.length} student(s) deleted`);
+            },
+            onUndo: () => {
+                queryClient.invalidateQueries({ queryKey: ['students', id] });
+                toast.info(`Deletion of ${ids.length} student(s) undone`);
+            }
+        });
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
+        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200">
             <OverlayLoader isLoading={isImporting} text="Importing students to batch..." />
             <div className="p-8 max-w-7xl mx-auto">
                 <div className="mb-6">

@@ -10,6 +10,7 @@ import { verifyToken, isAdmin, isAuthenticated } from '../middleware/auth.js';
 import { scopeToDepartment } from '../middleware/deptScope.js';
 import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
 import { cacheDel } from '../config/redis.js';
+import { deleteGuard } from '../middleware/deleteGuard.js';
 
 const scopeCourse = scopeToDepartment('courses');
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
@@ -680,7 +681,7 @@ router.put('/:id', isAdmin, scopeCourse, async (req, res) => {
 });
 
 // DELETE course
-router.delete('/:id', isAdmin, scopeCourse, async (req, res) => {
+router.delete('/:id', isAdmin, scopeCourse, deleteGuard('course'), async (req, res) => {
     try {
         // Get department_id before deletion
         const [[course]] = await pool.query('SELECT department_id, title FROM courses WHERE id = ?', [req.params.id]);

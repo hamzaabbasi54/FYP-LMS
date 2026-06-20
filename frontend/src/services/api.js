@@ -195,8 +195,8 @@ export const batchApi = {
         const response = await api.put(`/batches/${id}`, data);
         return response.data;
     },
-    delete: async (id) => {
-        const response = await api.delete(`/batches/${id}`);
+    delete: async (id, data) => {
+        const response = await api.delete(`/batches/${id}`, { data });
         return response.data;
     },
     // Semesters
@@ -307,8 +307,8 @@ export const courseApi = {
         const response = await api.put(`/courses/${id}`, data);
         return response.data;
     },
-    delete: async (id) => {
-        const response = await api.delete(`/courses/${id}`);
+    delete: async (id, data) => {
+        const response = await api.delete(`/courses/${id}`, { data });
         return response.data;
     },
     import: async (file) => {
@@ -472,8 +472,8 @@ export const studentApi = {
         const response = await api.delete(`/students/${id}`);
         return response.data;
     },
-    bulkDelete: async (studentIds) => {
-        const response = await api.post('/students/bulk-delete', { student_ids: studentIds });
+    bulkDelete: async (studentIds, data) => {
+        const response = await api.post('/students/bulk-delete', { student_ids: studentIds, ...data });
         return response.data;
     },
     import: async (batchId, file) => {
