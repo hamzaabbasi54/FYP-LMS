@@ -409,6 +409,18 @@ router.post('/:id/semesters/:semNum/courses', isAdmin, async (req, res) => {
 
         await conn.beginTransaction();
 
+        // Ensure the semester row exists in `semesters` table (FK requires it)
+        const [semRows] = await conn.query(
+            'SELECT id FROM semesters WHERE batch_id = ? AND semester_number = ?',
+            [batchId, semNum]
+        );
+        if (semRows.length === 0) {
+            await conn.query(
+                'INSERT INTO semesters (batch_id, name, semester_number) VALUES (?, ?, ?)',
+                [batchId, `Semester ${semNum}`, semNum]
+            );
+        }
+
         const added = [];
         const errors = [];
 
@@ -431,8 +443,8 @@ router.post('/:id/semesters/:semNum/courses', isAdmin, async (req, res) => {
                 );
                 added.push(cId);
             } catch (err) {
-                console.error(`Error adding course ${cId} to batch ${batchId}:`, err);
-                errors.push({ course_id: cId, error: 'Failed to process course entry' });
+                console.error(`Error adding course ${cId} to batch ${batchId} sem ${semNum}:`, err.code, err.message);
+                errors.push({ course_id: cId, error: err.code === 'ER_DUP_ENTRY' ? `Course already exists in this batch` : (err.sqlMessage || err.message || 'Failed to process course entry') });
             }
         }
 
@@ -498,12 +510,33 @@ router.delete('/:id/semesters/:semNum/courses/:courseId', isAdmin, async (req, r
         if (semesters.length > 0) {
             const semesterId = semesters[0].id;
 
+            // Capture assigned faculty BEFORE deleting (so we can notify them)
+            const [assignedFaculty] = await conn.query(
+                'SELECT faculty_id FROM course_assignments WHERE semester_id = ? AND course_id = ? AND faculty_id IS NOT NULL',
+                [semesterId, courseId]
+            );
+
             // 2. Delete course_assignments for this course+semester
             // FK cascades will automatically delete: enrollments, assessments, grades, attendance, course_assignment_files
             await conn.query(
                 'DELETE FROM course_assignments WHERE semester_id = ? AND course_id = ?',
                 [semesterId, courseId]
             );
+
+            // Notify the affected faculty member(s)
+            if (courseInfo && assignedFaculty.length > 0) {
+                for (const row of assignedFaculty) {
+                    await conn.query(
+                        'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+                        [
+                            row.faculty_id,
+                            'Course Removed',
+                            `${courseInfo.code}: ${courseInfo.title} has been removed from the batch. Your assignment has been cleared.`,
+                            'course_unassignment'
+                        ]
+                    );
+                }
+            }
         }
 
         // 3. Delete class_schedules for this batch+course
@@ -710,6 +743,27 @@ router.post('/:batchId/semesters/:semesterNumber/courses/:courseId/assign', isAd
         }
 
         await conn.commit();
+
+        // Notify the assigned faculty member
+        if (faculty_id) {
+            try {
+                const [[courseInfo]] = await pool.query('SELECT title, code FROM courses WHERE id = ?', [courseId]);
+                const [[batchInfo]] = await pool.query('SELECT name FROM batches WHERE id = ?', [batchId]);
+                if (courseInfo) {
+                    await pool.query(
+                        'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+                        [
+                            faculty_id,
+                            'Course Assignment',
+                            `You have been assigned to teach ${courseInfo.code}: ${courseInfo.title} in ${batchInfo?.name || 'a batch'}.`,
+                            'course_assignment'
+                        ]
+                    );
+                }
+            } catch (notifErr) {
+                console.error('Notification insert error (non-blocking):', notifErr.message);
+            }
+        }
 
         // Emit real-time event
         const [[batch]] = await pool.query('SELECT department_id FROM batches WHERE id = ?', [batchId]);
