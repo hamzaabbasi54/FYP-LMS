@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, Link } from 'react-router-dom';
-import { MdArrowBack, MdPeople, MdAccessTime, MdArrowForward, MdMenuBook, MdAdd, MdDelete, MdClose, MdSearch, MdCheckCircle, MdSchool, MdLibraryBooks, MdInfo, MdSchedule } from 'react-icons/md';
+import { MdArrowBack, MdPeople, MdAccessTime, MdArrowForward, MdMenuBook, MdAdd, MdDelete, MdClose, MdSearch, MdCheckCircle, MdSchool, MdLibraryBooks, MdInfo, MdSchedule, MdChevronRight } from 'react-icons/md';
 import { batchApi, curriculumApi, courseApi, obeApi, departmentApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -20,12 +21,17 @@ const BatchDetails = () => {
     const [courseType, setCourseType] = useState('core');
     const [addingCourses, setAddingCourses] = useState(false);
     const [removingCourseId, setRemovingCourseId] = useState(null);
+    const [courseToDelete, setCourseToDelete] = useState(null);
 
     // PLO Modal
     const [showPloModal, setShowPloModal] = useState(false);
     const [allPlos, setAllPlos] = useState([]);
     const [selectedPloIds, setSelectedPloIds] = useState([]);
     const [savingPlos, setSavingPlos] = useState(false);
+
+    // Curriculum Modal
+    const [showCurriculumModal, setShowCurriculumModal] = useState(false);
+    const [selectedCurriculumId, setSelectedCurriculumId] = useState('');
 
     const semColors = [
         'from-indigo-500 to-blue-600', 'from-violet-500 to-purple-600',
@@ -70,6 +76,7 @@ const BatchDetails = () => {
             await queryClient.invalidateQueries(['batch', id]);
             if (val) await queryClient.invalidateQueries(['batchCourses', id]);
             setActiveSemester(1);
+            setShowCurriculumModal(false);
         } catch (e) { toast.error('Failed to update curriculum'); }
         finally { setAssigningCurriculum(false); }
     };
@@ -103,13 +110,14 @@ const BatchDetails = () => {
     };
 
     // Remove course from THIS BATCH's semester (not the curriculum)
-    const handleRemoveCourse = async (courseId) => {
-        if (!window.confirm('Remove this course from this batch?')) return;
-        setRemovingCourseId(courseId);
+    const handleRemoveCourse = async () => {
+        if (!courseToDelete) return;
+        setRemovingCourseId(courseToDelete.course_id);
         try {
-            await batchApi.removeBatchCourse(id, activeSemester, courseId);
+            await batchApi.removeBatchCourse(id, activeSemester, courseToDelete.course_id);
             toast.success('Course removed from batch');
             fetchBatchCourses();
+            setCourseToDelete(null);
         } catch (e) { toast.error('Failed to remove'); }
         finally { setRemovingCourseId(null); }
     };
@@ -213,104 +221,47 @@ const BatchDetails = () => {
                     </div>
                 </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+                {/* Stats & Assignment Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
                     {[
                         { label: 'Students', value: batchData.student_count || 0, icon: MdPeople, color: 'from-blue-500 to-indigo-600', link: `/admin-managebatches/${id}/students` },
                         { label: 'Status', value: batchData.status || 'active', icon: MdAccessTime, color: 'from-violet-500 to-purple-600' },
                         { label: 'Duration', value: batchData.start_date ? `${new Date(batchData.start_date).getFullYear()} - ${batchData.end_date ? new Date(batchData.end_date).getFullYear() : '...'}` : 'N/A', icon: MdSchool, color: 'from-emerald-500 to-teal-600' },
+                        { label: 'Curriculum', value: curricula.find(c => c.id === batchData.curriculum_id)?.name || 'Not Set', icon: MdMenuBook, color: 'from-cyan-500 to-blue-600', onClick: () => { setSelectedCurriculumId(batchData.curriculum_id || ''); setShowCurriculumModal(true); } },
+                        { label: 'PLOs', value: batchData.plos?.length || 0, icon: MdLibraryBooks, color: 'from-fuchsia-500 to-pink-600', onClick: handleOpenPloModal },
                     ].map((s, i) => {
                         const card = (
-                            <div className={`group bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition-all ${s.link ? 'cursor-pointer' : ''}`}>
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <div className={`inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br ${s.color} mb-3 shadow-sm`}>
+                            <div onClick={s.onClick} className={`group bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-all h-full relative ${s.link || s.onClick ? 'cursor-pointer hover:border-blue-300' : ''}`}>
+                                <div className="flex items-start justify-between h-full flex-col pr-6">
+                                    <div className="w-full">
+                                        <div className={`inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br ${s.color} mb-3 shadow-sm group-hover:shadow-lg transition-all`}>
                                             <s.icon className="w-5 h-5 text-white" />
                                         </div>
-                                        <p className="text-slate-500 text-sm mb-1">{s.label}</p>
-                                        <h3 className="text-xl font-bold text-slate-800">{s.value}</h3>
+                                        <p className="text-slate-500 text-xs mb-1">{s.label}</p>
+                                        <h3 className="text-base font-bold text-slate-800 leading-tight">{s.value}</h3>
                                     </div>
-                                    {s.link && <div className="p-1.5 bg-slate-50 border border-slate-200 rounded flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:border-blue-600 group-hover:text-white transition-colors"><MdArrowForward className="w-4 h-4" /></div>}
+                                    {(s.link || s.onClick) && (
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 group-hover:text-blue-500 transition-colors group-hover:translate-x-1 duration-200">
+                                            <MdChevronRight className="w-5 h-5" />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         );
-                        return s.link ? <Link key={i} to={s.link}>{card}</Link> : <div key={i}>{card}</div>;
+                        return s.link ? <Link key={i} to={s.link} className="block">{card}</Link> : <div key={i} className="block">{card}</div>;
                     })}
                 </div>
 
-                {/* PLOs Section */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5 mb-8 flex items-center justify-between shadow-sm">
-                    <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
-                            <h3 className="text-lg font-semibold text-slate-800">Program Learning Outcomes (PLOs)</h3>
-                        </div>
-                        <p className="text-sm text-slate-500 ml-3.5">
-                            {batchData.plos && batchData.plos.length > 0 
-                                ? `${batchData.plos.length} PLOs attached to this batch` 
-                                : 'No PLOs attached to this batch'}
+                {/* Info banner: explain that edits here don't affect the curriculum */}
+                {batchData.curriculum_id && (
+                    <div className="mb-6 flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl p-4">
+                        <MdInfo className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-blue-700">
+                            Courses below are a copy from <strong>{batchCourseData?.curriculum_name || 'the curriculum'}</strong>. 
+                            Adding or removing courses here only affects this batch — the original curriculum is not changed.
                         </p>
                     </div>
-                    <div className="flex items-center gap-4">
-                        {batchData.plos && batchData.plos.length > 0 && (
-                            <div className="flex -space-x-2">
-                                {batchData.plos.slice(0, 5).map(plo => (
-                                    <div key={plo.id} className="w-10 h-10 rounded-full border-2 border-white bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-sm" title={plo.description}>
-                                        <span className="text-xs font-bold text-white text-center leading-none">
-                                            PLO<br/>{plo.plo_number}
-                                        </span>
-                                    </div>
-                                ))}
-                                {batchData.plos.length > 5 && (
-                                    <div className="w-10 h-10 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center shadow-sm text-slate-600 text-xs font-bold">
-                                        +{batchData.plos.length - 5}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        <button onClick={handleOpenPloModal} className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-medium transition-colors">
-                            Manage PLOs
-                        </button>
-                    </div>
-                </div>
-
-                {/* Curriculum Assignment */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5 mb-8 shadow-sm">
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
-                        <h3 className="text-lg font-semibold text-slate-800">Curriculum</h3>
-                    </div>
-                    <div className="flex flex-col md:flex-row md:items-end gap-4">
-                        <div className="flex-1">
-                            <label className="text-sm font-medium text-slate-600 mb-2 block">Assign curriculum to this batch</label>
-                            <select
-                                value={batchData.curriculum_id || ''}
-                                onChange={(e) => handleCurriculumChange(e.target.value ? parseInt(e.target.value) : null)}
-                                disabled={assigningCurriculum}
-                                className="w-full px-3 py-2 border border-slate-200 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm text-slate-700 disabled:opacity-50 appearance-none bg-white"
-                            >
-                                <option value="">No Curriculum</option>
-                                {curricula.map(c => <option key={c.id} value={c.id}>{c.name} ({c.department_name})</option>)}
-                            </select>
-                        </div>
-                        {batchData.curriculum_id && (
-                            <Link to={`/admin-curricula/${batchData.curriculum_id}`} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 shadow-sm transition-all whitespace-nowrap">
-                                <MdMenuBook className="w-4 h-4" /> View Blueprint
-                            </Link>
-                        )}
-                    </div>
-
-                    {/* Info banner: explain that edits here don't affect the curriculum */}
-                    {batchData.curriculum_id && (
-                        <div className="mt-4 flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl p-4">
-                            <MdInfo className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                            <p className="text-sm text-blue-700">
-                                Courses below are a copy from <strong>{batchCourseData?.curriculum_name || 'the curriculum'}</strong>. 
-                                Adding or removing courses here only affects this batch — the original curriculum is not changed.
-                            </p>
-                        </div>
-                    )}
-                </div>
+                )}
 
                 {/* Semester Tabs + Courses (reads from batch_semester_courses) */}
                 {loadingCourses ? (
@@ -386,7 +337,7 @@ const BatchDetails = () => {
                                                                 className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors opacity-0 group-hover:opacity-100" title="Set Schedule">
                                                                 <MdSchedule className="w-4 h-4" />
                                                             </Link>
-                                                            <button onClick={() => handleRemoveCourse(c.course_id)} disabled={removingCourseId === c.course_id}
+                                                            <button onClick={() => setCourseToDelete(c)} disabled={removingCourseId === c.course_id}
                                                                 className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50">
                                                                 <MdDelete className="w-4 h-4" />
                                                             </button>
@@ -424,7 +375,7 @@ const BatchDetails = () => {
                                                                 className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors opacity-0 group-hover:opacity-100" title="Set Schedule">
                                                                 <MdSchedule className="w-4 h-4" />
                                                             </Link>
-                                                            <button onClick={() => handleRemoveCourse(c.course_id)} disabled={removingCourseId === c.course_id}
+                                                            <button onClick={() => setCourseToDelete(c)} disabled={removingCourseId === c.course_id}
                                                                 className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50">
                                                                 <MdDelete className="w-4 h-4" />
                                                             </button>
@@ -442,8 +393,8 @@ const BatchDetails = () => {
             </div>
 
             {/* Add Course Modal */}
-            {showAddCourse && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            {showAddCourse && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
                         <div className="flex items-center justify-between p-5 border-b border-slate-200">
                             <div className="flex items-center gap-2">
@@ -507,11 +458,12 @@ const BatchDetails = () => {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
             {/* Manage PLOs Modal */}
-            {showPloModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+            {showPloModal && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
                     <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh]">
                         <div className="flex items-center justify-between p-5 border-b border-slate-200">
                             <div>
@@ -566,7 +518,91 @@ const BatchDetails = () => {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Course Delete Confirmation Modal */}
+            {courseToDelete && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl w-full max-w-md shadow-xl flex flex-col overflow-hidden">
+                        <div className="p-6 text-center">
+                            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+                                <MdDelete className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-800 mb-2">Remove Course?</h3>
+                            <p className="text-slate-500 text-sm mb-1">
+                                Are you sure you want to remove <strong>{courseToDelete.code}</strong> from Semester {activeSemester}?
+                            </p>
+                            <p className="text-red-500 text-xs font-medium">This will also delete any related class schedules and attendance records.</p>
+                        </div>
+                        <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-3 justify-end">
+                            <button onClick={() => setCourseToDelete(null)} disabled={removingCourseId !== null} 
+                                className="px-4 py-2 text-slate-700 font-medium text-sm border border-slate-200 bg-white hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-50">
+                                Cancel
+                            </button>
+                            <button onClick={handleRemoveCourse} disabled={removingCourseId !== null} 
+                                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-sm font-medium text-sm transition-colors disabled:opacity-50">
+                                {removingCourseId !== null ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        Removing...
+                                    </>
+                                ) : 'Remove Course'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Curriculum Selection Modal */}
+            {showCurriculumModal && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl w-full max-w-md shadow-xl flex flex-col overflow-hidden">
+                        <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                <div className="w-2 h-6 bg-blue-500 rounded-full"></div> Assign Curriculum
+                            </h3>
+                            <button onClick={() => setShowCurriculumModal(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-colors">
+                                <MdClose className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <label className="text-sm font-medium text-slate-600 mb-2 block">Select Curriculum</label>
+                            <select
+                                value={selectedCurriculumId}
+                                onChange={(e) => setSelectedCurriculumId(e.target.value)}
+                                disabled={assigningCurriculum}
+                                className="w-full px-3 py-2 border border-slate-200 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm text-slate-700 disabled:opacity-50 appearance-none bg-white"
+                            >
+                                <option value="">No Curriculum</option>
+                                {curricula.map(c => <option key={c.id} value={c.id}>{c.name} ({c.department_name})</option>)}
+                            </select>
+                            
+                            {batchData.curriculum_id && selectedCurriculumId == batchData.curriculum_id && (
+                                <div className="mt-4 flex items-center justify-center">
+                                    <Link onClick={() => setShowCurriculumModal(false)} to={`/admin-curricula/${batchData.curriculum_id}`} className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg text-sm font-medium transition-colors">
+                                        <MdMenuBook className="w-4 h-4" /> View Blueprint
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-3 justify-end">
+                            <button onClick={() => setShowCurriculumModal(false)} className="px-4 py-2 text-slate-700 font-medium text-sm border border-slate-200 bg-white hover:bg-slate-50 rounded-lg transition-colors">
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={() => handleCurriculumChange(selectedCurriculumId ? parseInt(selectedCurriculumId) : null)} 
+                                disabled={assigningCurriculum || (selectedCurriculumId == (batchData.curriculum_id || ''))}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm font-medium text-sm transition-colors disabled:opacity-50"
+                            >
+                                {assigningCurriculum ? 'Saving...' : 'Save'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );

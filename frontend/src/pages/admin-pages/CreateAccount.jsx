@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { MdPerson, MdEmail, MdBusiness, MdPhone, MdSave, MdCancel, MdCheckCircle, MdArrowDropDown } from 'react-icons/md';
 import { authApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useQuery, useMutation } from '@tanstack/react-query';
+
 const CreateAccount = () => {
     const [formData, setFormData] = useState({
         fullName: '',
@@ -14,48 +16,25 @@ const CreateAccount = () => {
         employment_type: 'permanent'
     });
 
-    const [faculties, setFaculties] = useState([]);
-    const [departments, setDepartments] = useState([]);
-    const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState('');
 
-    // Fetch faculties on mount
-    useEffect(() => {
-        fetchFaculties();
-    }, []);
-
-    // Fetch departments when faculty changes
-    useEffect(() => {
-        if (formData.faculty) {
-            fetchDepartments(formData.faculty);
-        } else {
-            setDepartments([]);
-            setFormData(prev => ({ ...prev, department: '' }));
-        }
-    }, [formData.faculty]);
-
-    const fetchFaculties = async () => {
-        try {
+    const { data: faculties = [] } = useQuery({
+        queryKey: ['faculties'],
+        queryFn: async () => {
             const response = await authApi.getFaculties();
-            if (response.success) {
-                setFaculties(response.data);
-            }
-        } catch (error) {
-            console.error('Error fetching faculties:', error);
+            return response.success ? response.data : [];
         }
-    };
+    });
 
-    const fetchDepartments = async (faculty) => {
-        try {
-            const response = await authApi.getDepartments(faculty);
-            if (response.success) {
-                setDepartments(response.data);
-            }
-        } catch (error) {
-            console.error('Error fetching departments:', error);
-        }
-    };
+    const { data: departments = [] } = useQuery({
+        queryKey: ['departments', formData.faculty],
+        queryFn: async () => {
+            const response = await authApi.getDepartments(formData.faculty);
+            return response.success ? response.data : [];
+        },
+        enabled: !!formData.faculty
+    });
 
     const { user: currentUser } = useAuth();
     const isSuperAdmin = currentUser?.role === 'super_admin';
@@ -82,7 +61,32 @@ const CreateAccount = () => {
 
 
 
-    const handleSubmit = async (e) => {
+    const createAccountMutation = useMutation({
+        mutationFn: (data) => authApi.createAccount(data),
+        onSuccess: () => {
+            setSuccess(true);
+            setTimeout(() => {
+                setFormData({
+                    fullName: '',
+                    email: '',
+                    role: '',
+                    department: '',
+                    faculty: '',
+                    phoneNumber: '',
+                    isActive: true,
+                    employment_type: 'permanent'
+                });
+                setSuccess(false);
+            }, 3000);
+        },
+        onError: (err) => {
+            console.error('Create account error:', err);
+            const errorMessage = err.response?.data?.message || 'Failed to create account. Please try again.';
+            setError(errorMessage);
+        }
+    });
+
+    const handleSubmit = (e) => {
         e.preventDefault();
 
         if (!formData.role) {
@@ -90,35 +94,11 @@ const CreateAccount = () => {
             return;
         }
 
-        setLoading(true);
         setError('');
-
-        try {
-            const response = await authApi.createAccount(formData);
-
-            if (response.success) {
-                setSuccess(true);
-                setTimeout(() => {
-                    setFormData({
-                        fullName: '',
-                        email: '',
-                        role: '',
-                        department: '',
-                        faculty: '',
-                        phoneNumber: '',
-                        isActive: true
-                    });
-                    setSuccess(false);
-                }, 3000);
-            }
-        } catch (err) {
-            console.error('Create account error:', err);
-            const errorMessage = err.response?.data?.message || 'Failed to create account. Please try again.';
-            setError(errorMessage);
-        } finally {
-            setLoading(false);
-        }
+        createAccountMutation.mutate(formData);
     };
+    
+    const loading = createAccountMutation.isPending;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">

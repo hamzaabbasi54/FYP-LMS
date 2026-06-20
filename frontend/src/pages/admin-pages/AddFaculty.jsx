@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { MdArrowBack } from 'react-icons/md';
 import { authApi } from '../../services/api';
 import { toast } from 'react-toastify';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const AddFaculty = () => {
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(false);
-    const [departments, setDepartments] = useState([]);
-    const [faculties, setFaculties] = useState([]);
+    const queryClient = useQueryClient();
     const [selectedFaculty, setSelectedFaculty] = useState('');
 
     const [formData, setFormData] = useState({
@@ -17,64 +16,60 @@ const AddFaculty = () => {
         expertise: '', bio: ''
     });
 
-    useEffect(() => {
-        const fetchFaculties = async () => {
-            try {
-                const res = await authApi.getFaculties();
-                if (res.success) setFaculties(res.data || []);
-            } catch (err) { console.error(err); }
-        };
-        fetchFaculties();
-    }, []);
+    const { data: faculties = [] } = useQuery({
+        queryKey: ['faculties'],
+        queryFn: async () => {
+            const res = await authApi.getFaculties();
+            return res.success ? (res.data || []) : [];
+        }
+    });
 
-    useEffect(() => {
-        const fetchDepts = async () => {
-            if (selectedFaculty) {
-                try {
-                    const res = await authApi.getDepartments(selectedFaculty);
-                    if (res.success) setDepartments(res.data || []);
-                } catch (err) { console.error(err); }
-            } else { setDepartments([]); }
-        };
-        fetchDepts();
-    }, [selectedFaculty]);
+    const { data: departments = [] } = useQuery({
+        queryKey: ['departments', selectedFaculty],
+        queryFn: async () => {
+            const res = await authApi.getDepartments(selectedFaculty);
+            return res.success ? (res.data || []) : [];
+        },
+        enabled: !!selectedFaculty
+    });
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
     };
 
-    const handleSubmit = async (e) => {
+    const registerMutation = useMutation({
+        mutationFn: (data) => authApi.register(data),
+        onSuccess: () => {
+            toast.success('Faculty member added successfully!');
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+            navigate('/admin-managefaculty');
+        },
+        onError: (error) => {
+            console.error('Error adding faculty:', error);
+            toast.error(error.response?.data?.message || 'Failed to add faculty');
+        }
+    });
+
+    const handleSubmit = (e) => {
         e.preventDefault();
         if (!formData.fullName || !formData.email || !formData.department_id) {
             toast.error('Please fill in all required fields');
             return;
         }
 
-        setLoading(true);
-        try {
-            // Register as pre-approved faculty
-            const response = await authApi.register({
-                fullName: formData.fullName,
-                email: formData.email,
-                password: formData.password || 'TempPass123!',
-                role: 'faculty',
-                department_id: parseInt(formData.department_id),
-                designation: formData.designation,
-                contact_number: formData.contactNumber
-            });
-
-            if (response.success) {
-                toast.success('Faculty member added successfully!');
-                navigate('/admin-managefaculty');
-            }
-        } catch (error) {
-            console.error('Error adding faculty:', error);
-            toast.error(error.response?.data?.message || 'Failed to add faculty');
-        } finally {
-            setLoading(false);
-        }
+        registerMutation.mutate({
+            fullName: formData.fullName,
+            email: formData.email,
+            password: formData.password || 'TempPass123!',
+            role: 'faculty',
+            department_id: parseInt(formData.department_id),
+            designation: formData.designation,
+            contact_number: formData.contactNumber
+        });
     };
+    
+    const loading = registerMutation.isPending;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">

@@ -347,22 +347,6 @@ router.get('/:id/curriculum-courses', async (req, res) => {
                 [req.params.id, i]
             );
 
-            // FALLBACK: If no batch-specific courses exist but batch has a curriculum,
-            // fetch from the master curriculum blueprint
-            if (courses.length === 0 && batch[0].curriculum_id) {
-                [courses] = await pool.query(
-                    `SELECT NULL as entry_id, c.id as course_id, c.title, c.code, 
-                            c.credit_hours, c.description, csc.type, d.name as department_name
-                     FROM curriculum_semester_courses csc
-                     JOIN curriculum_semesters cs ON csc.curriculum_semester_id = cs.id
-                     JOIN courses c ON csc.course_id = c.id
-                     JOIN departments d ON c.department_id = d.id
-                     WHERE cs.curriculum_id = ? AND cs.semester_number = ?
-                     ORDER BY csc.type, c.code`,
-                    [batch[0].curriculum_id, i]
-                );
-            }
-
             semesters.push({
                 semester_number: i,
                 name: `Semester ${i}`,
@@ -391,7 +375,7 @@ router.post('/:id/semesters/:semNum/courses', isAdmin, async (req, res) => {
     try {
         const { course_id, course_ids, type } = req.body;
         const courseType = type || 'core';
-        const batchId = req.params.id;
+        const batchId = parseInt(req.params.id);
         const semNum = parseInt(req.params.semNum);
 
         // Validation
@@ -408,6 +392,18 @@ router.post('/:id/semesters/:semNum/courses', isAdmin, async (req, res) => {
         }
 
         await conn.beginTransaction();
+
+        // Ensure the semester row exists in `semesters` table (FK requires it)
+        const [semRows] = await conn.query(
+            'SELECT id FROM semesters WHERE batch_id = ? AND semester_number = ?',
+            [batchId, semNum]
+        );
+        if (semRows.length === 0) {
+            await conn.query(
+                'INSERT INTO semesters (batch_id, name, semester_number) VALUES (?, ?, ?)',
+                [batchId, `Semester ${semNum}`, semNum]
+            );
+        }
 
         const added = [];
         const errors = [];
@@ -431,8 +427,8 @@ router.post('/:id/semesters/:semNum/courses', isAdmin, async (req, res) => {
                 );
                 added.push(cId);
             } catch (err) {
-                console.error(`Error adding course ${cId} to batch ${batchId}:`, err);
-                errors.push({ course_id: cId, error: 'Failed to process course entry' });
+                console.error(`Error adding course ${cId} to batch ${batchId} sem ${semNum}:`, err.code, err.message);
+                errors.push({ course_id: cId, error: err.code === 'ER_DUP_ENTRY' ? `Course already exists in this batch` : (err.sqlMessage || err.message || 'Failed to process course entry') });
             }
         }
 
@@ -498,12 +494,33 @@ router.delete('/:id/semesters/:semNum/courses/:courseId', isAdmin, async (req, r
         if (semesters.length > 0) {
             const semesterId = semesters[0].id;
 
+            // Capture assigned faculty BEFORE deleting (so we can notify them)
+            const [assignedFaculty] = await conn.query(
+                'SELECT faculty_id FROM course_assignments WHERE semester_id = ? AND course_id = ? AND faculty_id IS NOT NULL',
+                [semesterId, courseId]
+            );
+
             // 2. Delete course_assignments for this course+semester
             // FK cascades will automatically delete: enrollments, assessments, grades, attendance, course_assignment_files
             await conn.query(
                 'DELETE FROM course_assignments WHERE semester_id = ? AND course_id = ?',
                 [semesterId, courseId]
             );
+
+            // Notify the affected faculty member(s)
+            if (courseInfo && assignedFaculty.length > 0) {
+                for (const row of assignedFaculty) {
+                    await conn.query(
+                        'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+                        [
+                            row.faculty_id,
+                            'Course Removed',
+                            `${courseInfo.code}: ${courseInfo.title} has been removed from the batch. Your assignment has been cleared.`,
+                            'course_unassignment'
+                        ]
+                    );
+                }
+            }
         }
 
         // 3. Delete class_schedules for this batch+course
@@ -710,6 +727,27 @@ router.post('/:batchId/semesters/:semesterNumber/courses/:courseId/assign', isAd
         }
 
         await conn.commit();
+
+        // Notify the assigned faculty member
+        if (faculty_id) {
+            try {
+                const [[courseInfo]] = await pool.query('SELECT title, code FROM courses WHERE id = ?', [courseId]);
+                const [[batchInfo]] = await pool.query('SELECT name FROM batches WHERE id = ?', [batchId]);
+                if (courseInfo) {
+                    await pool.query(
+                        'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+                        [
+                            faculty_id,
+                            'Course Assignment',
+                            `You have been assigned to teach ${courseInfo.code}: ${courseInfo.title} in ${batchInfo?.name || 'a batch'}.`,
+                            'course_assignment'
+                        ]
+                    );
+                }
+            } catch (notifErr) {
+                console.error('Notification insert error (non-blocking):', notifErr.message);
+            }
+        }
 
         // Emit real-time event
         const [[batch]] = await pool.query('SELECT department_id FROM batches WHERE id = ?', [batchId]);

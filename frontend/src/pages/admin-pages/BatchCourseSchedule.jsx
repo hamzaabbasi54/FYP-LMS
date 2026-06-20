@@ -4,6 +4,7 @@ import { MdArrowBack, MdMenuBook, MdPerson, MdSchool, MdSave, MdSchedule, MdWbSu
 import { batchApi, approvalApi, courseApi, getFileUrl } from '../../services/api';
 import { toast } from 'react-toastify';
 import OverlayLoader from '../../components/common/OverlayLoader';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const DAYS = [
     { key: 'monday', label: 'Monday', short: 'Mon' },
@@ -19,8 +20,8 @@ const DEFAULT_ENTRY = { start_time: '09:00', end_time: '10:30', shift: 'morning'
 
 const BatchCourseSchedule = () => {
     const { batchId, courseId } = useParams();
+    const queryClient = useQueryClient();
     const [courseData, setCourseData] = useState(null);
-    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
     // schedule state: { monday: { active, start_time, end_time, shift }, ... }
@@ -30,15 +31,12 @@ const BatchCourseSchedule = () => {
         return init;
     });
 
-    const [facultyList, setFacultyList] = useState([]);
     const [selectedFaculty, setSelectedFaculty] = useState('');
-    const [assigningFaculty, setAssigningFaculty] = useState(false);
 
     const [uploadFile, setUploadFile] = useState(null);
     const [uploading, setUploading] = useState(false);
 
     // CLO-PLO Mapping State
-    const [batchPlos, setBatchPlos] = useState([]);
     const [cloMappings, setCloMappings] = useState({}); // { cloId: [ploId1, ploId2] }
     const [savingMappings, setSavingMappings] = useState(false);
 
@@ -48,84 +46,77 @@ const BatchCourseSchedule = () => {
     const [cloForm, setCloForm] = useState({ title: '', description: '', cognitive_level: 'C1' });
     const [savingClo, setSavingClo] = useState(false);
     
-    const [globalClos, setGlobalClos] = useState([]);
     const [cloModalTab, setCloModalTab] = useState('select'); // 'select' or 'create'
     const [selectedGlobalClos, setSelectedGlobalClos] = useState([]);
     const [openPloDropdowns, setOpenPloDropdowns] = useState({}); // Track which PLO dropdowns are open
 
-    useEffect(() => {
-        fetchData();
-        fetchFaculty();
-        fetchBatchPlos();
-        fetchGlobalClos();
-    }, [batchId, courseId]);
-
-    const fetchGlobalClos = async () => {
-        try {
+    const { data: globalClos = [] } = useQuery({
+        queryKey: ['globalClos'],
+        queryFn: async () => {
             const res = await courseApi.getAllClos();
-            if (res.success) {
-                setGlobalClos(res.data || []);
-            }
-        } catch(e) {
-            console.error(e);
+            return res.success ? (res.data || []) : [];
         }
-    };
+    });
 
-    const fetchFaculty = async () => {
-        try {
+    const { data: facultyList = [] } = useQuery({
+        queryKey: ['facultyList'],
+        queryFn: async () => {
             const res = await approvalApi.getUsersByRole('faculty');
-            if (res.success) {
-                setFacultyList(res.data || []);
-            }
-        } catch(e) {
-            console.error(e);
+            return res.success ? (res.data || []) : [];
         }
-    };
+    });
 
-    const fetchBatchPlos = async () => {
-        try {
-            const plosRes = await batchApi.getPLOs(batchId);
-            if (plosRes.success) {
-                setBatchPlos(plosRes.data || []);
-            }
-        } catch(e) {
-            console.error(e);
+    const { data: batchPlos = [] } = useQuery({
+        queryKey: ['batchPlos', batchId],
+        queryFn: async () => {
+            const res = await batchApi.getPLOs(batchId);
+            return res.success ? (res.data || []) : [];
         }
-    };
+    });
 
-    const fetchData = async () => {
-        try {
-            setLoading(true);
+    const { data: courseDataDetails, isLoading: loading } = useQuery({
+        queryKey: ['batchCourseDetails', batchId, courseId],
+        queryFn: async () => {
             const [detailsRes, scheduleRes] = await Promise.all([
                 batchApi.getCourseDetailsForBatch(batchId, courseId),
                 batchApi.getCourseSchedule(batchId, courseId),
             ]);
+            
+            let details = null;
+            let scheduleData = null;
+            if (detailsRes.success) details = detailsRes.data;
+            if (scheduleRes.success) scheduleData = scheduleRes.data;
+            
+            return { details, scheduleData };
+        }
+    });
 
-            if (detailsRes.success) {
-                setCourseData(detailsRes.data);
-                
-                // Initialize cloMappings from fetched data
-                if (detailsRes.data.clos) {
-                    const initialMappings = {};
-                    detailsRes.data.clos.forEach(clo => {
-                        if (clo.mapped_plo_ids) {
-                            initialMappings[clo.id] = clo.mapped_plo_ids.split(',').map(Number);
-                        } else {
-                            initialMappings[clo.id] = [];
-                        }
-                    });
-                    setCloMappings(initialMappings);
-                }
-
-                if (detailsRes.data.assignment) {
-                    setSelectedFaculty(detailsRes.data.assignment.faculty_id || '');
-                }
+    useEffect(() => {
+        if (courseDataDetails) {
+            setCourseData(courseDataDetails.details);
+            
+            if (courseDataDetails.details?.clos) {
+                const initialMappings = {};
+                courseDataDetails.details.clos.forEach(clo => {
+                    if (clo.mapped_plo_ids) {
+                        initialMappings[clo.id] = clo.mapped_plo_ids.split(',').map(Number);
+                    } else {
+                        initialMappings[clo.id] = [];
+                    }
+                });
+                setCloMappings(initialMappings);
             }
 
-            if (scheduleRes.success && scheduleRes.data) {
+            if (courseDataDetails.details?.assignment) {
+                setSelectedFaculty(courseDataDetails.details.assignment.faculty_id || '');
+            } else {
+                setSelectedFaculty('');
+            }
+            
+            if (courseDataDetails.scheduleData) {
                 const newSchedule = {};
                 DAYS.forEach(d => { newSchedule[d.key] = { active: false, ...DEFAULT_ENTRY }; });
-                scheduleRes.data.forEach(entry => {
+                courseDataDetails.scheduleData.forEach(entry => {
                     if (newSchedule[entry.day_of_week] !== undefined) {
                         newSchedule[entry.day_of_week] = {
                             active: true,
@@ -137,13 +128,8 @@ const BatchCourseSchedule = () => {
                 });
                 setSchedule(newSchedule);
             }
-        } catch (e) {
-            toast.error('Failed to load course details');
-            console.error(e);
-        } finally {
-            setLoading(false);
         }
-    };
+    }, [courseDataDetails]);
 
     const handleAssignFaculty = async () => {
         if (!selectedFaculty) {
@@ -160,7 +146,7 @@ const BatchCourseSchedule = () => {
             const res = await batchApi.assignFaculty(batchId, courseData.semester_number, courseId, selectedFaculty);
             if (res.success) {
                 toast.success('Faculty assigned successfully');
-                fetchData(); // Refresh details
+                queryClient.invalidateQueries({ queryKey: ['batchCourseDetails', batchId, courseId] }); // Refresh details
             }
         } catch(e) {
             console.error(e);
@@ -185,7 +171,7 @@ const BatchCourseSchedule = () => {
             if (res.success) {
                 toast.success('Faculty unassigned successfully');
                 setSelectedFaculty('');
-                fetchData();
+                queryClient.invalidateQueries({ queryKey: ['batchCourseDetails', batchId, courseId] });
             }
         } catch(e) {
             console.error(e);
@@ -252,7 +238,7 @@ const BatchCourseSchedule = () => {
             const res = await batchApi.saveCLOPLOMappings(batchId, courseId, mappings);
             if (res.success) {
                 toast.success('Mappings saved successfully');
-                fetchData();
+                queryClient.invalidateQueries({ queryKey: ['batchCourseDetails', batchId, courseId] });
             }
         } catch(e) {
             console.error(e);
@@ -275,7 +261,7 @@ const BatchCourseSchedule = () => {
             if (res.success) {
                 toast.success('File uploaded successfully');
                 setUploadFile(null);
-                fetchData(); // Refresh to get files
+                queryClient.invalidateQueries({ queryKey: ['batchCourseDetails', batchId, courseId] }); // Refresh to get files
             }
         } catch(e) {
             console.error(e);
@@ -304,7 +290,7 @@ const BatchCourseSchedule = () => {
             if (res.success) {
                 toast.success('CLOs mapped successfully');
                 setIsCloModalOpen(false);
-                fetchData();
+                queryClient.invalidateQueries({ queryKey: ['batchCourseDetails', batchId, courseId] });
             }
         } catch (error) {
             console.error(error);
@@ -334,14 +320,14 @@ const BatchCourseSchedule = () => {
                 if (res.success) {
                     toast.success('CLO updated successfully');
                     setIsCloModalOpen(false);
-                    fetchData();
+                    queryClient.invalidateQueries({ queryKey: ['batchCourseDetails', batchId, courseId] });
                 }
             } else {
                 const res = await courseApi.addSingleClo(courseId, cloForm);
                 if (res.success) {
                     toast.success('CLO added successfully');
                     setIsCloModalOpen(false);
-                    fetchData();
+                    queryClient.invalidateQueries({ queryKey: ['batchCourseDetails', batchId, courseId] });
                 }
             }
         } catch (error) {
@@ -358,7 +344,7 @@ const BatchCourseSchedule = () => {
             const res = await courseApi.deleteClo(cloId);
             if (res.success) {
                 toast.success('CLO deleted successfully');
-                fetchData();
+                queryClient.invalidateQueries({ queryKey: ['batchCourseDetails', batchId, courseId] });
             }
         } catch (error) {
             console.error(error);
