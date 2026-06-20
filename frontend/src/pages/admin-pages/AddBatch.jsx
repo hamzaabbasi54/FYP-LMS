@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { MdAdd, MdClose, MdArrowBack, MdSearch, MdCheck } from 'react-icons/md';
 import { batchApi, authApi, departmentApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 const AddBatch = () => {
     const navigate = useNavigate();
     
@@ -12,9 +13,7 @@ const AddBatch = () => {
     const deptId = user?.department_id;
     const isDeptAdmin = user?.role === 'deptadmin';
 
-    const [loading, setLoading] = useState(false);
-    const [departments, setDepartments] = useState([]);
-    const [faculties, setFaculties] = useState([]);
+    const queryClient = useQueryClient();
     const [selectedFaculty, setSelectedFaculty] = useState(isDeptAdmin ? 'auto' : '');
 
     const [formData, setFormData] = useState({
@@ -26,56 +25,33 @@ const AddBatch = () => {
     });
 
     // PLO selection state
-    const [availablePLOs, setAvailablePLOs] = useState([]);
     const [selectedPLOIds, setSelectedPLOIds] = useState([]);
     const [ploSearch, setPloSearch] = useState('');
-    const [plosLoading, setPlosLoading] = useState(false);
 
-    // Fetch faculties on mount
-    useEffect(() => {
-        const fetchFaculties = async () => {
-            try {
-                const response = await authApi.getFaculties();
-                if (response.success) setFaculties(response.data || []);
-            } catch (error) {
-                console.error('Error fetching faculties:', error);
-            }
-        };
-        fetchFaculties();
-    }, []);
+    const { data: faculties = [] } = useQuery({
+        queryKey: ['faculties'],
+        queryFn: async () => {
+            const res = await authApi.getFaculties();
+            return res.success ? (res.data || []) : [];
+        }
+    });
 
-    // Fetch departments when faculty changes
-    useEffect(() => {
-        const fetchDepartments = async () => {
-            if (selectedFaculty) {
-                try {
-                    const response = await authApi.getDepartments(selectedFaculty);
-                    if (response.success) setDepartments(response.data || []);
-                } catch (error) {
-                    console.error('Error fetching departments:', error);
-                }
-            } else {
-                setDepartments([]);
-            }
-        };
-        fetchDepartments();
-    }, [selectedFaculty]);
+    const { data: departments = [] } = useQuery({
+        queryKey: ['departments', selectedFaculty],
+        queryFn: async () => {
+            const res = await authApi.getDepartments(selectedFaculty);
+            return res.success ? (res.data || []) : [];
+        },
+        enabled: !!selectedFaculty && !isDeptAdmin
+    });
 
-    // Fetch available PLOs for dept admin
-    useEffect(() => {
-        const fetchPLOs = async () => {
-            setPlosLoading(true);
-            try {
-                const res = await departmentApi.getAllPLOs();
-                if (res.success) setAvailablePLOs(res.data || []);
-            } catch (err) {
-                console.error('Error fetching PLOs:', err);
-            } finally {
-                setPlosLoading(false);
-            }
-        };
-        fetchPLOs();
-    }, []);
+    const { data: availablePLOs = [], isLoading: plosLoading } = useQuery({
+        queryKey: ['plos'],
+        queryFn: async () => {
+            const res = await departmentApi.getAllPLOs();
+            return res.success ? (res.data || []) : [];
+        }
+    });
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -97,35 +73,37 @@ const AddBatch = () => {
         String(p.plo_number).includes(ploSearch)
     );
 
-    const handleSubmit = async (e) => {
+    const createBatchMutation = useMutation({
+        mutationFn: (data) => batchApi.create(data),
+        onSuccess: () => {
+            toast.success('Batch created successfully!');
+            queryClient.invalidateQueries({ queryKey: ['batches'] });
+            navigate('/admin-managebatches');
+        },
+        onError: (error) => {
+            console.error('Error creating batch:', error);
+            toast.error(error.response?.data?.message || 'Failed to create batch');
+        }
+    });
+
+    const handleSubmit = (e) => {
         e.preventDefault();
         if (!formData.batchName || !formData.department_id || !formData.startDate || !formData.endDate) {
             toast.error('Please fill in all required fields');
             return;
         }
 
-        setLoading(true);
-        try {
-            const response = await batchApi.create({
-                name: formData.batchName,
-                department_id: parseInt(formData.department_id),
-                start_date: formData.startDate,
-                end_date: formData.endDate,
-                is_active: formData.isActive,
-                plo_ids: selectedPLOIds
-            });
-
-            if (response.success) {
-                toast.success('Batch created successfully!');
-                navigate('/admin-managebatches');
-            }
-        } catch (error) {
-            console.error('Error creating batch:', error);
-            toast.error(error.response?.data?.message || 'Failed to create batch');
-        } finally {
-            setLoading(false);
-        }
+        createBatchMutation.mutate({
+            name: formData.batchName,
+            department_id: parseInt(formData.department_id),
+            start_date: formData.startDate,
+            end_date: formData.endDate,
+            is_active: formData.isActive,
+            plo_ids: selectedPLOIds
+        });
     };
+    
+    const loading = createBatchMutation.isPending;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">

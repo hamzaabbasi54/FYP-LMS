@@ -347,22 +347,6 @@ router.get('/:id/curriculum-courses', async (req, res) => {
                 [req.params.id, i]
             );
 
-            // FALLBACK: If no batch-specific courses exist but batch has a curriculum,
-            // fetch from the master curriculum blueprint
-            if (courses.length === 0 && batch[0].curriculum_id) {
-                [courses] = await pool.query(
-                    `SELECT NULL as entry_id, c.id as course_id, c.title, c.code, 
-                            c.credit_hours, c.description, csc.type, d.name as department_name
-                     FROM curriculum_semester_courses csc
-                     JOIN curriculum_semesters cs ON csc.curriculum_semester_id = cs.id
-                     JOIN courses c ON csc.course_id = c.id
-                     JOIN departments d ON c.department_id = d.id
-                     WHERE cs.curriculum_id = ? AND cs.semester_number = ?
-                     ORDER BY csc.type, c.code`,
-                    [batch[0].curriculum_id, i]
-                );
-            }
-
             semesters.push({
                 semester_number: i,
                 name: `Semester ${i}`,
@@ -391,7 +375,7 @@ router.post('/:id/semesters/:semNum/courses', isAdmin, async (req, res) => {
     try {
         const { course_id, course_ids, type } = req.body;
         const courseType = type || 'core';
-        const batchId = req.params.id;
+        const batchId = parseInt(req.params.id);
         const semNum = parseInt(req.params.semNum);
 
         // Validation

@@ -260,6 +260,45 @@ router.post('/:id/semesters/:semNum/courses', isAdmin, scopeCurriculum, async (r
         }
 
         await conn.commit();
+
+        // AUTO-SYNC: Copy newly added courses to all batches that use this curriculum
+        // Batches maintain independent copies, so we only ADD — never delete from batches
+        if (added.length > 0) {
+            try {
+                const [batches] = await pool.query(
+                    'SELECT id FROM batches WHERE curriculum_id = ?',
+                    [req.params.id]
+                );
+                for (const batch of batches) {
+                    for (const cId of added) {
+                        try {
+                            // Ensure semester row exists
+                            const [semRows] = await pool.query(
+                                'SELECT id FROM semesters WHERE batch_id = ? AND semester_number = ?',
+                                [batch.id, req.params.semNum]
+                            );
+                            if (semRows.length === 0) {
+                                await pool.query(
+                                    'INSERT INTO semesters (batch_id, semester_number, name) VALUES (?, ?, ?)',
+                                    [batch.id, req.params.semNum, `Semester ${req.params.semNum}`]
+                                );
+                            }
+                            // Insert only if not already present in this batch
+                            await pool.query(
+                                `INSERT IGNORE INTO batch_semester_courses (batch_id, semester_number, course_id, type)
+                                 VALUES (?, ?, ?, ?)`,
+                                [batch.id, req.params.semNum, cId, courseType]
+                            );
+                        } catch (syncErr) {
+                            console.warn(`Auto-sync: failed to copy course ${cId} to batch ${batch.id}:`, syncErr.message);
+                        }
+                    }
+                }
+            } catch (syncErr) {
+                console.warn('Auto-sync to batches failed (non-critical):', syncErr.message);
+            }
+        }
+
         res.status(201).json({
             success: true,
             message: `${added.length} course(s) added to semester ${req.params.semNum}`,

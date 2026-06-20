@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { MdPerson, MdSecurity, MdSave, MdLock, MdEmail, MdBadge, MdCheckCircle, MdError } from 'react-icons/md';
 import { authApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
 const Settings = () => {
     const { user, setUser } = useAuth();
-    const [loading, setLoading] = useState(false);
+    const queryClient = useQueryClient();
     const [message, setMessage] = useState({ type: '', text: '' });
 
     // Form states
@@ -16,84 +18,79 @@ const Settings = () => {
         confirmPassword: ''
     });
 
-    useEffect(() => {
-        fetchProfile();
-    }, []);
-
-    const fetchProfile = async () => {
-        try {
+    const { data: userProfile } = useQuery({
+        queryKey: ['userProfile'],
+        queryFn: async () => {
             const userData = await authApi.getProfile();
-            setUser(userData.data);
-            setFullName(userData.data.fullName);
-        } catch (error) {
-            console.error('Error fetching profile:', error);
+            return userData.data;
         }
-    };
+    });
 
-    const handleProfileUpdate = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setMessage({ type: '', text: '' });
+    useEffect(() => {
+        if (userProfile) {
+            setUser(userProfile);
+            setFullName(userProfile.fullName);
+        }
+    }, [userProfile, setUser]);
 
-        try {
-            const response = await authApi.updateProfile({ fullName });
-            if (response.success) {
-                setUser(response.data);
-
-                setMessage({ type: 'success', text: 'Profile updated successfully' });
-
-                // Clear message after 3 seconds
-                setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-            }
-        } catch (error) {
+    const updateProfileMutation = useMutation({
+        mutationFn: (data) => authApi.updateProfile(data),
+        onSuccess: (response) => {
+            setUser(response.data);
+            setMessage({ type: 'success', text: 'Profile updated successfully' });
+            queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        },
+        onError: (error) => {
             setMessage({
                 type: 'error',
                 text: error.response?.data?.message || 'Failed to update profile'
             });
-        } finally {
-            setLoading(false);
         }
+    });
+
+    const changePasswordMutation = useMutation({
+        mutationFn: (data) => authApi.changePassword(data),
+        onSuccess: () => {
+            setMessage({ type: 'success', text: 'Password changed successfully' });
+            setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        },
+        onError: (error) => {
+            setMessage({
+                type: 'error',
+                text: error.response?.data?.message || 'Failed to change password'
+            });
+        }
+    });
+
+    const handleProfileUpdate = (e) => {
+        e.preventDefault();
+        setMessage({ type: '', text: '' });
+        updateProfileMutation.mutate({ fullName });
     };
 
-    const handlePasswordChange = async (e) => {
+    const handlePasswordChange = (e) => {
         e.preventDefault();
-        setLoading(true);
         setMessage({ type: '', text: '' });
 
         if (passwords.newPassword !== passwords.confirmPassword) {
             setMessage({ type: 'error', text: 'New passwords do not match' });
-            setLoading(false);
             return;
         }
 
         if (passwords.newPassword.length < 6) {
             setMessage({ type: 'error', text: 'Password must be at least 6 characters' });
-            setLoading(false);
             return;
         }
 
-        try {
-            const response = await authApi.changePassword({
-                currentPassword: passwords.currentPassword,
-                newPassword: passwords.newPassword
-            });
-
-            if (response.success) {
-                setMessage({ type: 'success', text: 'Password changed successfully' });
-                setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
-
-                // Clear message after 3 seconds
-                setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-            }
-        } catch (error) {
-            setMessage({
-                type: 'error',
-                text: error.response?.data?.message || 'Failed to change password'
-            });
-        } finally {
-            setLoading(false);
-        }
+        changePasswordMutation.mutate({
+            currentPassword: passwords.currentPassword,
+            newPassword: passwords.newPassword
+        });
     };
+    
+    const loading = updateProfileMutation.isPending || changePasswordMutation.isPending;
 
     return (
         <div className="p-6 lg:p-8 space-y-8 max-w-5xl mx-auto">
