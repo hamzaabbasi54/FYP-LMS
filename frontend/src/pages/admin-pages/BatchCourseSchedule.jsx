@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MdArrowBack, MdMenuBook, MdPerson, MdSchool, MdSave, MdSchedule, MdWbSunny, MdNightsStay, MdAccessTime, MdCheckCircle, MdAdd, MdEdit, MdDelete, MdClose, MdExpandMore } from 'react-icons/md';
 import { batchApi, approvalApi, courseApi, getFileUrl } from '../../services/api';
 import { toast } from 'react-toastify';
 import OverlayLoader from '../../components/common/OverlayLoader';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import useDraftStore from '../../stores/useDraftStore';
+import UnsavedBanner from '../../components/common/UnsavedBanner';
 
 const DAYS = [
     { key: 'monday', label: 'Monday', short: 'Mon' },
@@ -23,6 +25,16 @@ const BatchCourseSchedule = () => {
     const queryClient = useQueryClient();
     const [courseData, setCourseData] = useState(null);
     const [saving, setSaving] = useState(false);
+
+    // Draft store integration
+    const { saveDraft, getDraft, hasDraft, clearDraft } = useDraftStore();
+    const scheduleDraftKey = `schedule:${batchId}:${courseId}`;
+    const mappingsDraftKey = `mappings:${batchId}:${courseId}`;
+
+    // Track server state for dirty-checking
+    const serverScheduleRef = useRef(null);
+    const serverMappingsRef = useRef(null);
+    const isRestoringDraft = useRef(false); // prevent draft-save during restore
 
     // schedule state: { monday: { active, start_time, end_time, shift }, ... }
     const [schedule, setSchedule] = useState(() => {
@@ -93,32 +105,29 @@ const BatchCourseSchedule = () => {
 
     useEffect(() => {
         if (courseDataDetails) {
+            isRestoringDraft.current = true;
             setCourseData(courseDataDetails.details);
             
+            // Build server mappings
+            let serverMappings = {};
             if (courseDataDetails.details?.clos) {
-                const initialMappings = {};
                 courseDataDetails.details.clos.forEach(clo => {
                     if (clo.mapped_plo_ids) {
-                        initialMappings[clo.id] = clo.mapped_plo_ids.split(',').map(Number);
+                        serverMappings[clo.id] = clo.mapped_plo_ids.split(',').map(Number);
                     } else {
-                        initialMappings[clo.id] = [];
+                        serverMappings[clo.id] = [];
                     }
                 });
-                setCloMappings(initialMappings);
             }
+            serverMappingsRef.current = JSON.parse(JSON.stringify(serverMappings));
 
-            if (courseDataDetails.details?.assignment) {
-                setSelectedFaculty(courseDataDetails.details.assignment.faculty_id || '');
-            } else {
-                setSelectedFaculty('');
-            }
-            
+            // Build server schedule
+            const serverSchedule = {};
+            DAYS.forEach(d => { serverSchedule[d.key] = { active: false, ...DEFAULT_ENTRY }; });
             if (courseDataDetails.scheduleData) {
-                const newSchedule = {};
-                DAYS.forEach(d => { newSchedule[d.key] = { active: false, ...DEFAULT_ENTRY }; });
                 courseDataDetails.scheduleData.forEach(entry => {
-                    if (newSchedule[entry.day_of_week] !== undefined) {
-                        newSchedule[entry.day_of_week] = {
+                    if (serverSchedule[entry.day_of_week] !== undefined) {
+                        serverSchedule[entry.day_of_week] = {
                             active: true,
                             start_time: entry.start_time?.substring(0, 5) || '09:00',
                             end_time: entry.end_time?.substring(0, 5) || '10:30',
@@ -126,10 +135,73 @@ const BatchCourseSchedule = () => {
                         };
                     }
                 });
-                setSchedule(newSchedule);
             }
+            serverScheduleRef.current = JSON.parse(JSON.stringify(serverSchedule));
+
+            if (courseDataDetails.details?.assignment) {
+                setSelectedFaculty(courseDataDetails.details.assignment.faculty_id || '');
+            } else {
+                setSelectedFaculty('');
+            }
+
+            // Try to restore drafts, otherwise use server state
+            const scheduleDraft = getDraft(scheduleDraftKey);
+            const mappingsDraft = getDraft(mappingsDraftKey);
+
+            setSchedule(scheduleDraft || serverSchedule);
+            setCloMappings(mappingsDraft || serverMappings);
+
+            // Allow auto-save after a tick
+            setTimeout(() => { isRestoringDraft.current = false; }, 100);
         }
     }, [courseDataDetails]);
+
+    // --- Draft auto-save: schedule ---
+    const isScheduleDirty = useCallback(() => {
+        if (!serverScheduleRef.current) return false;
+        return JSON.stringify(schedule) !== JSON.stringify(serverScheduleRef.current);
+    }, [schedule]);
+
+    useEffect(() => {
+        if (isRestoringDraft.current || !serverScheduleRef.current) return;
+        if (isScheduleDirty()) {
+            saveDraft(scheduleDraftKey, schedule);
+        } else {
+            clearDraft(scheduleDraftKey);
+        }
+    }, [schedule, isScheduleDirty, saveDraft, clearDraft, scheduleDraftKey]);
+
+    // --- Draft auto-save: CLO-PLO mappings ---
+    const isMappingsDirty = useCallback(() => {
+        if (!serverMappingsRef.current) return false;
+        return JSON.stringify(cloMappings) !== JSON.stringify(serverMappingsRef.current);
+    }, [cloMappings]);
+
+    useEffect(() => {
+        if (isRestoringDraft.current || !serverMappingsRef.current) return;
+        if (isMappingsDirty()) {
+            saveDraft(mappingsDraftKey, cloMappings);
+        } else {
+            clearDraft(mappingsDraftKey);
+        }
+    }, [cloMappings, isMappingsDirty, saveDraft, clearDraft, mappingsDraftKey]);
+
+    // --- Discard handlers ---
+    const discardScheduleDraft = useCallback(() => {
+        if (serverScheduleRef.current) {
+            setSchedule(JSON.parse(JSON.stringify(serverScheduleRef.current)));
+        }
+        clearDraft(scheduleDraftKey);
+        toast.info('Schedule changes discarded');
+    }, [clearDraft, scheduleDraftKey]);
+
+    const discardMappingsDraft = useCallback(() => {
+        if (serverMappingsRef.current) {
+            setCloMappings(JSON.parse(JSON.stringify(serverMappingsRef.current)));
+        }
+        clearDraft(mappingsDraftKey);
+        toast.info('Mapping changes discarded');
+    }, [clearDraft, mappingsDraftKey]);
 
     const handleAssignFaculty = async () => {
         if (!selectedFaculty) {
@@ -217,6 +289,9 @@ const BatchCourseSchedule = () => {
             const res = await batchApi.saveCourseSchedule(batchId, courseId, { schedule: activeEntries });
             if (res.success) {
                 toast.success('Schedule saved successfully');
+                // Update server ref and clear draft
+                serverScheduleRef.current = JSON.parse(JSON.stringify(schedule));
+                clearDraft(scheduleDraftKey);
             }
         } catch(e) {
             console.error(e);
@@ -238,6 +313,9 @@ const BatchCourseSchedule = () => {
             const res = await batchApi.saveCLOPLOMappings(batchId, courseId, mappings);
             if (res.success) {
                 toast.success('Mappings saved successfully');
+                // Update server ref and clear draft
+                serverMappingsRef.current = JSON.parse(JSON.stringify(cloMappings));
+                clearDraft(mappingsDraftKey);
                 queryClient.invalidateQueries({ queryKey: ['batchCourseDetails', batchId, courseId] });
             }
         } catch(e) {
@@ -504,6 +582,13 @@ const BatchCourseSchedule = () => {
                 )}
 
                 {/* Weekly Schedule Section */}
+                {isScheduleDirty() && (
+                    <UnsavedBanner
+                        onSave={handleSave}
+                        onDiscard={discardScheduleDraft}
+                        saving={saving}
+                    />
+                )}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
                     {/* Section header */}
                     <div className="flex items-center justify-between p-5 border-b border-slate-200">
@@ -720,6 +805,13 @@ const BatchCourseSchedule = () => {
                         {courseData.clos && courseData.clos.length > 0 && (
                             <>
                                 <div className="my-6 border-t border-slate-100"></div>
+                                {isMappingsDirty() && (
+                                    <UnsavedBanner
+                                        onSave={handleSaveMappings}
+                                        onDiscard={discardMappingsDraft}
+                                        saving={savingMappings}
+                                    />
+                                )}
                                 <div>
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
