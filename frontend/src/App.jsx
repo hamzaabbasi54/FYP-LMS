@@ -54,6 +54,9 @@ import CurriculumDetails from './pages/admin-pages/CurriculumDetails.jsx';
 import ManageDeptAdmins from './pages/admin-pages/ManageDeptAdmins.jsx';
 import SuperAdminPanel from './pages/admin-pages/SuperAdminPanel.jsx';
 
+// Shared Pages
+import DocumentViewer from './pages/shared/DocumentViewer.jsx';
+
 // Faculty Pages
 import FacultyDashboard from "./pages/faculty-pages/Dashboard.jsx";
 import MyCourses from "./pages/faculty-pages/MyCourses.jsx";
@@ -91,6 +94,7 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/set-password" element={<SetPassword />} />
+                <Route path="/document-viewer" element={<DocumentViewer />} />
 
                 {/* Super Admin — Standalone page, no sidebar */}
                 <Route element={<ProtectedRoute allowedRoles={['super_admin']} />}>

@@ -568,7 +568,7 @@ const BatchCourseSchedule = () => {
                                         {courseData.files.map(f => (
                                             <div key={f.id} className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
                                                 <span className="text-slate-700 truncate mr-3 flex-1">{f.file_name}</span>
-                                                <a href={getFileUrl(f.file_path)} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline flex-shrink-0 text-xs font-medium">View</a>
+                                                <a href={`/document-viewer?url=${encodeURIComponent(getFileUrl(f.file_path))}&name=${encodeURIComponent(f.file_name)}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline flex-shrink-0 text-xs font-medium">View</a>
                                             </div>
                                         ))}
                                     </div>

@@ -251,7 +251,7 @@ const MyCourses = () => {
                                             </div>
                                         </div>
                                         <a
-                                            href={getFileUrl(f.file_path)}
+                                            href={`/document-viewer?url=${encodeURIComponent(getFileUrl(f.file_path))}&name=${encodeURIComponent(f.file_name)}`}
                                             target="_blank"
                                             rel="noreferrer"
                                             className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 shadow-sm rounded-lg text-xs font-semibold hover:bg-slate-50 transition-colors flex-shrink-0"
