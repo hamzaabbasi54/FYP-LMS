@@ -621,6 +621,36 @@ export const obeApi = {
     getReports: async () => {
         const response = await api.get('/obe/reports');
         return response.data;
+    },
+    // FIX Issue #7: Actual PLO report download
+    downloadPLOReport: async (batchId, batchName) => {
+        const response = await api.get(`/obe/reports/${batchId}/plo-report`, {
+            responseType: 'blob'
+        });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `PLO_Report_${batchName.replace(/\s+/g, '_')}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    },
+    // FIX Issue #7: Actual CLO report download
+    downloadCLOReport: async (batchId, batchName, semesterId) => {
+        const params = semesterId ? { semesterId } : {};
+        const response = await api.get(`/obe/reports/${batchId}/clo-report`, {
+            responseType: 'blob',
+            params
+        });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `CLO_Report_${batchName.replace(/\s+/g, '_')}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
     }
 };
 

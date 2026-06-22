@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MdExpandMore, MdExpandLess, MdTrendingUp, MdCheckCircle, MdWarning, MdSchool, MdBook, MdCloudDownload } from 'react-icons/md';
+import { MdExpandMore, MdExpandLess, MdTrendingUp, MdCheckCircle, MdWarning, MdSchool, MdBook, MdCloudDownload, MdInfoOutline } from 'react-icons/md';
 import { obeApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import { useQuery } from '@tanstack/react-query';
@@ -40,16 +40,25 @@ const OBEReports = () => {
         setExpandedSemester(expandedSemester === semesterId ? null : semesterId);
     };
 
-    const handleDownloadPLO = (e, batchName) => {
+    // FIX Issue #7: Replace alert() stubs with actual download calls
+    const handleDownloadPLO = async (e, batchId, batchName) => {
         e.stopPropagation();
-        // Simulate download
-        alert(`Downloading PLO Report for ${batchName}...`);
+        try {
+            await obeApi.downloadPLOReport(batchId, batchName);
+            toast.success(`PLO Report for ${batchName} downloaded`);
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Failed to download PLO report');
+        }
     };
 
-    const handleDownloadCLO = (e, semesterName, batchName) => {
+    const handleDownloadCLO = async (e, batchId, batchName, semesterId) => {
         e.stopPropagation();
-        // Simulate download
-        alert(`Downloading CLO Report for ${batchName} - ${semesterName}...`);
+        try {
+            await obeApi.downloadCLOReport(batchId, batchName, semesterId);
+            toast.success('CLO Report downloaded');
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Failed to download CLO report');
+        }
     };
 
     if (loading) {
@@ -128,7 +137,10 @@ const OBEReports = () => {
                                     </div>
                                     <div className="text-left">
                                         <h3 className="text-sm font-semibold text-slate-800">{batch.name}</h3>
-                                        <p className="text-xs text-slate-400">{batch.year} • {batch.totalPLOs} PLOs</p>
+                                        {/* FIX Issue #8: Show warning when no PLOs attached */}
+                                        <p className="text-xs text-slate-400">
+                                            {batch.year} • {batch.totalPLOs > 0 ? `${batch.totalPLOs} PLOs` : <span className="text-amber-500 font-medium">No PLOs attached</span>}
+                                        </p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4">
@@ -140,7 +152,7 @@ const OBEReports = () => {
                                         <p className={`text-[10px] font-semibold px-2 py-0.5 rounded-full inline-block mt-1 ${getAchievementColor(batch.overallAchievement)}`}>{badge.label}</p>
                                     </div>
                                     <button
-                                        onClick={(e) => handleDownloadPLO(e, batch.name)}
+                                        onClick={(e) => handleDownloadPLO(e, batch.id, batch.name)}
                                         className="p-2 hover:bg-slate-200 rounded-lg text-blue-500 hover:text-blue-700 transition-colors"
                                         title="Download PLO Report"
                                     >
@@ -157,26 +169,65 @@ const OBEReports = () => {
                             {/* PLOs Section */}
                             {expandedBatch === batch.id && (
                                 <div className="border-t border-gray-100 bg-gray-50 p-5 space-y-4">
+                                    {/* FIX Issue #1: Display unmapped question warnings */}
+                                    {batch.warnings && batch.warnings.length > 0 && (
+                                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <MdWarning className="w-5 h-5 text-amber-500" />
+                                                <span className="text-sm font-semibold text-amber-700">Unmapped Questions Detected</span>
+                                            </div>
+                                            <ul className="space-y-1">
+                                                {batch.warnings.map((warning, idx) => (
+                                                    <li key={idx} className="text-xs text-amber-600">{warning}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
                                     <h4 className="font-semibold text-gray-700 mb-3">Program Learning Outcomes (PLOs)</h4>
+
+                                    {/* FIX Issue #8: Show notice when no PLOs attached */}
+                                    {batch.totalPLOs === 0 && (
+                                        <div className="bg-slate-100 border border-slate-200 rounded-xl p-4 flex items-center gap-3">
+                                            <MdInfoOutline className="w-5 h-5 text-slate-400" />
+                                            <p className="text-sm text-slate-500">No PLOs are attached to this batch. Attach PLOs in the Batch Details page to see OBE data.</p>
+                                        </div>
+                                    )}
+
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {batch.plos.map((plo) => (
                                             <div key={plo.id} className="bg-white rounded-xl p-4 border border-gray-200">
                                                 <div className="flex items-center justify-between mb-2">
                                                     <span className="text-sm font-bold text-indigo-600">{plo.id}</span>
-                                                    <span className={`text-lg font-bold ${getAchievementColor(plo.achievement).split(' ')[0]}`}>
-                                                        {plo.achievement}%
-                                                    </span>
+                                                    {/* FIX Issue #4: Show "Not Yet Assessed" badge for ungraded PLOs */}
+                                                    {plo.notAssessed ? (
+                                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                                                            Not Yet Assessed
+                                                        </span>
+                                                    ) : (
+                                                        <span className={`text-lg font-bold ${getAchievementColor(plo.achievement).split(' ')[0]}`}>
+                                                            {plo.achievement}%
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <p className="text-sm text-gray-700 mb-3">{plo.name}</p>
-                                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                                    <div
-                                                        className={`h-2 rounded-full ${plo.achievement >= 85 ? 'bg-green-500' :
-                                                            plo.achievement >= 70 ? 'bg-blue-500' :
-                                                                plo.achievement >= 60 ? 'bg-amber-500' : 'bg-red-500'
-                                                            }`}
-                                                        style={{ width: `${plo.achievement}%` }}
-                                                    />
-                                                </div>
+                                                {/* FIX Issue #4: Only show progress bar for assessed PLOs */}
+                                                {!plo.notAssessed && (
+                                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                                        <div
+                                                            className={`h-2 rounded-full ${plo.achievement >= 85 ? 'bg-green-500' :
+                                                                plo.achievement >= 70 ? 'bg-blue-500' :
+                                                                    plo.achievement >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                                                                }`}
+                                                            style={{ width: `${plo.achievement}%` }}
+                                                        />
+                                                    </div>
+                                                )}
+                                                {plo.notAssessed && (
+                                                    <div className="w-full bg-gray-100 rounded-full h-2">
+                                                        <div className="h-2 rounded-full bg-gray-300 bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(148,163,184,0.3)_4px,rgba(148,163,184,0.3)_8px)]" style={{ width: '100%' }} />
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -202,7 +253,7 @@ const OBEReports = () => {
                                                         </div>
                                                         <div className="flex items-center gap-3">
                                                             <button
-                                                                onClick={(e) => handleDownloadCLO(e, semester.name, batch.name)}
+                                                                onClick={(e) => handleDownloadCLO(e, batch.id, batch.name, semester.id)}
                                                                 className="p-1.5 hover:bg-gray-200 rounded-full text-emerald-600 hover:text-emerald-700 transition-colors"
                                                                 title="Download CLO Report"
                                                             >
