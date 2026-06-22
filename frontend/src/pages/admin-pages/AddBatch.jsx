@@ -7,9 +7,9 @@ import { useAuth } from '../../context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 const AddBatch = () => {
     const navigate = useNavigate();
-    
+
     const { user } = useAuth();
-    
+
     const deptId = user?.department_id;
     const isDeptAdmin = user?.role === 'deptadmin';
 
@@ -93,6 +93,14 @@ const AddBatch = () => {
             return;
         }
 
+        // Prevent batches starting in future years
+        const currentYear = new Date().getFullYear();
+        const startYear = new Date(formData.startDate).getFullYear();
+        if (startYear > currentYear) {
+            toast.error(`Start year cannot be in the future (after ${currentYear})`);
+            return;
+        }
+
         createBatchMutation.mutate({
             name: formData.batchName,
             department_id: parseInt(formData.department_id),
@@ -102,7 +110,7 @@ const AddBatch = () => {
             plo_ids: selectedPLOIds
         });
     };
-    
+
     const loading = createBatchMutation.isPending;
 
     return (
@@ -138,7 +146,7 @@ const AddBatch = () => {
                             {!isDeptAdmin && (
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">Faculty <span className="text-red-500">*</span></label>
-                                    <select value={selectedFaculty} onChange={(e) => { setSelectedFaculty(e.target.value); setFormData({...formData, department_id: ''}); }}
+                                    <select value={selectedFaculty} onChange={(e) => { setSelectedFaculty(e.target.value); setFormData({ ...formData, department_id: '' }); }}
                                         className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all">
                                         <option value="">Select Faculty...</option>
                                         {faculties.map(fac => <option key={fac.id} value={fac.name}>{fac.name}</option>)}
@@ -169,7 +177,9 @@ const AddBatch = () => {
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-2">Start Date <span className="text-red-500">*</span></label>
                                 <input type="date" name="startDate" value={formData.startDate} onChange={handleChange}
+                                    max={`${new Date().getFullYear()}-12-31`}
                                     className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all" />
+                                <p className="text-xs text-slate-400 mt-1">Start year cannot be in the future</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-2">End Date <span className="text-red-500">*</span></label>
@@ -241,13 +251,11 @@ const AddBatch = () => {
                                                 <div
                                                     key={plo.id}
                                                     onClick={() => togglePLO(plo.id)}
-                                                    className={`flex items-center gap-3 p-3 cursor-pointer transition-all border-b border-slate-100 last:border-b-0 ${
-                                                        isSelected ? 'bg-blue-50/50' : 'hover:bg-slate-50'
-                                                    }`}
+                                                    className={`flex items-center gap-3 p-3 cursor-pointer transition-all border-b border-slate-100 last:border-b-0 ${isSelected ? 'bg-blue-50/50' : 'hover:bg-slate-50'
+                                                        }`}
                                                 >
-                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
-                                                        isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
-                                                    }`}>
+                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
+                                                        }`}>
                                                         {isSelected && <MdCheck className="w-3 h-3 text-white" />}
                                                     </div>
                                                     <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded flex-shrink-0">

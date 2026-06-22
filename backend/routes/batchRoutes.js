@@ -163,6 +163,13 @@ router.post('/', isAdmin, async (req, res) => {
             return res.status(400).json({ success: false, message: 'name, department_id, start_date, end_date are required' });
         }
 
+        // Prevent creating batches with a start year in the future
+        const currentYear = new Date().getFullYear();
+        const startYear = new Date(start_date).getFullYear();
+        if (startYear > currentYear) {
+            return res.status(400).json({ success: false, message: `Cannot create a batch starting in ${startYear}. Start year must be ${currentYear} or earlier.` });
+        }
+
         // Validate curriculum belongs to the same department
         if (curriculum_id) {
             const [[curriculum]] = await conn.query('SELECT department_id FROM curricula WHERE id = ?', [curriculum_id]);
