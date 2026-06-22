@@ -228,6 +228,7 @@ const BatchCourseSchedule = () => {
         }
     };
 
+    const [assigningFaculty, setAssigningFaculty] = useState(false);
     const [unassigningFaculty, setUnassigningFaculty] = useState(false);
 
     const handleUnassignFaculty = async () => {
