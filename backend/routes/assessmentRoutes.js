@@ -137,20 +137,49 @@ router.post('/', scopeFaculty('course_assignment', 'body', 'course_assignment_id
             return res.status(400).json({ success: false, message: 'course_assignment_id, type, and title are required' });
         }
 
+        // FIX Issue #6: Validate that all CLO IDs belong to the correct course
+        const allCloIdsToValidate = new Set();
+        if (mapped_clos && Array.isArray(mapped_clos)) {
+            mapped_clos.forEach(id => { if (id) allCloIdsToValidate.add(parseInt(id)); });
+        }
+        if (questions && Array.isArray(questions)) {
+            questions.forEach(q => { if (q.clo_id) allCloIdsToValidate.add(parseInt(q.clo_id)); });
+        }
+        if (allCloIdsToValidate.size > 0) {
+            const cloIdsArray = [...allCloIdsToValidate];
+            const [validClos] = await conn.query(
+                `SELECT DISTINCT c.id FROM clos c
+                 LEFT JOIN course_clo_mapping ccm ON c.id = ccm.clo_id
+                 WHERE c.id IN (?)
+                   AND (c.course_id = (SELECT course_id FROM course_assignments WHERE id = ?)
+                        OR ccm.course_id = (SELECT course_id FROM course_assignments WHERE id = ?))`,
+                [cloIdsArray, course_assignment_id, course_assignment_id]
+            );
+            const validCloIds = new Set(validClos.map(c => c.id));
+            const invalidClos = cloIdsArray.filter(id => !validCloIds.has(id));
+            if (invalidClos.length > 0) {
+                await conn.rollback();
+                return res.status(400).json({
+                    success: false,
+                    message: `CLO ID(s) ${invalidClos.join(', ')} do not belong to this course. Please use CLOs mapped to this course only.`
+                });
+            }
+        }
+
         // Auto-calculate max_score from questions if provided
         let finalMaxScore = max_score || 100;
         if (questions && Array.isArray(questions) && questions.length > 0) {
             const sumMarks = questions.reduce((sum, q) => sum + (parseFloat(q.max_marks) || 0), 0);
             if (sumMarks > 0) finalMaxScore = sumMarks;
         }
-        
+
         const [result] = await conn.query(
             `INSERT INTO assessments (course_assignment_id, type, title, description, due_date, conducted_date, release_grades_on, max_score, weight, duration_minutes, status)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [course_assignment_id, type, title, description || null, due_date || null, conducted_date || null, release_grades_on || null,
-             finalMaxScore, weight || null, duration_minutes || null, status || 'draft']
+                finalMaxScore, weight || null, duration_minutes || null, status || 'draft']
         );
-        
+
         const assessmentId = result.insertId;
 
         // Insert CLO mappings (assessment-level)
@@ -197,6 +226,42 @@ router.put('/:id', scopeFaculty('assessment', 'params', 'id'), async (req, res) 
     try {
         await conn.beginTransaction();
         const { type, title, description, due_date, conducted_date, release_grades_on, max_score, weight, duration_minutes, status, mapped_clos, questions } = req.body;
+
+        // FIX Issue #6: Validate that all CLO IDs belong to the correct course
+        const allCloIdsToValidate = new Set();
+        if (mapped_clos && Array.isArray(mapped_clos)) {
+            mapped_clos.forEach(id => { if (id) allCloIdsToValidate.add(parseInt(id)); });
+        }
+        if (questions && Array.isArray(questions)) {
+            questions.forEach(q => { if (q.clo_id) allCloIdsToValidate.add(parseInt(q.clo_id)); });
+        }
+        if (allCloIdsToValidate.size > 0) {
+            // Get the course_assignment_id for this assessment
+            const [[assessmentInfo]] = await conn.query(
+                'SELECT course_assignment_id FROM assessments WHERE id = ?', [req.params.id]
+            );
+            if (assessmentInfo) {
+                const cloIdsArray = [...allCloIdsToValidate];
+                const [validClos] = await conn.query(
+                    `SELECT DISTINCT c.id FROM clos c
+                     LEFT JOIN course_clo_mapping ccm ON c.id = ccm.clo_id
+                     WHERE c.id IN (?)
+                       AND (c.course_id = (SELECT course_id FROM course_assignments WHERE id = ?)
+                            OR ccm.course_id = (SELECT course_id FROM course_assignments WHERE id = ?))`,
+                    [cloIdsArray, assessmentInfo.course_assignment_id, assessmentInfo.course_assignment_id]
+                );
+                const validCloIds = new Set(validClos.map(c => c.id));
+                const invalidClos = cloIdsArray.filter(id => !validCloIds.has(id));
+                if (invalidClos.length > 0) {
+                    await conn.rollback();
+                    return res.status(400).json({
+                        success: false,
+                        message: `CLO ID(s) ${invalidClos.join(', ')} do not belong to this course. Please use CLOs mapped to this course only.`
+                    });
+                }
+            }
+        }
+
         const fields = [];
         const values = [];
         if (type) { fields.push('type = ?'); values.push(type); }
@@ -218,7 +283,7 @@ router.put('/:id', scopeFaculty('assessment', 'params', 'id'), async (req, res) 
                 values.push(sumMarks);
             }
         }
-        
+
         if (fields.length > 0) {
             values.push(req.params.id);
             const [result] = await conn.query(`UPDATE assessments SET ${fields.join(', ')} WHERE id = ?`, values);
@@ -394,7 +459,7 @@ router.post('/:id/grades', async (req, res) => {
 
         for (const grade of grades) {
             let finalScore = grade.score;
-            
+
             if (grade.question_scores && questions.length > 0) {
                 let computedScore = 0;
                 for (const q of questions) {
@@ -557,7 +622,7 @@ router.post('/:id/grades/import-preview', upload.single('file'), validateMagicBy
         }
 
         const [assessmentRows] = await conn.query(
-            `SELECT a.*, ca.course_assignment_id as ca_id FROM assessments a
+            `SELECT a.*, ca.id as ca_id FROM assessments a
              JOIN course_assignments ca ON a.course_assignment_id = ca.id
              WHERE a.id = ?`, [req.params.id]
         );
@@ -603,7 +668,7 @@ router.post('/:id/grades/import-preview', upload.single('file'), validateMagicBy
                             const qScore = parseFloat(row[colKey]);
                             if (!isNaN(qScore) && qScore >= 0 && qScore <= parseFloat(q.max_marks)) {
                                 totalScore += qScore;
-                                
+
                                 // Calculate CLO % if question is mapped
                                 if (q.clo_id) {
                                     if (!cloAchievements[q.clo_id]) {
@@ -685,7 +750,7 @@ router.post('/:id/grades/import', upload.single('file'), validateMagicBytes, asy
 
         // Get assessment details for validation
         const [assessmentRows] = await conn.query(
-            `SELECT a.*, ca.course_assignment_id as ca_id FROM assessments a
+            `SELECT a.*, ca.id as ca_id FROM assessments a
              JOIN course_assignments ca ON a.course_assignment_id = ca.id
              WHERE a.id = ?`, [req.params.id]
         );
