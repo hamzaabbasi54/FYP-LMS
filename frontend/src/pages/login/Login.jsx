@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MdEmail, MdLock, MdVisibility, MdVisibilityOff } from 'react-icons/md';
 import { useAuth } from '../../context/AuthContext';
-import bgImage from '../../assets/484916933_1125377312721811_3180112978211178051_n.jpg';
-import qauLogo from '../../assets/QAU-Logo.png';
+import campusFlowLogo from '../../assets/campus-flow-logo-clean.svg';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -84,44 +83,51 @@ const Login = () => {
     };
 
     return (
-        <div 
-            className="min-h-screen bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-4 relative"
-            style={{ backgroundImage: `url(${bgImage})` }}
+        <div
+            className="campus-login-shell h-screen max-h-screen flex flex-col items-center justify-center p-3 relative overflow-hidden"
         >
-            {/* Subtle Overlay */}
-            <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]"></div>
+            <div className="campus-login-grid" aria-hidden="true"></div>
+            <div className="campus-flow-line campus-flow-line-one" aria-hidden="true"></div>
+            <div className="campus-flow-line campus-flow-line-two" aria-hidden="true"></div>
+            <div className="campus-flow-line campus-flow-line-three" aria-hidden="true"></div>
 
             <div className="w-full max-w-md relative z-10">
                 {/* Login Card */}
-                <div className="bg-white/20 backdrop-blur-xl rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] p-8 border border-white/40">
+                <div className="bg-white/82 backdrop-blur-2xl rounded-3xl shadow-[0_24px_80px_rgba(14,116,144,0.28)] p-6 sm:p-7 border border-white/70">
                     {/* Logo and Header */}
-                    <div className="text-center mb-6">
-                        <img src={qauLogo} alt="University Logo" className="h-20 mx-auto mb-3 object-contain drop-shadow-md" />
-                        <h1 className="text-2xl font-bold text-white mb-1 drop-shadow-md">University LMS</h1>
-                        <p className="text-white/80 text-sm font-medium">Sign in to your account</p>
+                    <div className="text-center mb-4">
+                        <img src={campusFlowLogo} alt="Campus Flow Logo" className="h-24 sm:h-28 w-full mx-auto mb-1 object-contain drop-shadow-sm" />
+                        <p className="text-slate-500 text-sm font-medium">One workspace for courses, attendance, and outcomes.</p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Role Selection */}
                         <div>
-                            <label className="block text-sm font-semibold text-white mb-2 drop-shadow-md">
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
                                 Select Role
                             </label>
-                            <select
-                                name="role"
-                                value={formData.role}
-                                onChange={handleChange}
-                                className="w-full px-4 py-3 border border-white/40 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200 bg-white/60 backdrop-blur-sm text-gray-900 font-medium"
-                            >
-                                <option value="super_admin">{roleLabels.super_admin}</option>
-                                <option value="deptadmin">{roleLabels.deptadmin}</option>
-                                <option value="faculty">{roleLabels.faculty}</option>
-                            </select>
+                            <div className="grid grid-cols-3 gap-2 rounded-2xl border border-sky-100 bg-white/70 p-1 shadow-sm">
+                                {Object.entries(roleLabels).map(([roleValue, label]) => (
+                                    <button
+                                        key={roleValue}
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, role: roleValue }))}
+                                        className={`min-h-11 rounded-xl px-2 text-xs sm:text-sm font-semibold transition-all ${
+                                            formData.role === roleValue
+                                                ? 'bg-sky-600 text-white shadow-md shadow-sky-700/20'
+                                                : 'text-slate-600 hover:bg-sky-50 hover:text-sky-800'
+                                        }`}
+                                        aria-pressed={formData.role === roleValue}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Email Input */}
                         <div>
-                            <label className="block text-sm font-semibold text-white mb-2 drop-shadow-md">
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
                                 Email Address
                             </label>
                             <div className="relative">
@@ -134,7 +140,7 @@ const Login = () => {
                                     value={formData.email}
                                     onChange={handleChange}
                                     placeholder="Enter your email"
-                                    className={`w-full pl-10 pr-4 py-3 border ${errors.email ? 'border-red-500' : 'border-white/40'} rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200 bg-white/60 backdrop-blur-sm placeholder-gray-600 text-gray-900 font-medium`}
+                                    className={`w-full pl-10 pr-4 py-3 border ${errors.email ? 'border-red-500' : 'border-sky-100'} rounded-xl focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all duration-200 bg-white/90 placeholder-slate-400 text-slate-900 font-medium`}
                                 />
                             </div>
                             {errors.email && (
@@ -144,7 +150,7 @@ const Login = () => {
 
                         {/* Password Input */}
                         <div>
-                            <label className="block text-sm font-semibold text-white mb-2 drop-shadow-md">
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
                                 Password
                             </label>
                             <div className="relative">
@@ -157,7 +163,7 @@ const Login = () => {
                                     value={formData.password}
                                     onChange={handleChange}
                                     placeholder="Enter your password"
-                                    className={`w-full pl-10 pr-12 py-3 border ${errors.password ? 'border-red-500' : 'border-white/40'} rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200 bg-white/60 backdrop-blur-sm placeholder-gray-600 text-gray-900 font-medium`}
+                                    className={`w-full pl-10 pr-12 py-3 border ${errors.password ? 'border-red-500' : 'border-sky-100'} rounded-xl focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all duration-200 bg-white/90 placeholder-slate-400 text-slate-900 font-medium`}
                                 />
                                 <button
                                     type="button"
@@ -184,13 +190,13 @@ const Login = () => {
                                     name="rememberMe"
                                     checked={formData.rememberMe}
                                     onChange={handleChange}
-                                    className="w-4 h-4 text-blue-600 border-white/50 rounded focus:ring-blue-400 bg-white/40"
+                                    className="w-4 h-4 text-sky-600 border-sky-200 rounded focus:ring-sky-400 bg-white"
                                 />
-                                <span className="ml-2 text-sm font-medium text-white drop-shadow-md">Remember me</span>
+                                <span className="ml-2 text-sm font-medium text-slate-600">Remember me</span>
                             </label>
                             <Link
                                 to="/forgot-password"
-                                className="text-sm font-semibold text-white hover:text-blue-200 hover:underline drop-shadow-md"
+                                className="text-sm font-semibold text-sky-700 hover:text-sky-900 hover:underline"
                             >
                                 Forgot password?
                             </Link>
@@ -200,7 +206,7 @@ const Login = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-blue-600/90 backdrop-blur-md border border-blue-400/50 text-white py-3.5 rounded-xl font-bold tracking-wide hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
+                            className="w-full bg-sky-600 border border-sky-500 text-white py-3.5 rounded-xl font-bold tracking-wide hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-white transition-all duration-200 shadow-lg shadow-sky-700/20 hover:shadow-xl disabled:opacity-50"
                         >
                             {loading ? 'Signing In...' : 'Sign In'}
                         </button>
@@ -210,8 +216,8 @@ const Login = () => {
                 </div>
 
                 {/* Footer */}
-                <div className="mt-6 text-center text-sm text-white/80 font-medium tracking-wide">
-                    <p>&copy; 2026 Quaid-i-Azam University. All rights reserved.</p>
+                <div className="mt-4 text-center text-sm text-slate-600 font-medium tracking-wide">
+                    <p>&copy; 2026 Campus Flow. All rights reserved.</p>
                 </div>
             </div>
         </div>

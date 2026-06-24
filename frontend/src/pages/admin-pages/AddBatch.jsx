@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { MdAdd, MdClose, MdArrowBack, MdSearch, MdCheck } from 'react-icons/md';
+import { PiArrowLeft, PiCheck, PiMagnifyingGlass, PiPlus, PiX } from 'react-icons/pi';
 import { batchApi, authApi, departmentApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
@@ -114,31 +114,28 @@ const AddBatch = () => {
     const loading = createBatchMutation.isPending;
 
     return (
-        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col">
-            <div className="max-w-7xl mx-auto w-full flex flex-col">
-                <div className="mb-6">
-                    <Link to="/admin-managebatches" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors text-sm font-medium">
-                        <MdArrowBack className="w-4 h-4" /> Back to Batches
+        <div className="min-h-[calc(100vh-116px)]">
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+                <div>
+                    <Link to="/admin-managebatches" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition-colors hover:text-sky-700">
+                        <PiArrowLeft className="w-4 h-4" /> Back to Batches
                     </Link>
                 </div>
 
-                <div className="mb-8">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-800">
-                            Add New Batch
-                        </h1>
-                    </div>
-                    <p className="text-sm text-slate-500 mt-1">Create a new student cohort</p>
-                </div>
+                <section className="rounded-3xl border border-white/70 bg-white/85 p-6 shadow-[0_24px_80px_rgba(14,116,144,0.10)] backdrop-blur-2xl">
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-sky-700">Campus Flow</p>
+                    <h1 className="mt-3 text-3xl font-bold text-slate-950">Add New Batch</h1>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">Create a new student cohort and attach program learning outcomes.</p>
+                </section>
 
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-white/92 rounded-3xl border border-sky-100 shadow-sm overflow-hidden">
                     <form onSubmit={handleSubmit}>
                         <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Batch Name */}
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-slate-700 mb-2">Batch Name <span className="text-red-500">*</span></label>
                                 <input type="text" name="batchName" value={formData.batchName} onChange={handleChange}
-                                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
+                                    className="h-11 w-full rounded-xl border border-sky-100 bg-white px-3 text-sm outline-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                                     placeholder="e.g., Batch 2026-2030" />
                             </div>
 
@@ -147,7 +144,7 @@ const AddBatch = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">Faculty <span className="text-red-500">*</span></label>
                                     <select value={selectedFaculty} onChange={(e) => { setSelectedFaculty(e.target.value); setFormData({ ...formData, department_id: '' }); }}
-                                        className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all">
+                                        className="h-11 w-full rounded-xl border border-sky-100 bg-white px-3 text-sm outline-none appearance-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100">
                                         <option value="">Select Faculty...</option>
                                         {faculties.map(fac => <option key={fac.id} value={fac.name}>{fac.name}</option>)}
                                     </select>
@@ -159,7 +156,7 @@ const AddBatch = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">Department <span className="text-red-500">*</span></label>
                                     <select name="department_id" value={formData.department_id} onChange={handleChange} disabled={!selectedFaculty}
-                                        className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all disabled:bg-slate-50 disabled:cursor-not-allowed">
+                                        className="h-11 w-full rounded-xl border border-sky-100 bg-white px-3 text-sm outline-none appearance-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-50 disabled:cursor-not-allowed">
                                         <option value="">{selectedFaculty ? 'Select Department...' : 'Select Faculty first'}</option>
                                         {departments.map(dept => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
                                     </select>
@@ -167,7 +164,7 @@ const AddBatch = () => {
                             ) : (
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-medium text-slate-700 mb-2">Department</label>
-                                    <div className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">
+                                    <div className="h-11 w-full rounded-xl border border-sky-100 bg-sky-50/60 px-3 py-2.5 text-sm text-slate-600">
                                         {user.department || 'Your Department'}
                                     </div>
                                 </div>
@@ -178,13 +175,13 @@ const AddBatch = () => {
                                 <label className="block text-sm font-medium text-slate-700 mb-2">Start Date <span className="text-red-500">*</span></label>
                                 <input type="date" name="startDate" value={formData.startDate} onChange={handleChange}
                                     max={`${new Date().getFullYear()}-12-31`}
-                                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all" />
+                                    className="h-11 w-full rounded-xl border border-sky-100 bg-white px-3 text-sm outline-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
                                 <p className="text-xs text-slate-400 mt-1">Start year cannot be in the future</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-2">End Date <span className="text-red-500">*</span></label>
                                 <input type="date" name="endDate" value={formData.endDate} onChange={handleChange}
-                                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all" />
+                                    className="h-11 w-full rounded-xl border border-sky-100 bg-white px-3 text-sm outline-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
                             </div>
                         </div>
 
@@ -192,10 +189,10 @@ const AddBatch = () => {
                         <div className="p-6 border-t border-slate-100 bg-slate-50/50">
                             <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
+                                    <div className="h-8 w-8 rounded-lg border border-sky-100 bg-sky-50"></div>
                                     <h3 className="text-base font-semibold text-slate-800">Program Learning Outcomes</h3>
                                 </div>
-                                <Link to="/admin-managecourses/plos" className="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                                <Link to="/admin-managecourses/plos" className="text-xs text-sky-700 hover:text-sky-800 font-semibold transition-colors">
                                     Manage PLOs →
                                 </Link>
                             </div>
@@ -205,15 +202,15 @@ const AddBatch = () => {
                             {selectedPLOs.length > 0 && (
                                 <div className="space-y-2 mb-4">
                                     {selectedPLOs.map(plo => (
-                                        <div key={plo.id} className="flex justify-between items-start bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                        <div key={plo.id} className="flex justify-between items-start bg-sky-50 p-3 rounded-xl border border-sky-100">
                                             <div className="flex gap-2.5">
-                                                <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded flex items-center justify-center text-xs font-bold">
+                                                <span className="flex-shrink-0 bg-white text-sky-700 border border-sky-100 rounded-md px-2 py-1 text-xs font-bold">
                                                     {plo.plo_number}
                                                 </span>
-                                                <p className="text-sm text-blue-900 pt-0.5 font-medium">{plo.description}</p>
+                                                <p className="text-sm text-slate-700 pt-0.5 font-medium">{plo.description}</p>
                                             </div>
-                                            <button type="button" onClick={() => togglePLO(plo.id)} className="p-1 text-blue-400 hover:text-red-500 hover:bg-white rounded transition-colors">
-                                                <MdClose className="w-4 h-4" />
+                                            <button type="button" onClick={() => togglePLO(plo.id)} className="p-1 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors">
+                                                <PiX className="w-4 h-4" />
                                             </button>
                                         </div>
                                     ))}
@@ -221,16 +218,16 @@ const AddBatch = () => {
                             )}
 
                             {/* Available PLOs picker */}
-                            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-                                <div className="p-3 border-b border-slate-100 bg-slate-50">
+                            <div className="bg-white rounded-2xl border border-sky-100 shadow-sm overflow-hidden">
+                                <div className="p-3 border-b border-sky-100 bg-sky-50/40">
                                     <div className="relative">
-                                        <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <PiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <input
                                             type="text"
                                             placeholder="Search PLOs..."
                                             value={ploSearch}
                                             onChange={(e) => setPloSearch(e.target.value)}
-                                            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                            className="h-10 w-full rounded-xl border border-sky-100 bg-white pl-9 pr-4 text-sm outline-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                                         />
                                     </div>
                                 </div>
@@ -240,7 +237,7 @@ const AddBatch = () => {
                                     ) : filteredAvailablePLOs.length === 0 ? (
                                         <div className="p-6 text-center">
                                             <p className="text-slate-400 text-sm mb-2">{ploSearch ? 'No PLOs match your search' : 'No PLOs available'}</p>
-                                            <Link to="/admin-managecourses/plos" className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                                            <Link to="/admin-managecourses/plos" className="text-xs text-sky-700 hover:text-sky-800 font-semibold">
                                                 Create PLOs first →
                                             </Link>
                                         </div>
@@ -251,14 +248,14 @@ const AddBatch = () => {
                                                 <div
                                                     key={plo.id}
                                                     onClick={() => togglePLO(plo.id)}
-                                                    className={`flex items-center gap-3 p-3 cursor-pointer transition-all border-b border-slate-100 last:border-b-0 ${isSelected ? 'bg-blue-50/50' : 'hover:bg-slate-50'
+                                                    className={`flex items-center gap-3 p-3 cursor-pointer transition-all border-b border-slate-100 last:border-b-0 ${isSelected ? 'bg-sky-50/70' : 'hover:bg-slate-50'
                                                         }`}
                                                 >
-                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
+                                                    <div className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? 'border-sky-600 bg-sky-600' : 'border-slate-300'
                                                         }`}>
-                                                        {isSelected && <MdCheck className="w-3 h-3 text-white" />}
+                                                        {isSelected && <PiCheck className="w-3 h-3 text-white" />}
                                                     </div>
-                                                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded flex-shrink-0">
+                                                    <span className="px-2 py-1 bg-sky-50 text-sky-700 text-xs font-bold rounded-md border border-sky-100 flex-shrink-0">
                                                         PLO-{plo.plo_number}
                                                     </span>
                                                     <p className="text-sm text-slate-600 truncate">{plo.description}</p>
@@ -275,22 +272,23 @@ const AddBatch = () => {
 
                         {/* Active Toggle */}
                         <div className="p-6 border-t border-slate-100">
-                            <div className="flex items-center justify-between bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <div className="flex items-center justify-between bg-sky-50/45 p-4 rounded-2xl border border-sky-100">
                                 <div>
                                     <h4 className="font-medium text-slate-800 text-sm">Set as Active</h4>
                                     <p className="text-xs text-slate-500">Make this batch available immediately</p>
                                 </div>
                                 <label className="relative inline-flex items-center cursor-pointer">
                                     <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} className="sr-only peer" />
-                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-sky-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
                                 </label>
                             </div>
                         </div>
 
                         {/* Actions */}
-                        <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-                            <button type="button" onClick={() => navigate('/admin-managebatches')} className="px-4 py-2 border border-slate-200 bg-white shadow-sm text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors text-sm">Cancel</button>
-                            <button type="submit" disabled={loading} className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-colors text-sm disabled:opacity-50">
+                        <div className="p-5 border-t border-sky-100 bg-sky-50/40 flex justify-end gap-3">
+                            <button type="button" onClick={() => navigate('/admin-managebatches')} className="px-4 py-2 border border-sky-100 bg-white shadow-sm text-slate-700 font-semibold rounded-xl hover:bg-sky-50 transition-colors text-sm">Cancel</button>
+                            <button type="submit" disabled={loading} className="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 text-white font-semibold rounded-xl hover:bg-sky-700 shadow-sm transition-colors text-sm disabled:opacity-50">
+                                <PiPlus className="h-4 w-4" />
                                 {loading ? 'Creating...' : 'Create Batch'}
                             </button>
                         </div>

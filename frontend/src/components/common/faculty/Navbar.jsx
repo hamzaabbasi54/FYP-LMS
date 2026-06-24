@@ -1,6 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { MdSearch, MdNotifications, MdChevronRight, MdHelp, MdAssignment, MdSchool, MdAnnouncement, MdCircle, MdEmail, MdEventNote, MdDescription, MdWarning } from 'react-icons/md';
+import {
+    PiBell as MdNotifications,
+    PiBookOpen as MdSchool,
+    PiCaretRight as MdChevronRight,
+    PiCircle as MdCircle,
+    PiClipboardText as MdAssignment,
+    PiEnvelopeSimple as MdEmail,
+    PiFileText as MdDescription,
+    PiInfo as MdAnnouncement,
+    PiLifebuoy as MdHelp,
+    PiWarningCircle as MdWarning,
+    PiCalendarCheck as MdEventNote
+} from 'react-icons/pi';
 import { useCourse } from '../../../context/CourseContext';
 import { useAuth } from '../../../context/AuthContext';
 import { notificationApi } from '../../../services/api';
@@ -74,14 +86,14 @@ const Navbar = () => {
     // Icon mapping
     const getNotificationIcon = (type) => {
         switch (type) {
-            case 'course_assignment': return { icon: MdSchool, color: 'bg-green-100 text-green-600' };
-            case 'course_unassignment': return { icon: MdSchool, color: 'bg-red-100 text-red-600' };
-            case 'syllabus_update': return { icon: MdDescription, color: 'bg-indigo-100 text-indigo-600' };
-            case 'schedule_update': return { icon: MdEventNote, color: 'bg-orange-100 text-orange-600' };
-            case 'unread_messages': return { icon: MdEmail, color: 'bg-blue-100 text-blue-600' };
-            case 'ungraded_assessment': return { icon: MdAssignment, color: 'bg-yellow-100 text-yellow-600' };
+            case 'course_assignment': return { icon: MdSchool, color: 'bg-emerald-50 text-emerald-600 border border-emerald-100' };
+            case 'course_unassignment': return { icon: MdSchool, color: 'bg-red-50 text-red-600 border border-red-100' };
+            case 'syllabus_update': return { icon: MdDescription, color: 'bg-indigo-50 text-indigo-600 border border-indigo-100' };
+            case 'schedule_update': return { icon: MdEventNote, color: 'bg-sky-50 text-sky-700 border border-sky-100' };
+            case 'unread_messages': return { icon: MdEmail, color: 'bg-sky-50 text-sky-700 border border-sky-100' };
+            case 'ungraded_assessment': return { icon: MdAssignment, color: 'bg-amber-50 text-amber-600 border border-amber-100' };
             case 'missing_attendance': return { icon: MdWarning, color: 'bg-red-100 text-red-600' };
-            default: return { icon: MdAnnouncement, color: 'bg-purple-100 text-purple-600' };
+            default: return { icon: MdAnnouncement, color: 'bg-slate-50 text-slate-600 border border-slate-100' };
         }
     };
 
@@ -132,130 +144,130 @@ const Navbar = () => {
     const professorName = user?.fullName || 'Professor';
 
     return (
-        <div className="flex flex-col h-full bg-white border-b">
-            {/* Top Section: Title/Breadcrumbs and Search */}
+        <div className="flex flex-col h-full bg-white/90 border-b border-sky-100">
+            {/* Top Section: Title/Breadcrumbs and Actions */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center px-4 sm:px-6 lg:px-8 py-3 sm:py-4 gap-3 sm:gap-4">
                 {/* Left Side - Title or Breadcrumbs */}
                 <div className="flex-1">
                     {isBatchCoursesPage ? (
                         // Breadcrumbs for Batch Courses page
-                        <div className="flex items-center text-sm text-gray-500">
-                            <Link to="/faculty-dashboard" className="hover:text-blue-600 transition-colors">
+                        <div className="flex items-center text-sm text-slate-500">
+                            <Link to="/faculty-dashboard" className="hover:text-sky-700 transition-colors">
                                 Dashboard
                             </Link>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <span className="text-gray-400">Batches Taught</span>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <span className="text-gray-700 font-medium">Batch 2023-2027</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <span className="text-slate-400">Batches Taught</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <span className="text-slate-700 font-medium">Batch 2023-2027</span>
                         </div>
                     ) : isManageStudentsPage ? (
                         // Breadcrumbs for Manage Students page
-                        <div className="flex items-center text-sm text-gray-500">
-                            <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
+                        <div className="flex items-center text-sm text-slate-500">
+                            <Link to="/faculty-mycourses" className="hover:text-sky-700 transition-colors">
                                 My Courses
                             </Link>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <span className="text-gray-400">{courseCode}</span>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <span className="text-gray-700 font-medium">Manage Students</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <span className="text-slate-400">{courseCode}</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <span className="text-slate-700 font-medium">Manage Students</span>
                         </div>
                     ) : isMonthlyReportPage ? (
                         // Breadcrumbs for Monthly Report page
-                        <div className="flex items-center text-sm text-gray-500">
-                            <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
+                        <div className="flex items-center text-sm text-slate-500">
+                            <Link to="/faculty-mycourses" className="hover:text-sky-700 transition-colors">
                                 My Courses
                             </Link>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <span className="text-gray-400">{courseCode}</span>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <span className="text-gray-700 font-medium">Monthly Report</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <span className="text-slate-400">{courseCode}</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <span className="text-slate-700 font-medium">Monthly Report</span>
                         </div>
                     ) : isAttendancePage ? (
                         // Breadcrumbs for Attendance page
-                        <div className="flex items-center text-sm text-gray-500">
-                            <Link to="/faculty-dashboard" className="hover:text-blue-600 transition-colors">
+                        <div className="flex items-center text-sm text-slate-500">
+                            <Link to="/faculty-dashboard" className="hover:text-sky-700 transition-colors">
                                 Dashboard
                             </Link>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <Link to={assignmentId ? `/faculty-mycourses/${assignmentId}` : '/faculty-mycourses'} className="hover:text-blue-600 transition-colors">
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <Link to={assignmentId ? `/faculty-mycourses/${assignmentId}` : '/faculty-mycourses'} className="hover:text-sky-700 transition-colors">
                                 {selectedCourse?.batch_name || 'Batch 2023-2027'}
                             </Link>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <span className="text-gray-700 font-medium">{courseCode}</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <span className="text-slate-700 font-medium">{courseCode}</span>
                         </div>
                     ) : isMyCoursesPage ? (
                         // Breadcrumbs for My Courses page
-                        <div className="flex items-center text-sm text-gray-500">
-                            <Link to="/faculty-dashboard" className="hover:text-blue-600 transition-colors">
+                        <div className="flex items-center text-sm text-slate-500">
+                            <Link to="/faculty-dashboard" className="hover:text-sky-700 transition-colors">
                                 Dashboard
                             </Link>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <span className="text-gray-400">{selectedCourse?.batch_name || 'Batch 2023-2027'}</span>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <span className="text-gray-700 font-medium">{courseCode}</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <span className="text-slate-400">{selectedCourse?.batch_name || 'Batch 2023-2027'}</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <span className="text-slate-700 font-medium">{courseCode}</span>
                         </div>
                     ) : isCreateAssessmentPage ? (
                         // Breadcrumbs for Create Assessment page
-                        <div className="flex items-center text-sm text-gray-500">
-                            <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
+                        <div className="flex items-center text-sm text-slate-500">
+                            <Link to="/faculty-mycourses" className="hover:text-sky-700 transition-colors">
                                 My Courses
                             </Link>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <Link to={assignmentId ? `/faculty-mycourses/${assignmentId}` : '/faculty-mycourses'} className="hover:text-blue-600 transition-colors">
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <Link to={assignmentId ? `/faculty-mycourses/${assignmentId}` : '/faculty-mycourses'} className="hover:text-sky-700 transition-colors">
                                 {courseCode}
                             </Link>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <Link to={assignmentId ? `/faculty-mycourses/${assignmentId}/grading` : '/faculty-mycourses/grading'} className="hover:text-blue-600 transition-colors">
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <Link to={assignmentId ? `/faculty-mycourses/${assignmentId}/grading` : '/faculty-mycourses/grading'} className="hover:text-sky-700 transition-colors">
                                 Grading
                             </Link>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <span className="text-gray-700 font-medium">New Assessment</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <span className="text-slate-700 font-medium">New Assessment</span>
                         </div>
                     ) : isGradeAssignmentPage ? (
                         // Breadcrumbs for Grade Assignment page
-                        <div className="flex items-center text-sm text-gray-500">
-                            <Link to={assignmentId ? `/faculty-mycourses/${assignmentId}` : '/faculty-mycourses'} className="hover:text-blue-600 transition-colors">
+                        <div className="flex items-center text-sm text-slate-500">
+                            <Link to={assignmentId ? `/faculty-mycourses/${assignmentId}` : '/faculty-mycourses'} className="hover:text-sky-700 transition-colors">
                                 {courseCode}
                             </Link>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <Link to={assignmentId ? `/faculty-mycourses/${assignmentId}/grading` : '/faculty-mycourses/grading'} className="hover:text-blue-600 transition-colors">
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <Link to={assignmentId ? `/faculty-mycourses/${assignmentId}/grading` : '/faculty-mycourses/grading'} className="hover:text-sky-700 transition-colors">
                                 Grades
                             </Link>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <span className="text-gray-700 font-medium">Assessment Details</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <span className="text-slate-700 font-medium">Assessment Details</span>
                         </div>
                     ) : isGradingPage ? (
                         // Breadcrumbs for Grading page
-                        <div className="flex items-center text-sm text-gray-500">
-                            <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
+                        <div className="flex items-center text-sm text-slate-500">
+                            <Link to="/faculty-mycourses" className="hover:text-sky-700 transition-colors">
                                 Courses
                             </Link>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <span className="text-gray-400">{courseCode}</span>
-                            <MdChevronRight className="w-4 h-4 mx-2 text-gray-400" />
-                            <span className="text-gray-700 font-medium">Grading</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <span className="text-slate-400">{courseCode}</span>
+                            <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
+                            <span className="text-slate-700 font-medium">Grading</span>
                         </div>
                     ) : isEditSyllabusPage ? (
                         // Breadcrumbs for Edit Syllabus page
-                        <div className="flex flex-wrap items-center text-sm text-gray-500 gap-2">
-                            <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
+                        <div className="flex flex-wrap items-center text-sm text-slate-500 gap-2">
+                            <Link to="/faculty-mycourses" className="hover:text-sky-700 transition-colors">
                                 Courses
                             </Link>
-                            <MdChevronRight className="w-4 h-4 text-gray-400" />
-                            <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">
+                            <MdChevronRight className="w-4 h-4 text-slate-400" />
+                            <span className="bg-sky-50 text-sky-700 px-3 py-1 rounded-xl font-medium">
                                 {courseTitle}
                             </span>
-                            <MdChevronRight className="w-4 h-4 text-gray-400" />
-                            <span className="text-gray-700 font-medium">Edit Syllabus</span>
+                            <MdChevronRight className="w-4 h-4 text-slate-400" />
+                            <span className="text-slate-700 font-medium">Edit Syllabus</span>
                         </div>
                     ) : (
                         // Regular title for other pages
                         <div>
-                            <h1 className="text-lg sm:text-xl font-bold text-gray-800">
+                            <h1 className="text-lg sm:text-xl font-bold text-slate-800">
                                 {currentTitle}
                             </h1>
                             {currentTitle === 'Overview' && (
-                                <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                                <p className="text-xs sm:text-sm text-slate-500 mt-1">
                                     Welcome back, {professorName}. Manage your active courses.
                                 </p>
                             )}
@@ -263,26 +275,12 @@ const Navbar = () => {
                     )}
                 </div>
 
-                {/* Right Side - Search, Help, and Notifications */}
+                {/* Right Side - Help and Notifications */}
                 <div className="flex items-center space-x-3 sm:space-x-4">
-                    <div className="relative">
-                        <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <input
-                            type="text"
-                            placeholder={
-                                isBatchCoursesPage ? "Search courses in this batch..." :
-                                    isGradingPage || isGradeAssignmentPage || isCreateAssessmentPage ? "Search grades..." :
-                                        isMyCoursesPage || isEditSyllabusPage || isRegisterStudentPage || isAttendancePage || isMonthlyReportPage ? "Search..." :
-                                            "Search courses or students..."
-                            }
-                            className="bg-gray-100 text-sm rounded-full pl-10 pr-4 py-2 w-full sm:w-64 lg:w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-
                     {isGradeAssignmentPage && (
                         <Link
                             to="#"
-                            className="text-gray-600 hover:text-blue-600 font-medium text-sm whitespace-nowrap flex items-center gap-1"
+                            className="text-slate-600 hover:text-sky-700 font-medium text-sm whitespace-nowrap flex items-center gap-1"
                         >
                             <MdHelp className="w-4 h-4" />
                             Help
@@ -293,10 +291,10 @@ const Navbar = () => {
                     <div className="relative" ref={notificationRef}>
                         <button
                             onClick={handleBellClick}
-                            className="relative text-gray-500 hover:text-blue-600 flex-shrink-0"
+                            className="relative text-slate-500 hover:text-sky-700 flex-shrink-0"
                         >
                             {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+                                <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-xl bg-red-500 text-white text-xs font-bold flex items-center justify-center">
                                     {unreadCount}
                                 </span>
                             )}
@@ -305,12 +303,12 @@ const Navbar = () => {
 
                         {/* Dropdown */}
                         {showNotifications && (
-                            <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-50">
-                                <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                                    <h3 className="font-semibold text-gray-800">Notifications</h3>
+                            <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-sky-100 overflow-hidden z-50">
+                                <div className="px-4 py-3 border-b border-sky-100 flex items-center justify-between">
+                                    <h3 className="font-semibold text-slate-800">Notifications</h3>
                                     <Link
                                         to="/faculty-notifications"
-                                        className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                                        className="text-sm text-sky-700 hover:text-sky-700 font-medium"
                                         onClick={() => setShowNotifications(false)}
                                     >
                                         View All
@@ -318,7 +316,7 @@ const Navbar = () => {
                                 </div>
                                 <div className="max-h-80 overflow-y-auto">
                                     {notifications.length === 0 ? (
-                                        <div className="px-4 py-8 text-center text-gray-400 text-sm">
+                                        <div className="px-4 py-8 text-center text-slate-400 text-sm">
                                             No notifications yet.
                                         </div>
                                     ) : (
@@ -327,21 +325,21 @@ const Navbar = () => {
                                             return (
                                                 <div
                                                     key={notification.id}
-                                                    className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0 ${!notification.is_read ? 'bg-blue-50/50' : ''
+                                                    className={`flex items-start gap-3 px-4 py-3 hover:bg-sky-50/60 cursor-pointer border-b border-gray-100 last:border-0 ${!notification.is_read ? 'bg-sky-50/60' : ''
                                                         }`}
                                                 >
-                                                    <div className={`w-8 h-8 rounded-full ${iconColor} flex items-center justify-center flex-shrink-0`}>
+                                                    <div className={`w-8 h-8 rounded-xl ${iconColor} flex items-center justify-center flex-shrink-0`}>
                                                         <IconComponent className="w-4 h-4" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2">
-                                                            <p className="font-medium text-sm text-gray-800 truncate">{notification.title}</p>
+                                                            <p className="font-medium text-sm text-slate-800 truncate">{notification.title}</p>
                                                             {!notification.is_read && (
-                                                                <MdCircle className="w-2 h-2 text-blue-600 flex-shrink-0" />
+                                                                <MdCircle className="w-2 h-2 text-sky-700 flex-shrink-0" />
                                                             )}
                                                         </div>
-                                                        <p className="text-xs text-gray-600 truncate">{notification.message}</p>
-                                                        <p className="text-xs text-gray-400 mt-1">{timeAgo(notification.created_at)}</p>
+                                                        <p className="text-xs text-slate-600 truncate">{notification.message}</p>
+                                                        <p className="text-xs text-slate-400 mt-1">{timeAgo(notification.created_at)}</p>
                                                     </div>
                                                 </div>
                                             );

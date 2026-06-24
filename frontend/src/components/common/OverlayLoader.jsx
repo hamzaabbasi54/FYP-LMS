@@ -5,7 +5,7 @@ const OverlayLoader = ({ isLoading, text = 'Processing, please wait...' }) => {
     if (!isLoading) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-sm transition-all duration-300">
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-sm transition-all duration-300">
             <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center space-y-4 max-w-sm w-full mx-4 transform scale-100 animate-in fade-in zoom-in-95 duration-200">
                 <div className="relative flex items-center justify-center w-16 h-16">
                     <div className="absolute inset-0 border-4 border-blue-100 rounded-full"></div>

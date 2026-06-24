@@ -1,7 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { MdLock, MdSchool, MdVisibility, MdVisibilityOff, MdCheckCircle, MdError } from 'react-icons/md';
+import {
+    PiArrowLeft,
+    PiCheckCircle,
+    PiEye,
+    PiEyeSlash,
+    PiLockKey,
+    PiShieldCheck,
+    PiWarningCircle
+} from 'react-icons/pi';
 import { authApi } from '../../services/api';
+import campusFlowLogo from '../../assets/campus-flow-logo-clean.svg';
+
+const SetPasswordShell = ({ children }) => (
+    <div className="campus-login-shell min-h-screen h-screen max-h-screen flex flex-col items-center justify-center p-3 sm:p-4 relative overflow-hidden">
+        <div className="campus-login-grid" aria-hidden="true"></div>
+        <div className="campus-flow-line campus-flow-line-one" aria-hidden="true"></div>
+        <div className="campus-flow-line campus-flow-line-two" aria-hidden="true"></div>
+        <div className="campus-flow-line campus-flow-line-three" aria-hidden="true"></div>
+        {children}
+    </div>
+);
 
 const SetPassword = () => {
     const navigate = useNavigate();
@@ -123,97 +142,103 @@ const SetPassword = () => {
     // Loading state while validating token
     if (validating) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center p-4">
-                <div className="text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-green-800 rounded-2xl mb-4 animate-pulse">
-                        <MdSchool className="w-10 h-10 text-white" />
+            <SetPasswordShell>
+                <div className="relative z-10 w-full max-w-md text-center">
+                    <div className="bg-white/82 backdrop-blur-2xl rounded-3xl shadow-[0_24px_80px_rgba(14,116,144,0.28)] p-6 border border-white/70">
+                        <img src={campusFlowLogo} alt="Campus Flow Logo" className="h-20 sm:h-24 w-full mx-auto mb-1 object-contain drop-shadow-sm" />
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-sky-50 border border-sky-100 rounded-2xl mb-4 animate-pulse">
+                            <PiShieldCheck className="w-10 h-10 text-sky-700" />
+                        </div>
+                        <p className="text-slate-700 text-base font-semibold">Validating your invite link...</p>
                     </div>
-                    <p className="text-gray-600 text-lg">Validating your invite link...</p>
                 </div>
-            </div>
+            </SetPasswordShell>
         );
     }
 
     // Invalid or expired token
     if (!tokenValid) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex items-center justify-center p-4">
-                <div className="w-full max-w-md text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-2xl mb-4">
-                        <MdError className="w-10 h-10 text-red-600" />
+            <SetPasswordShell>
+                <div className="relative z-10 w-full max-w-md text-center">
+                    <div className="bg-white/82 backdrop-blur-2xl rounded-3xl shadow-[0_24px_80px_rgba(14,116,144,0.28)] p-6 border border-white/70">
+                        <img src={campusFlowLogo} alt="Campus Flow Logo" className="h-20 sm:h-24 w-full mx-auto mb-1 object-contain drop-shadow-sm" />
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-red-50 border border-red-100 rounded-2xl mb-4">
+                            <PiWarningCircle className="w-10 h-10 text-red-600" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-slate-950 mb-2">Invalid or Expired Link</h1>
+                        <p className="text-slate-600 mb-6">
+                            This invite link is either invalid or has expired.
+                            Please contact your administrator to get a new invite.
+                        </p>
+                        <Link
+                            to="/"
+                            className="inline-flex w-full items-center justify-center gap-2 bg-sky-600 border border-sky-500 text-white py-3.5 rounded-xl font-bold tracking-wide hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-white transition-all duration-200 shadow-lg shadow-sky-700/20 hover:shadow-xl"
+                        >
+                            <PiArrowLeft className="h-5 w-5" />
+                            Go to Login
+                        </Link>
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-800 mb-2">Invalid or Expired Link</h1>
-                    <p className="text-gray-600 mb-6">
-                        This invite link is either invalid or has expired.
-                        Please contact your administrator to get a new invite.
-                    </p>
-                    <Link
-                        to="/"
-                        className="inline-block bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-8 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg"
-                    >
-                        Go to Login
-                    </Link>
                 </div>
-            </div>
+            </SetPasswordShell>
         );
     }
 
     // Success state
     if (success) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center p-4">
-                <div className="w-full max-w-md text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-2xl mb-4">
-                        <MdCheckCircle className="w-10 h-10 text-green-600" />
+            <SetPasswordShell>
+                <div className="relative z-10 w-full max-w-md text-center">
+                    <div className="bg-white/82 backdrop-blur-2xl rounded-3xl shadow-[0_24px_80px_rgba(14,116,144,0.28)] p-6 border border-white/70">
+                        <img src={campusFlowLogo} alt="Campus Flow Logo" className="h-20 sm:h-24 w-full mx-auto mb-1 object-contain drop-shadow-sm" />
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-50 border border-emerald-100 rounded-2xl mb-4">
+                            <PiCheckCircle className="w-10 h-10 text-emerald-600" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-slate-950 mb-2">Password Set Successfully</h1>
+                        <p className="text-slate-600 mb-6">
+                            Your password has been set. You will be redirected to the login page shortly.
+                        </p>
+                        <Link
+                            to="/"
+                            className="inline-flex w-full items-center justify-center gap-2 bg-sky-600 border border-sky-500 text-white py-3.5 rounded-xl font-bold tracking-wide hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-white transition-all duration-200 shadow-lg shadow-sky-700/20 hover:shadow-xl"
+                        >
+                            Login Now
+                        </Link>
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-800 mb-2">Password Set Successfully!</h1>
-                    <p className="text-gray-600 mb-6">
-                        Your password has been set. You will be redirected to the login page shortly.
-                    </p>
-                    <Link
-                        to="/"
-                        className="inline-block bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-8 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg"
-                    >
-                        Login Now
-                    </Link>
                 </div>
-            </div>
+            </SetPasswordShell>
         );
     }
 
     // Main form
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md">
-                {/* Logo and Header */}
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-green-800 rounded-2xl mb-4">
-                        <MdSchool className="w-10 h-10 text-white" />
+        <SetPasswordShell>
+            <div className="w-full max-w-[420px] relative z-10">
+                <div className="bg-white/84 backdrop-blur-2xl rounded-3xl shadow-[0_24px_80px_rgba(14,116,144,0.28)] p-4 border border-white/75">
+                    <div className="text-center mb-2.5">
+                        <img src={campusFlowLogo} alt="Campus Flow Logo" className="h-14 sm:h-16 w-full mx-auto object-contain drop-shadow-sm" />
+                        <h1 className="text-xl sm:text-[1.35rem] font-bold text-slate-950">Set Your Password</h1>
+                        <p className="mt-1 text-slate-500 text-xs font-medium leading-snug">
+                            Welcome, <span className="font-bold text-slate-800">{userInfo?.fullName}</span>. Create your Campus Flow password.
+                        </p>
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Set Your Password</h1>
-                    <p className="text-gray-600">
-                        Welcome, <strong>{userInfo?.fullName}</strong>! Create a password for your account.
-                    </p>
-                </div>
 
-                {/* Form Card */}
-                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
                     {/* Account Info */}
-                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
-                        <p className="text-sm text-blue-800">
+                    <div className="bg-sky-50/80 border border-sky-100 rounded-2xl px-3 py-2.5 mb-3">
+                        <p className="text-xs text-sky-900 truncate">
                             <strong>Email:</strong> {userInfo?.email}
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-3">
                         {/* New Password */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                                 Password
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <MdLock className="h-5 w-5 text-gray-400" />
+                                    <PiLockKey className="h-5 w-5 text-gray-600" />
                                 </div>
                                 <input
                                     type={showPassword ? 'text' : 'password'}
@@ -221,7 +246,7 @@ const SetPassword = () => {
                                     value={formData.password}
                                     onChange={handleChange}
                                     placeholder="Enter your password"
-                                    className={`w-full pl-10 pr-12 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
+                                    className={`w-full pl-10 pr-12 py-2.5 border ${errors.password ? 'border-red-500' : 'border-sky-100'} rounded-xl focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all duration-200 bg-white/90 placeholder-slate-400 text-slate-900 font-medium text-sm`}
                                 />
                                 <button
                                     type="button"
@@ -229,9 +254,9 @@ const SetPassword = () => {
                                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                                 >
                                     {showPassword ? (
-                                        <MdVisibilityOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                                        <PiEyeSlash className="h-5 w-5 text-gray-500 hover:text-slate-700" />
                                     ) : (
-                                        <MdVisibility className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                                        <PiEye className="h-5 w-5 text-gray-500 hover:text-slate-700" />
                                     )}
                                 </button>
                             </div>
@@ -243,14 +268,14 @@ const SetPassword = () => {
                             {formData.password && (
                                 <div className="mt-2">
                                     <div className="flex items-center justify-between mb-1">
-                                        <span className="text-xs text-gray-600">Password strength:</span>
+                                        <span className="text-xs text-slate-600">Password strength:</span>
                                         <span className={`text-xs font-semibold ${passwordStrength.label === 'Weak' ? 'text-red-600' :
                                                 passwordStrength.label === 'Medium' ? 'text-yellow-600' : 'text-green-600'
                                             }`}>
                                             {passwordStrength.label}
                                         </span>
                                     </div>
-                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div className="w-full bg-sky-50 rounded-full h-2 overflow-hidden">
                                         <div
                                             className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.color}`}
                                             style={{ width: `${(passwordStrength.score / 6) * 100}%` }}
@@ -262,12 +287,12 @@ const SetPassword = () => {
 
                         {/* Confirm Password */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                                 Confirm Password
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <MdLock className="h-5 w-5 text-gray-400" />
+                                    <PiLockKey className="h-5 w-5 text-gray-600" />
                                 </div>
                                 <input
                                     type={showConfirmPassword ? 'text' : 'password'}
@@ -275,7 +300,7 @@ const SetPassword = () => {
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
                                     placeholder="Confirm your password"
-                                    className={`w-full pl-10 pr-12 py-3 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
+                                    className={`w-full pl-10 pr-12 py-2.5 border ${errors.confirmPassword ? 'border-red-500' : 'border-sky-100'} rounded-xl focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all duration-200 bg-white/90 placeholder-slate-400 text-slate-900 font-medium text-sm`}
                                 />
                                 <button
                                     type="button"
@@ -283,9 +308,9 @@ const SetPassword = () => {
                                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                                 >
                                     {showConfirmPassword ? (
-                                        <MdVisibilityOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                                        <PiEyeSlash className="h-5 w-5 text-gray-500 hover:text-slate-700" />
                                     ) : (
-                                        <MdVisibility className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                                        <PiEye className="h-5 w-5 text-gray-500 hover:text-slate-700" />
                                     )}
                                 </button>
                             </div>
@@ -295,23 +320,23 @@ const SetPassword = () => {
                         </div>
 
                         {/* Password Requirements */}
-                        <div className="bg-gray-50 rounded-lg p-4">
-                            <p className="text-xs font-semibold text-gray-700 mb-2">Password must contain:</p>
-                            <ul className="text-xs text-gray-600 space-y-1">
+                        <div className="bg-sky-50/70 border border-sky-100 rounded-2xl p-3">
+                            <p className="text-[11px] font-bold text-slate-700 mb-2 uppercase tracking-[0.16em]">Password must contain</p>
+                            <ul className="text-[11px] text-slate-600 grid grid-cols-2 gap-x-2 gap-y-1">
                                 <li className="flex items-center">
-                                    <MdCheckCircle className={`w-4 h-4 mr-2 ${formData.password.length >= 6 ? 'text-green-500' : 'text-gray-300'}`} />
+                                    <PiCheckCircle className={`w-3.5 h-3.5 mr-1.5 flex-shrink-0 ${formData.password.length >= 6 ? 'text-emerald-500' : 'text-slate-300'}`} />
                                     At least 6 characters
                                 </li>
                                 <li className="flex items-center">
-                                    <MdCheckCircle className={`w-4 h-4 mr-2 ${/[A-Z]/.test(formData.password) ? 'text-green-500' : 'text-gray-300'}`} />
+                                    <PiCheckCircle className={`w-3.5 h-3.5 mr-1.5 flex-shrink-0 ${/[A-Z]/.test(formData.password) ? 'text-emerald-500' : 'text-slate-300'}`} />
                                     One uppercase letter
                                 </li>
                                 <li className="flex items-center">
-                                    <MdCheckCircle className={`w-4 h-4 mr-2 ${/[a-z]/.test(formData.password) ? 'text-green-500' : 'text-gray-300'}`} />
+                                    <PiCheckCircle className={`w-3.5 h-3.5 mr-1.5 flex-shrink-0 ${/[a-z]/.test(formData.password) ? 'text-emerald-500' : 'text-slate-300'}`} />
                                     One lowercase letter
                                 </li>
                                 <li className="flex items-center">
-                                    <MdCheckCircle className={`w-4 h-4 mr-2 ${/[0-9]/.test(formData.password) ? 'text-green-500' : 'text-gray-300'}`} />
+                                    <PiCheckCircle className={`w-3.5 h-3.5 mr-1.5 flex-shrink-0 ${/[0-9]/.test(formData.password) ? 'text-emerald-500' : 'text-slate-300'}`} />
                                     One number
                                 </li>
                             </ul>
@@ -321,7 +346,7 @@ const SetPassword = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
+                            className="inline-flex w-full items-center justify-center gap-2 bg-sky-600 border border-sky-500 text-white py-2.5 rounded-xl font-bold tracking-wide hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-white transition-all duration-200 shadow-lg shadow-sky-700/20 hover:shadow-xl disabled:opacity-50"
                         >
                             {loading ? 'Setting Password...' : 'Set Password & Continue'}
                         </button>
@@ -329,11 +354,11 @@ const SetPassword = () => {
                 </div>
 
                 {/* Footer */}
-                <div className="mt-8 text-center text-sm text-gray-500">
-                    <p>&copy; 2026 University LMS. All rights reserved.</p>
+                <div className="mt-3 text-center text-xs sm:text-sm text-slate-600 font-medium tracking-wide">
+                    <p>&copy; 2026 Campus Flow. All rights reserved.</p>
                 </div>
             </div>
-        </div>
+        </SetPasswordShell>
     );
 };
 

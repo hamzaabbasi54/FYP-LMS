@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from '../../common/faculty/Sidebar.jsx';
 import Navbar from '../../common/faculty/Navbar.jsx';
 import { useAuth } from '../../../context/AuthContext';
@@ -12,7 +12,8 @@ const FacultyMainLayout = () => {
     const { user } = useAuth();
     const socket = useSocket();
     const queryClient = useQueryClient();
-    const facultyName = user?.faculty || 'Faculty';
+    const location = useLocation();
+    const hideFooter = location.pathname.includes('/faculty-messages') || location.pathname === '/faculty-dashboard';
 
     // Listen for real-time WebSocket events from admin
     useEffect(() => {
@@ -55,12 +56,13 @@ const FacultyMainLayout = () => {
                     <Outlet />
                 </div>
             </div>
-            {/* Footer - Fixed at bottom */}
-            <div className="footer">
-                <p className="text-sm text-gray-500 text-center py-4">
-                    © {new Date().getFullYear()} {facultyName} LMS. Need help? Contact IT Support.
-                </p>
-            </div>
+            {!hideFooter && (
+                <div className="footer">
+                    <p className="text-sm text-gray-500 text-center py-4">
+                        © {new Date().getFullYear()} Campus Flow. Need help? Contact IT Support.
+                    </p>
+                </div>
+            )}
         </div>
     );
 };

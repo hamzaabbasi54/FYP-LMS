@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MdFormatBold, MdFormatItalic, MdFormatUnderlined, MdFormatListBulleted, MdFormatListNumbered, MdLink, MdSave, MdArrowDropDown } from 'react-icons/md';
+import {
+    PiCaretDown as MdArrowDropDown,
+    PiFloppyDisk as MdSave,
+    PiLinkSimple as MdLink,
+    PiListBullets as MdFormatListBulleted,
+    PiListNumbers as MdFormatListNumbered,
+    PiTextB as MdFormatBold,
+    PiTextItalic as MdFormatItalic,
+    PiTextUnderline as MdFormatUnderlined
+} from 'react-icons/pi';
 
 const EditSyllabus = () => {
     const navigate = useNavigate();
@@ -55,7 +64,7 @@ const EditSyllabus = () => {
     };
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="min-h-[calc(100vh-140px)] space-y-6">
             {/* Page Header */}
             <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">
@@ -67,12 +76,12 @@ const EditSyllabus = () => {
             </div>
 
             {/* Rich Text Editor */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 overflow-hidden">
                 {/* Toolbar */}
-                <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 flex flex-wrap items-center gap-2 sm:gap-4">
+                <div className="border-b border-sky-100 bg-sky-50/45 px-4 py-3 flex flex-wrap items-center gap-2 sm:gap-4">
                     {/* Text Format Dropdown */}
                     <div className="relative">
-                        <button className="flex items-center px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50">
+                        <button className="flex items-center px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-sky-100 rounded-xl hover:bg-sky-50/45">
                             Normal Text
                             <MdArrowDropDown className="w-4 h-4 ml-1" />
                         </button>
@@ -84,19 +93,19 @@ const EditSyllabus = () => {
                     {/* Format Buttons */}
                     <div className="flex items-center gap-1">
                         <button
-                            className="p-2 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
+                            className="p-2 rounded-xl hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
                             title="Bold"
                         >
                             <MdFormatBold className="w-5 h-5" />
                         </button>
                         <button
-                            className="p-2 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
+                            className="p-2 rounded-xl hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
                             title="Italic"
                         >
                             <MdFormatItalic className="w-5 h-5" />
                         </button>
                         <button
-                            className="p-2 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
+                            className="p-2 rounded-xl hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
                             title="Underline"
                         >
                             <MdFormatUnderlined className="w-5 h-5" />
@@ -109,13 +118,13 @@ const EditSyllabus = () => {
                     {/* List Buttons */}
                     <div className="flex items-center gap-1">
                         <button
-                            className="p-2 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
+                            className="p-2 rounded-xl hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
                             title="Bullet List"
                         >
                             <MdFormatListBulleted className="w-5 h-5" />
                         </button>
                         <button
-                            className="p-2 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
+                            className="p-2 rounded-xl hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
                             title="Numbered List"
                         >
                             <MdFormatListNumbered className="w-5 h-5" />
@@ -127,7 +136,7 @@ const EditSyllabus = () => {
 
                     {/* Link Button */}
                     <button
-                        className="p-2 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
+                        className="p-2 rounded-xl hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
                         title="Insert Link"
                     >
                         <MdLink className="w-5 h-5" />
@@ -144,7 +153,7 @@ const EditSyllabus = () => {
                                 <textarea
                                     value={courseOverview}
                                     onChange={(e) => setCourseOverview(e.target.value)}
-                                    className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-700 resize-none"
+                                    className="w-full p-3 border border-sky-100 rounded-3xl focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent text-slate-700 resize-none"
                                     rows="4"
                                     placeholder="Enter course overview..."
                                 />
@@ -156,7 +165,7 @@ const EditSyllabus = () => {
                                     <h3 className="font-bold text-lg">Learning Objectives</h3>
                                     <button
                                         onClick={addObjective}
-                                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                                        className="text-sky-700 hover:text-sky-700 text-sm font-medium"
                                     >
                                         + Add Objective
                                     </button>
@@ -169,7 +178,7 @@ const EditSyllabus = () => {
                                                 type="text"
                                                 value={objective}
                                                 onChange={(e) => handleObjectiveChange(index, e.target.value)}
-                                                className="flex-1 p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-700"
+                                                className="flex-1 p-2 border border-sky-100 rounded-3xl focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent text-slate-700"
                                                 placeholder="Enter learning objective..."
                                             />
                                         </div>
@@ -183,7 +192,7 @@ const EditSyllabus = () => {
                                     <h3 className="font-bold text-lg">Weekly Schedule</h3>
                                     <button
                                         onClick={addScheduleItem}
-                                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                                        className="text-sky-700 hover:text-sky-700 text-sm font-medium"
                                     >
                                         + Add Week
                                     </button>
@@ -195,7 +204,7 @@ const EditSyllabus = () => {
                                             type="text"
                                             value={schedule}
                                             onChange={(e) => handleScheduleChange(index, e.target.value)}
-                                            className="w-full p-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-700"
+                                            className="w-full p-2 border border-sky-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent text-slate-700"
                                             placeholder="Enter weekly schedule item..."
                                         />
                                     ))}
@@ -210,13 +219,13 @@ const EditSyllabus = () => {
             <div className="flex flex-col sm:flex-row justify-end gap-3">
                 <button
                     onClick={handleCancel}
-                    className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 shadow-sm transition-colors font-medium text-sm sm:text-base"
+                    className="px-6 py-2.5 bg-white border border-sky-100 text-slate-700 rounded-3xl hover:bg-sky-50/45 shadow-sm transition-colors font-medium text-sm sm:text-base"
                 >
                     Cancel
                 </button>
                 <button
                     onClick={handleSave}
-                    className="flex items-center justify-center px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm sm:text-base"
+                    className="flex items-center justify-center px-6 py-2.5 bg-sky-600 text-white rounded-3xl hover:bg-sky-700 shadow-sm transition-colors font-medium text-sm sm:text-base"
                 >
                     <MdSave className="w-5 h-5 mr-2" />
                     Save Changes
@@ -227,4 +236,3 @@ const EditSyllabus = () => {
 };
 
 export default EditSyllabus;
-

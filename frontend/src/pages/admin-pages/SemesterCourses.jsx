@@ -247,7 +247,7 @@ const SemesterCourses = () => {
 
                 {/* ========== Add Course to Semester Modal ========== */}
                 {isAssignModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
                             <div className="flex items-center justify-between p-6 border-b border-slate-200">
                                 <div>
@@ -312,7 +312,7 @@ const SemesterCourses = () => {
 
                 {/* ========== Course Details Modal ========== */}
                 {selectedCourse && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
                             <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-blue-600 to-indigo-600">
                                 <div>
@@ -412,7 +412,7 @@ const SemesterCourses = () => {
 
                 {/* ========== Faculty Assignment Modal ========== */}
                 {showFacultyModal && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
                             <div className="flex items-center justify-between p-5 border-b border-slate-200">
                                 <div>

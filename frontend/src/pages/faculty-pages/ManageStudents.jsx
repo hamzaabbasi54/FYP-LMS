@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { MdSearch, MdAdd, MdChevronRight, MdPeople, MdEmail, MdPhone, MdMoreVert } from 'react-icons/md';
+import {
+    PiArrowRight as MdChevronRight,
+    PiDotsThreeVertical as MdMoreVert,
+    PiEnvelopeSimple as MdEmail,
+    PiMagnifyingGlass as MdSearch,
+    PiPhone as MdPhone,
+    PiPlus as MdAdd,
+    PiUsersThree as MdPeople
+} from 'react-icons/pi';
 import { useCourse } from '../../context/CourseContext';
 import { studentApi } from '../../services/api';
 import { useQuery } from '@tanstack/react-query';
@@ -45,15 +53,15 @@ const ManageStudents = () => {
     // Generate avatar color based on student name
     const getAvatarColor = (name) => {
         const colors = [
-            'bg-purple-100 text-purple-700',
-            'bg-blue-100 text-blue-700',
+            'bg-sky-50 text-sky-700',
+            'bg-blue-100 text-sky-700',
             'bg-emerald-100 text-emerald-700',
-            'bg-amber-100 text-amber-700',
-            'bg-indigo-100 text-indigo-700',
-            'bg-pink-100 text-pink-700',
-            'bg-orange-100 text-orange-700',
-            'bg-teal-100 text-teal-700',
-            'bg-cyan-100 text-cyan-700',
+            'bg-amber-50 text-amber-700',
+            'bg-sky-50 text-sky-700',
+            'bg-sky-50 text-sky-700',
+            'bg-amber-50 text-amber-700',
+            'bg-sky-50 text-sky-700',
+            'bg-sky-50 text-sky-700',
             'bg-rose-100 text-rose-700',
         ];
         let hash = 0;
@@ -75,10 +83,10 @@ const ManageStudents = () => {
 
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="min-h-[calc(100vh-140px)] space-y-6">
             {/* Breadcrumbs */}
             <div className="flex items-center text-sm text-slate-500 font-medium">
-                <Link to={selectedCourse ? `/faculty-mycourses/${courseAssignmentId}` : '/faculty-dashboard'} className="hover:text-blue-600 transition-colors">
+                <Link to={selectedCourse ? `/faculty-mycourses/${courseAssignmentId}` : '/faculty-dashboard'} className="hover:text-sky-700 transition-colors">
                     My Courses
                 </Link>
                 <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
@@ -98,7 +106,7 @@ const ManageStudents = () => {
                 </div>
                 <Link
                     to={`/faculty-mycourses/${courseAssignmentId}/register-student`}
-                    className="flex items-center px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm"
+                    className="flex items-center px-5 py-2.5 bg-sky-600 text-white rounded-3xl hover:bg-sky-700 shadow-sm transition-colors font-medium text-sm"
                 >
                     <MdAdd className="w-5 h-5 mr-2" />
                     Add Student
@@ -107,10 +115,10 @@ const ManageStudents = () => {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-5">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <MdPeople className="w-5 h-5 text-blue-600" />
+                        <div className="w-10 h-10 rounded-3xl bg-blue-100 flex items-center justify-center">
+                            <MdPeople className="w-5 h-5 text-sky-700" />
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-slate-800">{students.length}</p>
@@ -118,9 +126,9 @@ const ManageStudents = () => {
                         </div>
                     </div>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-5">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-3xl bg-emerald-100 flex items-center justify-center">
                             <MdPeople className="w-5 h-5 text-emerald-600" />
                         </div>
                         <div>
@@ -129,10 +137,10 @@ const ManageStudents = () => {
                         </div>
                     </div>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-5">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                            <MdPeople className="w-5 h-5 text-purple-600" />
+                        <div className="w-10 h-10 rounded-3xl bg-sky-50 flex items-center justify-center">
+                            <MdPeople className="w-5 h-5 text-sky-700" />
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-slate-800">
@@ -145,9 +153,9 @@ const ManageStudents = () => {
             </div>
 
             {/* Students List */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 overflow-hidden">
                 {/* Search */}
-                <div className="p-4 border-b border-slate-200">
+                <div className="p-4 border-b border-sky-100">
                     <div className="relative max-w-md">
                         <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                         <input
@@ -155,7 +163,7 @@ const ManageStudents = () => {
                             placeholder="Search by name, ID, or email..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium text-slate-800 placeholder-slate-400"
+                            className="w-full pl-10 pr-4 py-2 border border-sky-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent font-medium text-slate-800 placeholder-slate-400"
                         />
                     </div>
                 </div>
@@ -163,7 +171,7 @@ const ManageStudents = () => {
                 {/* Loading State */}
                 {loading && (
                     <div className="p-12 text-center">
-                        <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                        <div className="inline-block w-8 h-8 border-4 border-sky-100 border-t-sky-600 rounded-3xl animate-spin mb-4"></div>
                         <p className="text-slate-500 text-sm">Loading enrolled students...</p>
                     </div>
                 )}
@@ -182,7 +190,7 @@ const ManageStudents = () => {
                         <p className="text-slate-500 text-sm font-medium">No students enrolled in this course yet.</p>
                         <Link
                             to={`/faculty-mycourses/${courseAssignmentId}/register-student`}
-                            className="inline-flex items-center mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
+                            className="inline-flex items-center mt-4 px-4 py-2 bg-sky-600 text-white rounded-3xl hover:bg-sky-700 text-sm font-medium transition-colors"
                         >
                             <MdAdd className="w-4 h-4 mr-1" />
                             Add First Student
@@ -194,7 +202,7 @@ const ManageStudents = () => {
                 {!loading && !error && students.length > 0 && (
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                            <thead className="bg-slate-50 border-b border-slate-200">
+                            <thead className="bg-sky-50/45 border-b border-sky-100">
                                 <tr>
                                     <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                                         Student
@@ -223,11 +231,11 @@ const ManageStudents = () => {
                                     const avatarColor = getAvatarColor(fullName);
 
                                     return (
-                                        <tr key={student.id} className="hover:bg-slate-50 transition-colors">
+                                        <tr key={student.id} className="hover:bg-sky-50/45 transition-colors">
                                             {/* Student Info */}
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`w-10 h-10 rounded-full ${avatarColor} flex items-center justify-center flex-shrink-0`}>
+                                                    <div className={`w-10 h-10 rounded-3xl ${avatarColor} flex items-center justify-center flex-shrink-0`}>
                                                         <span className="font-bold text-sm">{initials}</span>
                                                     </div>
                                                     <div>
@@ -271,9 +279,9 @@ const ManageStudents = () => {
 
                                             {/* Status */}
                                             <td className="px-6 py-4">
-                                                <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${student.is_active
+                                                <span className={`inline-flex px-2.5 py-1 rounded-3xl text-[10px] font-bold uppercase tracking-wider ${student.is_active
                                                     ? 'bg-emerald-100 text-emerald-700'
-                                                    : 'bg-slate-100 text-slate-700'
+                                                    : 'bg-sky-50 text-slate-700'
                                                     }`}>
                                                     {student.is_active ? 'Active' : 'Inactive'}
                                                 </span>
@@ -281,7 +289,7 @@ const ManageStudents = () => {
 
                                             {/* Actions */}
                                             <td className="px-6 py-4 text-right">
-                                                <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                                <button className="p-2 text-slate-400 hover:text-sky-700 hover:bg-sky-50 rounded-3xl transition-colors">
                                                     <MdMoreVert className="w-5 h-5" />
                                                 </button>
                                             </td>
@@ -302,7 +310,7 @@ const ManageStudents = () => {
                 
                 {/* Pagination Controls */}
                 {!loading && !error && filteredStudents.length > 0 && (
-                    <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+                    <div className="px-6 py-4 border-t border-sky-100 flex items-center justify-between">
                         <p className="text-sm text-slate-500 font-medium">
                             Showing <span className="font-bold text-slate-800">{((page - 1) * limit) + 1}</span> to <span className="font-bold text-slate-800">{Math.min(page * limit, filteredStudents.length)}</span> of <span className="font-bold text-slate-800">{filteredStudents.length}</span> students
                         </p>
@@ -312,7 +320,7 @@ const ManageStudents = () => {
                                 <button 
                                     onClick={() => setPage(p => Math.max(1, p - 1))}
                                     disabled={page === 1}
-                                    className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                    className="px-3 py-1.5 border border-sky-100 rounded-3xl text-sm font-semibold text-slate-600 hover:bg-sky-50/45 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                 >
                                     Previous
                                 </button>
@@ -322,7 +330,7 @@ const ManageStudents = () => {
                                 <button 
                                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                     disabled={page === totalPages}
-                                    className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                    className="px-3 py-1.5 border border-sky-100 rounded-3xl text-sm font-semibold text-slate-600 hover:bg-sky-50/45 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                 >
                                     Next
                                 </button>

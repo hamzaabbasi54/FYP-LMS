@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { MdSearch, MdChevronRight, MdSave, MdDownload, MdUploadFile } from 'react-icons/md';
+import {
+    PiCaretRight as MdChevronRight,
+    PiDownloadSimple as MdDownload,
+    PiFloppyDisk as MdSave,
+    PiMagnifyingGlass as MdSearch,
+    PiUploadSimple as MdUploadFile
+} from 'react-icons/pi';
 import { useCourse } from '../../context/CourseContext';
 import { assessmentApi, gradeApi, studentApi } from '../../services/api';
 import OverlayLoader from '../../components/common/OverlayLoader';
@@ -34,16 +40,16 @@ const GradeAssignment = () => {
 
     // Avatar color options
     const avatarColors = [
-        "bg-purple-100 text-purple-700",
-        "bg-pink-100 text-pink-700",
+        "bg-sky-50 text-sky-700",
+        "bg-sky-50 text-sky-700",
         "bg-emerald-100 text-emerald-700",
-        "bg-amber-100 text-amber-700",
-        "bg-indigo-100 text-indigo-700",
-        "bg-blue-100 text-blue-700",
-        "bg-red-100 text-red-700",
-        "bg-orange-100 text-orange-700",
-        "bg-teal-100 text-teal-700",
-        "bg-cyan-100 text-cyan-700"
+        "bg-amber-50 text-amber-700",
+        "bg-sky-50 text-sky-700",
+        "bg-blue-100 text-sky-700",
+        "bg-red-50 text-red-700",
+        "bg-amber-50 text-amber-700",
+        "bg-sky-50 text-sky-700",
+        "bg-sky-50 text-sky-700"
     ];
 
     const getAvatarColor = (name) => {
@@ -407,7 +413,7 @@ const GradeAssignment = () => {
         return (
             <div className="p-4 sm:p-6 lg:p-8">
                 <div className="flex justify-center items-center py-20">
-                    <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                    <div className="inline-block w-8 h-8 border-4 border-sky-100 border-t-sky-600 rounded-3xl animate-spin mb-4"></div>
                     <p className="text-slate-500 text-sm ml-4">Loading assessment data...</p>
                 </div>
             </div>
@@ -421,7 +427,7 @@ const GradeAssignment = () => {
                     <p className="text-slate-500 text-sm">Assessment not found.</p>
                     <Link
                         to={`/faculty-mycourses/${courseAssignmentId}/grading`}
-                        className="text-blue-600 hover:text-blue-700 font-medium text-sm mt-4 inline-block"
+                        className="text-sky-700 hover:text-sky-700 font-medium text-sm mt-4 inline-block"
                     >
                         ← Back to Grading
                     </Link>
@@ -433,16 +439,16 @@ const GradeAssignment = () => {
     const { date: dueDate, time: dueTime } = formatDate(assessment.due_date);
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6 bg-slate-50 min-h-screen">
+        <div className="min-h-[calc(100vh-140px)] space-y-6 bg-sky-50/45 min-h-screen">
             <OverlayLoader isLoading={saving || importing} text={saving ? "Saving grades to database..." : "Importing grades..."} />
             
             {/* Breadcrumbs */}
             <div className="flex items-center text-sm text-slate-500 mb-4 font-medium">
-                <Link to={`/faculty-mycourses/${courseAssignmentId}`} className="hover:text-blue-600 transition-colors">
+                <Link to={`/faculty-mycourses/${courseAssignmentId}`} className="hover:text-sky-700 transition-colors">
                     {courseCode}
                 </Link>
                 <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
-                <Link to={`/faculty-mycourses/${courseAssignmentId}/grading`} className="hover:text-blue-600 transition-colors">
+                <Link to={`/faculty-mycourses/${courseAssignmentId}/grading`} className="hover:text-sky-700 transition-colors">
                     Grades
                 </Link>
                 <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
@@ -450,7 +456,7 @@ const GradeAssignment = () => {
             </div>
 
             {/* Assignment Header Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-6">
                 <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
                     {/* Left Side - Assignment Info */}
                     <div className="flex-1">
@@ -477,7 +483,7 @@ const GradeAssignment = () => {
                     {/* Right Side - Max Score and Summary */}
                     <div className="flex flex-col gap-4 lg:items-end">
                         {/* Max Score Card */}
-                        <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm w-full lg:w-auto lg:min-w-[150px]">
+                        <div className="bg-white border border-sky-100 rounded-3xl p-4 shadow-sm w-full lg:w-auto lg:min-w-[150px]">
                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                 MAX SCORE
                             </p>
@@ -495,7 +501,7 @@ const GradeAssignment = () => {
             </div>
 
             {/* Template Download & Import Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                         <h3 className="text-lg font-semibold text-slate-800 mb-1">Excel Grading</h3>
@@ -505,7 +511,7 @@ const GradeAssignment = () => {
                         <button
                             onClick={handleDownloadTemplate}
                             disabled={downloading}
-                            className="flex items-center px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 shadow-sm transition-colors font-medium text-sm disabled:opacity-50"
+                            className="flex items-center px-4 py-2.5 bg-white text-sky-700 border border-sky-100 rounded-3xl hover:bg-sky-50 shadow-sm transition-colors font-medium text-sm disabled:opacity-50"
                         >
                             <MdDownload className="w-5 h-5 mr-2" />
                             {downloading ? 'Downloading...' : 'Get Template'}
@@ -513,7 +519,7 @@ const GradeAssignment = () => {
                         <button
                             onClick={() => fileInputRef.current?.click()}
                             disabled={importing}
-                            className="flex items-center px-4 py-2.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 shadow-sm transition-colors font-medium text-sm disabled:opacity-50"
+                            className="flex items-center px-4 py-2.5 bg-sky-600 text-white border border-sky-500 rounded-3xl hover:bg-sky-700 shadow-sm shadow-sky-700/15 transition-colors font-medium text-sm disabled:opacity-50"
                         >
                             <MdUploadFile className="w-5 h-5 mr-2" />
                             {importing ? 'Importing...' : 'Import Grades'}
@@ -528,10 +534,10 @@ const GradeAssignment = () => {
                     </div>
                 </div>
                 {importResult && (
-                    <div className={`mt-4 px-4 py-3 rounded-lg text-sm font-medium ${
+                    <div className={`mt-4 px-4 py-3 rounded-3xl text-sm font-medium ${
                         importResult.success
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-red-50 text-red-700 border border-red-200'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                            : 'bg-red-50 text-red-700 border border-red-100'
                     }`}>
                         <p>{importResult.message}</p>
                         {importResult.data && (
@@ -547,9 +553,9 @@ const GradeAssignment = () => {
             </div>
 
             {/* Student Submissions Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 overflow-hidden">
                 {/* Search Bar */}
-                <div className="p-6 border-b border-slate-200">
+                <div className="p-6 border-b border-sky-100">
                     <div className="relative max-w-md">
                         <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                         <input
@@ -557,7 +563,7 @@ const GradeAssignment = () => {
                             placeholder="Search students..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full pl-10 pr-4 py-2 border border-sky-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent"
                         />
                     </div>
                 </div>
@@ -565,9 +571,9 @@ const GradeAssignment = () => {
                 {/* Table */}
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-slate-50 border-b border-slate-200">
+                        <thead className="bg-sky-50/45 border-b border-sky-100">
                             <tr>
-                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-10">
+                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-sky-50/45 z-10">
                                     STUDENT
                                 </th>
                                 {assessment.questions && assessment.questions.length > 0 ? (
@@ -588,11 +594,11 @@ const GradeAssignment = () => {
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {filteredStudents.map((student) => (
-                                <tr key={student.id} className="hover:bg-slate-50 transition-colors">
+                                <tr key={student.id} className="hover:bg-sky-50/45 transition-colors">
                                     {/* Student Info */}
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-10 h-10 rounded-full ${student.avatarColor} flex items-center justify-center flex-shrink-0`}>
+                                            <div className={`w-10 h-10 rounded-3xl ${student.avatarColor} flex items-center justify-center flex-shrink-0`}>
                                                 <span className="font-bold text-sm">{student.initials}</span>
                                             </div>
                                             <div>
@@ -613,7 +619,7 @@ const GradeAssignment = () => {
                                                     step="0.5"
                                                     value={questionScores[student.id]?.[`q${q.question_number}`] !== undefined ? questionScores[student.id][`q${q.question_number}`] : ''}
                                                     onChange={(e) => handleQuestionScoreChange(student.id, q.question_number, e.target.value)}
-                                                    className={`w-16 px-2 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-amber-400 bg-amber-50' : 'border-slate-300'}`}
+                                                    className={`w-16 px-2 py-1.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 ${unsavedChanges[student.id] ? 'border-amber-400 bg-amber-50' : 'border-sky-100'}`}
                                                     placeholder="0"
                                                 />
                                             </td>
@@ -631,10 +637,10 @@ const GradeAssignment = () => {
                                                 value={scores[student.id] !== undefined ? scores[student.id] : ''}
                                                 onChange={(e) => handleScoreChange(student.id, e.target.value)}
                                                 disabled={assessment.questions && assessment.questions.length > 0}
-                                                className={`w-20 px-3 py-2 border rounded-lg text-sm focus:outline-none ${
+                                                className={`w-20 px-3 py-2 border rounded-3xl text-sm focus:outline-none ${
                                                     assessment.questions && assessment.questions.length > 0 
-                                                        ? 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed font-semibold'
-                                                        : `focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-amber-400 bg-amber-50' : 'border-slate-300'}`
+                                                        ? 'bg-sky-50 border-sky-100 text-slate-500 cursor-not-allowed font-semibold'
+                                                        : `focus:ring-2 focus:ring-sky-200 ${unsavedChanges[student.id] ? 'border-amber-400 bg-amber-50' : 'border-sky-100'}`
                                                 }`}
                                                 placeholder="0"
                                             />
@@ -648,7 +654,7 @@ const GradeAssignment = () => {
                                             type="text"
                                             value={remarks[student.id] || ''}
                                             onChange={(e) => handleRemarksChange(student.id, e.target.value)}
-                                            className={`w-full max-w-xs px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${unsavedChanges[student.id] ? 'border-amber-400 bg-amber-50' : 'border-slate-300'
+                                            className={`w-full max-w-xs px-3 py-2 border rounded-3xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 ${unsavedChanges[student.id] ? 'border-amber-400 bg-amber-50' : 'border-sky-100'
                                                 }`}
                                             placeholder="Add remarks..."
                                         />
@@ -667,15 +673,15 @@ const GradeAssignment = () => {
                 </div>
 
                 {/* Bottom Action Bar */}
-                <div className="p-6 border-t border-slate-200 bg-slate-50">
+                <div className="p-6 border-t border-sky-100 bg-sky-50/45">
                     {/* Save Message */}
                     {saveMessage && (
-                        <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
+                        <div className={`mb-4 px-4 py-3 rounded-3xl text-sm font-medium ${
                             saveMessage.type === 'success'
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                                 : saveMessage.type === 'info'
-                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                : 'bg-red-50 text-red-700 border border-red-200'
+                                ? 'bg-sky-50 text-sky-700 border border-sky-100'
+                                : 'bg-red-50 text-red-700 border border-red-100'
                         }`}>
                             {saveMessage.text}
                         </div>
@@ -692,17 +698,17 @@ const GradeAssignment = () => {
                             <button
                                 onClick={handleCancel}
                                 disabled={saving || unsavedCount === 0}
-                                className="px-6 py-2.5 bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm transition-colors font-medium text-sm disabled:opacity-50"
+                                className="px-6 py-2.5 bg-white text-slate-700 border border-sky-100 rounded-3xl hover:bg-sky-50/45 shadow-sm transition-colors font-medium text-sm disabled:opacity-50"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleSave}
                                 disabled={saving}
-                                className={`flex items-center px-6 py-2.5 rounded-lg shadow-sm transition-colors font-medium text-sm ${
+                                className={`flex items-center px-6 py-2.5 rounded-3xl shadow-sm transition-colors font-medium text-sm ${
                                     saving
                                         ? 'bg-blue-400 text-white cursor-not-allowed'
-                                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                                        : 'bg-sky-600 text-white hover:bg-sky-700'
                                 }`}
                             >
                                 <MdSave className="w-5 h-5 mr-2" />
@@ -715,16 +721,16 @@ const GradeAssignment = () => {
 
             {/* Preview Modal */}
             {previewData && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-                        <div className="p-6 border-b border-slate-200">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
+                    <div className="bg-white/92 rounded-3xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                        <div className="p-6 border-b border-sky-100">
                             <h2 className="text-xl font-bold text-slate-800">Preview Import Results</h2>
                             <p className="text-sm text-slate-500 mt-1">Review the grades and calculated CLO achievements before saving.</p>
                         </div>
                         
                         <div className="p-6 overflow-y-auto flex-1">
                             {previewErrors.length > 0 && (
-                                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-3xl">
                                     <h4 className="font-semibold text-red-800 mb-2">Warning: Some rows had errors</h4>
                                     <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
                                         {previewErrors.map((e, idx) => (
@@ -734,9 +740,9 @@ const GradeAssignment = () => {
                                 </div>
                             )}
 
-                            <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                            <div className="overflow-x-auto border border-sky-100 rounded-3xl">
                                 <table className="w-full text-sm text-left">
-                                    <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                                    <thead className="bg-sky-50/45 text-slate-600 font-bold border-b border-sky-100 uppercase tracking-wider text-[10px]">
                                         <tr>
                                             <th className="px-4 py-3">Registration #</th>
                                             <th className="px-4 py-3">Student Name</th>
@@ -747,21 +753,21 @@ const GradeAssignment = () => {
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
                                         {previewData.map((row, idx) => (
-                                            <tr key={idx} className="hover:bg-slate-50">
+                                            <tr key={idx} className="hover:bg-sky-50/45">
                                                 <td className="px-4 py-3 font-medium text-slate-900">{row.student_id_number}</td>
                                                 <td className="px-4 py-3 text-slate-700">{row.student_name}</td>
-                                                <td className="px-4 py-3 font-bold text-blue-600">
+                                                <td className="px-4 py-3 font-bold text-sky-700">
                                                     {row.total_score} / {row.max_score}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     {row.clos && row.clos.length > 0 ? (
                                                         <div className="flex flex-wrap gap-2">
                                                             {row.clos.map((c, i) => (
-                                                                <span key={i} className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                                                <span key={i} className={`px-2 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider ${
                                                                     c.percentage >= 80 ? 'bg-emerald-100 text-emerald-700' :
-                                                                    c.percentage >= 60 ? 'bg-blue-100 text-blue-700' :
-                                                                    c.percentage >= 50 ? 'bg-amber-100 text-amber-700' :
-                                                                    'bg-red-100 text-red-700'
+                                                                    c.percentage >= 60 ? 'bg-blue-100 text-sky-700' :
+                                                                    c.percentage >= 50 ? 'bg-amber-50 text-amber-700' :
+                                                                    'bg-red-50 text-red-700'
                                                                 }`}>
                                                                     CLO-{c.clo_number}: {c.percentage}%
                                                                 </span>
@@ -779,18 +785,18 @@ const GradeAssignment = () => {
                             </div>
                         </div>
 
-                        <div className="p-6 border-t border-slate-200 bg-slate-50 flex justify-end gap-3 rounded-b-xl">
+                        <div className="p-6 border-t border-sky-100 bg-sky-50/45 flex justify-end gap-3 rounded-b-xl">
                             <button
                                 onClick={handleCancelImport}
                                 disabled={importing}
-                                className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium text-sm"
+                                className="px-5 py-2.5 bg-white border border-sky-100 text-slate-700 rounded-3xl hover:bg-sky-50/45 transition-colors font-medium text-sm"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleConfirmImport}
                                 disabled={importing}
-                                className="flex items-center px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm disabled:opacity-50"
+                                className="flex items-center px-5 py-2.5 bg-sky-600 text-white rounded-3xl hover:bg-sky-700 transition-colors font-medium text-sm disabled:opacity-50"
                             >
                                 {importing ? 'Saving...' : 'Confirm & Save to Database'}
                             </button>
