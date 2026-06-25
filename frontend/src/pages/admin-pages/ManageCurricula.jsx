@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import {
     PiBookOpenText,
     PiBooks,
+    PiCaretLeft,
+    PiCaretRight,
     PiFolders,
     PiGraduationCap,
     PiMagnifyingGlass,
@@ -12,10 +14,11 @@ import {
 } from 'react-icons/pi';
 import { curriculumApi } from '../../services/api';
 import { toast } from 'react-toastify';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import useUndoStore from '../../stores/useUndoStore';
 import { useAuth } from '../../context/AuthContext';
 import { createPortal } from 'react-dom';
+import { useDebounce } from '../../hooks/useDebounce';
 
 const ManageCurricula = () => {
     const { user } = useAuth();
@@ -26,17 +29,35 @@ const ManageCurricula = () => {
     const queryClient = useQueryClient();
 
     const [searchQuery, setSearchQuery] = useState('');
+    const [page, setPage] = useState(1);
+    const limit = 12;
+    const debouncedSearch = useDebounce(searchQuery, 350);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [newCurriculum, setNewCurriculum] = useState({ name: '', department_id: isDeptAdmin ? (deptId || '') : '', description: '' });
 
-    const { data: curricula = [], isLoading: loading } = useQuery({
-        queryKey: ['curricula'],
+    const { data: curriculaResponse, isLoading: loading, isFetching } = useQuery({
+        queryKey: ['curricula', page, debouncedSearch, limit],
         queryFn: async () => {
-            const response = await curriculumApi.getAll();
-            if (response.success) return response.data || [];
+            const params = { page, limit };
+            if (debouncedSearch) params.search = debouncedSearch;
+            const response = await curriculumApi.getAll(params);
+            if (response.success) {
+                return {
+                    curricula: response.data || [],
+                    pagination: response.pagination || null
+                };
+            }
             throw new Error('Failed to fetch curricula');
-        }
+        },
+        placeholderData: keepPreviousData
     });
+
+    const curricula = curriculaResponse?.curricula || [];
+    const pagination = curriculaResponse?.pagination || null;
+
+    React.useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch]);
 
     const { data: departments = [] } = useQuery({
         queryKey: ['departments'],
@@ -58,9 +79,10 @@ const ManageCurricula = () => {
         if (isPendingUndo(undoId)) return;
 
         // Optimistically remove from cache
-        queryClient.setQueryData(['curricula'], (old) =>
-            (old || []).filter(c => c.id !== curr.id)
-        );
+        queryClient.setQueryData(['curricula', page, debouncedSearch, limit], (old) => old ? ({
+            ...old,
+            curricula: (old.curricula || []).filter(c => c.id !== curr.id)
+        }) : old);
 
         enqueueUndo({
             id: undoId,
@@ -100,11 +122,6 @@ const ManageCurricula = () => {
         createMutation.mutate(newCurriculum);
     };
 
-    const filteredCurricula = curricula.filter(c =>
-        c.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.department_name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
     return (
         <div className="min-h-[calc(100vh-116px)]">
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
@@ -137,8 +154,10 @@ const ManageCurricula = () => {
                                 <PiBookOpenText className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="text-sm font-semibold text-slate-900">{loading ? 'Loading' : filteredCurricula.length} curricula shown</p>
-                                <p className="text-xs text-slate-500">{loading ? 'Fetching curricula' : `${curricula.length} total curricula`}</p>
+                                <p className="text-sm font-semibold text-slate-900">
+                                    {loading ? 'Loading' : pagination ? `${curricula.length} of ${pagination.total} curricula shown` : `${curricula.length} curricula shown`}
+                                </p>
+                                <p className="text-xs text-slate-500">{isFetching && !loading ? 'Refreshing curricula' : 'Search and browse curricula'}</p>
                             </div>
                         </div>
 
@@ -173,18 +192,18 @@ const ManageCurricula = () => {
                             </div>
                         ))}
                     </div>
-                ) : filteredCurricula.length === 0 ? (
+                ) : curricula.length === 0 ? (
                     <section className="rounded-3xl border border-sky-100 bg-white/90 px-6 py-16 text-center shadow-sm">
                         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-sky-100 bg-sky-50 text-sky-700">
                             <PiBookOpenText className="h-8 w-8" />
                         </div>
                         <h3 className="text-lg font-semibold text-slate-900">
-                            {searchQuery ? 'No curricula match your search' : 'No curricula yet'}
+                            {debouncedSearch ? 'No curricula match your search' : 'No curricula yet'}
                         </h3>
                         <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                            {searchQuery ? 'Try a different curriculum name or department.' : 'Create your first curriculum to define course structures.'}
+                            {debouncedSearch ? 'Try a different curriculum name or department.' : 'Create your first curriculum to define course structures.'}
                         </p>
-                        {!searchQuery && (
+                        {!debouncedSearch && (
                             <button
                                 onClick={() => setShowCreateDialog(true)}
                                 className="mt-6 inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-sky-700"
@@ -195,13 +214,14 @@ const ManageCurricula = () => {
                         )}
                     </section>
                 ) : (
-                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-                        {filteredCurricula.map((curr) => (
-                            <Link
-                                key={curr.id}
-                                to={`/admin-curricula/${curr.id}`}
-                                className="group flex min-h-[240px] flex-col rounded-3xl border border-sky-100 bg-white/92 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-sky-100"
-                            >
+                    <>
+                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                            {curricula.map((curr) => (
+                                <Link
+                                    key={curr.id}
+                                    to={`/admin-curricula/${curr.id}`}
+                                    className="group flex min-h-[240px] flex-col rounded-3xl border border-sky-100 bg-white/92 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-sky-100"
+                                >
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-100 bg-sky-50 text-sky-700 shadow-sm">
                                         <PiBookOpenText className="h-6 w-6" />
@@ -254,9 +274,34 @@ const ManageCurricula = () => {
                                         {curr.status === 'active' ? 'Active' : 'Archived'}
                                     </span>
                                 </div>
-                            </Link>
-                        ))}
-                    </div>
+                                </Link>
+                            ))}
+                        </div>
+
+                        {pagination && pagination.totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-3">
+                                <button
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={!pagination.hasPrev}
+                                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-white text-slate-500 shadow-sm transition-colors hover:bg-sky-50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    aria-label="Previous page"
+                                >
+                                    <PiCaretLeft className="h-5 w-5" />
+                                </button>
+                                <span className="rounded-xl border border-sky-100 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm">
+                                    Page {pagination.page} of {pagination.totalPages}
+                                </span>
+                                <button
+                                    onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                                    disabled={!pagination.hasNext}
+                                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-white text-slate-500 shadow-sm transition-colors hover:bg-sky-50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    aria-label="Next page"
+                                >
+                                    <PiCaretRight className="h-5 w-5" />
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 

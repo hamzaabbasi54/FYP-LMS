@@ -64,8 +64,8 @@ export const authApi = {
         const response = await api.post('/auth/signup', userData);
         return response.data;
     },
-    login: async (email, password, role) => {
-        const response = await api.post('/auth/login', { email, password, role });
+    login: async (email, password, role, rememberMe = false) => {
+        const response = await api.post('/auth/login', { email, password, role, rememberMe });
         return response.data;
     },
     getProfile: async () => {
@@ -119,6 +119,8 @@ export const authApi = {
         const params = new URLSearchParams();
         if (filters.role) params.append('role', filters.role);
         if (filters.search) params.append('search', filters.search);
+        if (filters.page) params.append('page', filters.page);
+        if (filters.limit) params.append('limit', filters.limit);
         const response = await api.get(`/auth/users${params.toString() ? '?' + params.toString() : ''}`);
         return response.data;
     },
@@ -165,8 +167,8 @@ export const approvalApi = {
         const response = await api.post(`/approvals/${userId}/reject`, { reason });
         return response.data;
     },
-    getUsersByRole: async (role) => {
-        const response = await api.get(`/approvals/users/${role}`);
+    getUsersByRole: async (role, params = {}) => {
+        const response = await api.get(`/approvals/users/${role}`, { params });
         return response.data;
     },
     deleteUser: async (userId) => {

@@ -8,7 +8,7 @@
 import { create } from 'zustand';
 
 const UNDO_TIMEOUT_DEFAULT = 5000;  // 5 seconds for normal deletions
-const UNDO_TIMEOUT_HIGH_RISK = 8000; // 8 seconds for batch/student/department
+const UNDO_TIMEOUT_HIGH_RISK = 10000; // 10 seconds for batch/student/department
 
 const useUndoStore = create((set, get) => ({
     // Queue of pending deletions: { id, type, label, apiCall, timer, highRisk }

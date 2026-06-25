@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+    PiCaretLeft,
+    PiCaretRight,
     PiCheckCircle,
     PiFunnelSimple,
     PiMagnifyingGlass,
@@ -13,25 +15,42 @@ import {
 } from 'react-icons/pi';
 import { authApi } from '../../services/api';
 import { toast } from 'react-toastify';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useDebounce } from '../../hooks/useDebounce';
 
 const ManageUsers = () => {
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterRole, setFilterRole] = useState('all');
+    const [page, setPage] = useState(1);
+    const limit = 10;
+    const debouncedSearch = useDebounce(searchTerm, 350);
 
-    const { data: users = [], isLoading: loading } = useQuery({
-        queryKey: ['users', filterRole, searchTerm],
+    const { data: usersResponse, isLoading: loading, isFetching } = useQuery({
+        queryKey: ['users', filterRole, debouncedSearch, page, limit],
         queryFn: async () => {
-            const filters = {};
+            const filters = { page, limit };
             if (filterRole && filterRole !== 'all') filters.role = filterRole;
-            if (searchTerm) filters.search = searchTerm;
+            if (debouncedSearch) filters.search = debouncedSearch;
 
             const response = await authApi.getAllUsers(filters);
-            if (response.success) return response.data || [];
+            if (response.success) {
+                return {
+                    users: response.data || [],
+                    pagination: response.pagination || null
+                };
+            }
             throw new Error('Failed to load users');
-        }
+        },
+        placeholderData: keepPreviousData
     });
+
+    const users = usersResponse?.users || [];
+    const pagination = usersResponse?.pagination || null;
+
+    React.useEffect(() => {
+        setPage(1);
+    }, [filterRole, debouncedSearch]);
 
     const roleLabels = {
         deptadmin: 'Department Admin',
@@ -95,7 +114,13 @@ const ManageUsers = () => {
                                 <PiUsersThree className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="text-sm font-semibold text-slate-900">{loading ? 'Loading' : users.length} users shown</p>
+                                <p className="text-sm font-semibold text-slate-900">
+                                    {loading
+                                        ? 'Loading users'
+                                        : pagination
+                                            ? `${users.length} of ${pagination.total} users shown`
+                                            : `${users.length} users shown`}
+                                </p>
                                 <p className="text-xs text-slate-500">Search and filter existing accounts</p>
                             </div>
                         </div>
@@ -238,6 +263,35 @@ const ManageUsers = () => {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm text-slate-500">
+                            {isFetching && !loading ? 'Refreshing users...' : pagination ? `Page ${pagination.page} of ${pagination.totalPages || 1}` : 'User list'}
+                        </p>
+
+                        {pagination && pagination.totalPages > 1 && (
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={!pagination.hasPrev}
+                                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-white text-slate-500 shadow-sm transition-colors hover:bg-sky-50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    aria-label="Previous page"
+                                >
+                                    <PiCaretLeft className="h-5 w-5" />
+                                </button>
+                                <span className="rounded-xl border border-sky-100 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm">
+                                    Page {pagination.page} of {pagination.totalPages}
+                                </span>
+                                <button
+                                    onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                                    disabled={!pagination.hasNext}
+                                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-white text-slate-500 shadow-sm transition-colors hover:bg-sky-50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    aria-label="Next page"
+                                >
+                                    <PiCaretRight className="h-5 w-5" />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </section>
             </div>

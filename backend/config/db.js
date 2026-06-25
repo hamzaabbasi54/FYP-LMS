@@ -21,8 +21,12 @@ const pool = mysql.createPool({
     database: process.env.DB_NAME || 'fyp_lms',
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
+    connectionLimit: Number(process.env.DB_POOL_LIMIT || 25),
+    maxIdle: Number(process.env.DB_POOL_IDLE_LIMIT || 10),
+    idleTimeout: Number(process.env.DB_POOL_IDLE_TIMEOUT_MS || 60000),
+    queueLimit: Number(process.env.DB_QUEUE_LIMIT || 0),
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 0,
     ssl: process.env.DB_SSL === 'true' ? {
         rejectUnauthorized: process.env.NODE_ENV === 'production' ? true : false,
         ca: process.env.DB_CA_CERT ? fs.readFileSync(process.env.DB_CA_CERT) : undefined

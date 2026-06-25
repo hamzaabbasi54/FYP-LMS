@@ -4,6 +4,7 @@
 // ============================================
 
 import pool from '../config/db.js';
+import { parsePagination, paginatedResponse } from '../utils/pagination.js';
 
 // Get pending faculty users (admin only)
 export const getPendingUsers = async (req, res) => {
@@ -144,6 +145,9 @@ export const rejectUser = async (req, res) => {
 export const getUsersByRole = async (req, res) => {
     try {
         const { role } = req.params;
+        const { search } = req.query;
+        const { page, limit, offset } = parsePagination(req.query);
+        const shouldPaginate = req.query.page !== undefined || req.query.limit !== undefined;
         const approver = req.user;
 
         if (approver.role !== 'deptadmin') {
@@ -159,21 +163,43 @@ export const getUsersByRole = async (req, res) => {
             return res.status(403).json({ success: false, message: 'You can only view faculty members' });
         }
 
+        let whereClause = "WHERE u.role = 'faculty' AND u.department_id = ?";
+        const params = [approver.department_id];
+
+        if (search) {
+            whereClause += ' AND (u.full_name LIKE ? OR u.email LIKE ? OR d.name LIKE ?)';
+            const term = `%${search}%`;
+            params.push(term, term, term);
+        }
+
         const [users] = await pool.query(
             `SELECT u.id, u.full_name, u.email, u.role, u.phone_number, u.status,
                     u.is_active, u.created_at, d.name as department_name
              FROM users u
              LEFT JOIN departments d ON u.department_id = d.id
-             WHERE u.role = 'faculty' AND u.department_id = ?
-             ORDER BY u.created_at DESC`,
-            [approver.department_id]
+             ${whereClause}
+             ORDER BY u.created_at DESC
+             ${shouldPaginate ? 'LIMIT ? OFFSET ?' : ''}`,
+            shouldPaginate ? [...params, limit, offset] : params
         );
 
-        res.status(200).json({
-            success: true,
-            count: users.length,
-            data: users
-        });
+        if (!shouldPaginate) {
+            return res.status(200).json({
+                success: true,
+                count: users.length,
+                data: users
+            });
+        }
+
+        const [[{ total }]] = await pool.query(
+            `SELECT COUNT(*) as total
+             FROM users u
+             LEFT JOIN departments d ON u.department_id = d.id
+             ${whereClause}`,
+            params
+        );
+
+        res.status(200).json(paginatedResponse(users, total, page, limit));
     } catch (error) {
         console.error('Get users error:', error);
         res.status(500).json({ success: false, message: 'Error fetching users' });

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+    PiCaretLeft,
+    PiCaretRight,
     PiChalkboardTeacher,
     PiEnvelopeSimple,
     PiGraduationCap,
@@ -11,21 +13,40 @@ import {
 } from 'react-icons/pi';
 import { approvalApi } from '../../services/api';
 import { toast } from 'react-toastify';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import useUndoStore from '../../stores/useUndoStore';
+import { useDebounce } from '../../hooks/useDebounce';
 
 const ManageFaculty = () => {
     const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState('');
+    const [page, setPage] = useState(1);
+    const limit = 12;
+    const debouncedSearch = useDebounce(searchQuery, 350);
 
-    const { data: facultyMembers = [], isLoading: loading } = useQuery({
-        queryKey: ['faculty_approved'],
+    const { data: facultyResponse, isLoading: loading, isFetching } = useQuery({
+        queryKey: ['faculty_approved', page, debouncedSearch, limit],
         queryFn: async () => {
-            const res = await approvalApi.getUsersByRole('faculty');
-            if (res.success) return res.data || [];
+            const params = { page, limit };
+            if (debouncedSearch) params.search = debouncedSearch;
+            const res = await approvalApi.getUsersByRole('faculty', params);
+            if (res.success) {
+                return {
+                    facultyMembers: res.data || [],
+                    pagination: res.pagination || null
+                };
+            }
             throw new Error('Failed to load faculty');
-        }
+        },
+        placeholderData: keepPreviousData
     });
+
+    const facultyMembers = facultyResponse?.facultyMembers || [];
+    const pagination = facultyResponse?.pagination || null;
+
+    React.useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch]);
 
     const enqueueUndo = useUndoStore(s => s.enqueue);
     const isPendingUndo = useUndoStore(s => s.isPending);
@@ -35,9 +56,10 @@ const ManageFaculty = () => {
         if (isPendingUndo(undoId)) return;
 
         // Optimistically remove
-        queryClient.setQueryData(['faculty_approved'], (old) =>
-            (old || []).filter(m => m.id !== member.id)
-        );
+        queryClient.setQueryData(['faculty_approved', page, debouncedSearch, limit], (old) => old ? ({
+            ...old,
+            facultyMembers: (old.facultyMembers || []).filter(m => m.id !== member.id)
+        }) : old);
 
         enqueueUndo({
             id: undoId,
@@ -55,12 +77,6 @@ const ManageFaculty = () => {
             }
         });
     };
-
-    const filteredFaculty = facultyMembers.filter(member =>
-        (member.full_name || member.fullName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (member.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (member.department || '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
 
     const getInitials = (name) => {
         if (!name) return '??';
@@ -99,8 +115,10 @@ const ManageFaculty = () => {
                                 <PiChalkboardTeacher className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="text-sm font-semibold text-slate-900">{loading ? 'Loading' : filteredFaculty.length} faculty shown</p>
-                                <p className="text-xs text-slate-500">{loading ? 'Fetching faculty profiles' : `${facultyMembers.length} active faculty`}</p>
+                                <p className="text-sm font-semibold text-slate-900">
+                                    {loading ? 'Loading' : pagination ? `${facultyMembers.length} of ${pagination.total} faculty shown` : `${facultyMembers.length} faculty shown`}
+                                </p>
+                                <p className="text-xs text-slate-500">{isFetching && !loading ? 'Refreshing faculty profiles' : 'Search and browse approved faculty'}</p>
                             </div>
                         </div>
 
@@ -128,7 +146,7 @@ const ManageFaculty = () => {
                             </div>
                         ))}
                     </div>
-                ) : filteredFaculty.length === 0 ? (
+                ) : facultyMembers.length === 0 ? (
                     <section className="rounded-3xl border border-sky-100 bg-white/90 px-6 py-16 text-center shadow-sm">
                         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-sky-100 bg-sky-50 text-sky-700">
                             <PiUserCircle className="h-8 w-8" />
@@ -137,18 +155,19 @@ const ManageFaculty = () => {
                             No faculty members found
                         </h3>
                         <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                            {searchQuery ? 'Try a different name, email, or department.' : 'Add faculty members to begin managing academic staff.'}
+                            {debouncedSearch ? 'Try a different name, email, or department.' : 'Add faculty members to begin managing academic staff.'}
                         </p>
                     </section>
                 ) : (
-                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-                        {filteredFaculty.map((member) => {
-                            const name = member.full_name || member.fullName || 'Unknown';
-                            return (
-                                <div
-                                    key={member.id}
-                                    className="group relative flex min-h-[246px] flex-col rounded-3xl border border-sky-100 bg-white/92 p-5 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg"
-                                >
+                    <>
+                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+                            {facultyMembers.map((member) => {
+                                const name = member.full_name || member.fullName || 'Unknown';
+                                return (
+                                    <div
+                                        key={member.id}
+                                        className="group relative flex min-h-[246px] flex-col rounded-3xl border border-sky-100 bg-white/92 p-5 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg"
+                                    >
                                     <button
                                         onClick={() => handleDelete(member)}
                                         disabled={isPendingUndo(`faculty-${member.id}`)}
@@ -180,10 +199,35 @@ const ManageFaculty = () => {
                                             Approved
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {pagination && pagination.totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-3">
+                                <button
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={!pagination.hasPrev}
+                                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-white text-slate-500 shadow-sm transition-colors hover:bg-sky-50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    aria-label="Previous page"
+                                >
+                                    <PiCaretLeft className="h-5 w-5" />
+                                </button>
+                                <span className="rounded-xl border border-sky-100 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm">
+                                    Page {pagination.page} of {pagination.totalPages}
+                                </span>
+                                <button
+                                    onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                                    disabled={!pagination.hasNext}
+                                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-white text-slate-500 shadow-sm transition-colors hover:bg-sky-50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    aria-label="Next page"
+                                >
+                                    <PiCaretRight className="h-5 w-5" />
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>

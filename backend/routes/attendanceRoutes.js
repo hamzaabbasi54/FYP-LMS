@@ -41,16 +41,24 @@ router.get('/course/:courseAssignmentId', async (req, res) => {
             [...params, limit, offset]
         );
 
-        // Summary stats (across all pages, not just current)
-        const [allRecords] = await pool.query(
-            `SELECT status FROM attendance a ${whereClause}`, params
+        // Summary stats across all matching records without pulling every row into Node.
+        const [[summary]] = await pool.query(
+            `SELECT
+                    COUNT(*) as total,
+                    SUM(status = 'present') as present,
+                    SUM(status = 'absent') as absent,
+                    SUM(status = 'late') as late
+             FROM attendance a ${whereClause}`,
+            params
         );
-        const present = allRecords.filter(r => r.status === 'present').length;
-        const absent = allRecords.filter(r => r.status === 'absent').length;
-        const late = allRecords.filter(r => r.status === 'late').length;
 
         const response = paginatedResponse(records, total, page, limit);
-        response.summary = { total: allRecords.length, present, absent, late };
+        response.summary = {
+            total: Number(summary.total || 0),
+            present: Number(summary.present || 0),
+            absent: Number(summary.absent || 0),
+            late: Number(summary.late || 0)
+        };
         res.json(response);
     } catch (error) {
         console.error('Get attendance error:', error);
@@ -116,12 +124,20 @@ router.post('/course/:courseAssignmentId', scopeFaculty('course_assignment', 'pa
             return res.status(400).json({ success: false, message: 'date and records array are required' });
         }
 
-        for (const record of records) {
+        if (records.length > 0) {
+            const values = records.map((record) => [
+                req.params.courseAssignmentId,
+                record.student_id,
+                date,
+                record.status || 'present',
+                record.remarks || ''
+            ]);
+
             await conn.query(
                 `INSERT INTO attendance (course_assignment_id, student_id, date, status, remarks)
-                 VALUES (?, ?, ?, ?, ?)
+                 VALUES ?
                  ON DUPLICATE KEY UPDATE status = VALUES(status), remarks = VALUES(remarks)`,
-                [req.params.courseAssignmentId, record.student_id, date, record.status || 'present', record.remarks || '']
+                [values]
             );
         }
 
@@ -316,4 +332,3 @@ router.get('/export-monthly/:courseAssignmentId', async (req, res) => {
 });
 
 export default router;
-

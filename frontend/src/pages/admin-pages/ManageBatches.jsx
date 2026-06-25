@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import {
     PiBooks,
     PiCalendarCheck,
+    PiCaretLeft,
+    PiCaretRight,
     PiFolderOpen,
     PiMagnifyingGlass,
     PiPlus,
@@ -11,23 +13,40 @@ import {
 } from 'react-icons/pi';
 import { batchApi } from '../../services/api';
 import { toast } from 'react-toastify';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import useUndoStore from '../../stores/useUndoStore';
+import { useDebounce } from '../../hooks/useDebounce';
 
 const ManageBatches = () => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [page, setPage] = useState(1);
+    const limit = 12;
+    const debouncedSearch = useDebounce(searchQuery, 350);
     const queryClient = useQueryClient();
 
-    const { data: batches = [], isLoading: loading } = useQuery({
-        queryKey: ['batches'],
+    const { data: batchResponse, isLoading: loading, isFetching } = useQuery({
+        queryKey: ['batches', page, debouncedSearch, limit],
         queryFn: async () => {
-            const response = await batchApi.getAll();
+            const params = { page, limit };
+            if (debouncedSearch) params.search = debouncedSearch;
+            const response = await batchApi.getAll(params);
             if (response.success) {
-                return response.data || [];
+                return {
+                    batches: response.data || [],
+                    pagination: response.pagination || null
+                };
             }
             throw new Error('Failed to fetch batches');
-        }
+        },
+        placeholderData: keepPreviousData
     });
+
+    const batches = batchResponse?.batches || [];
+    const pagination = batchResponse?.pagination || null;
+
+    React.useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch]);
 
     const enqueueUndo = useUndoStore(s => s.enqueue);
     const isPending = useUndoStore(s => s.isPending);
@@ -51,9 +70,10 @@ const ManageBatches = () => {
         }
 
         // Optimistically remove from cache
-        queryClient.setQueryData(['batches'], (old) =>
-            (old || []).filter(b => b.id !== batch.id)
-        );
+        queryClient.setQueryData(['batches', page, debouncedSearch, limit], (old) => old ? ({
+            ...old,
+            batches: (old.batches || []).filter(b => b.id !== batch.id)
+        }) : old);
 
         // Enqueue undo-able deletion
         enqueueUndo({
@@ -73,11 +93,6 @@ const ManageBatches = () => {
             }
         });
     };
-
-    const filteredBatches = batches.filter(batch =>
-        batch.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        batch.department_name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
 
     const getStatusLabel = (status) => {
         switch (status) {
@@ -120,8 +135,10 @@ const ManageBatches = () => {
                                 <PiFolderOpen className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="text-sm font-semibold text-slate-900">{loading ? 'Loading' : filteredBatches.length} batches shown</p>
-                                <p className="text-xs text-slate-500">{loading ? 'Fetching academic batches' : `${batches.length} total batches`}</p>
+                                <p className="text-sm font-semibold text-slate-900">
+                                    {loading ? 'Loading' : pagination ? `${batches.length} of ${pagination.total} batches shown` : `${batches.length} batches shown`}
+                                </p>
+                                <p className="text-xs text-slate-500">{isFetching && !loading ? 'Refreshing academic batches' : 'Search and browse academic batches'}</p>
                             </div>
                         </div>
 
@@ -155,18 +172,18 @@ const ManageBatches = () => {
                             </div>
                         ))}
                     </div>
-                ) : filteredBatches.length === 0 ? (
+                ) : batches.length === 0 ? (
                     <section className="rounded-3xl border border-sky-100 bg-white/90 px-6 py-16 text-center shadow-sm">
                         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-sky-100 bg-sky-50 text-sky-700">
                             <PiFolderOpen className="h-8 w-8" />
                         </div>
                         <h3 className="text-lg font-semibold text-slate-900">
-                            {searchQuery ? 'No batches match your search' : 'No batches yet'}
+                            {debouncedSearch ? 'No batches match your search' : 'No batches yet'}
                         </h3>
                         <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                            {searchQuery ? 'Try a different batch name or department.' : 'Create your first academic batch to start organizing students and semesters.'}
+                            {debouncedSearch ? 'Try a different batch name or department.' : 'Create your first academic batch to start organizing students and semesters.'}
                         </p>
-                        {!searchQuery && (
+                        {!debouncedSearch && (
                             <Link
                                 to="/admin-managebatches/addbatch"
                                 className="mt-6 inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-sky-700"
@@ -177,13 +194,14 @@ const ManageBatches = () => {
                         )}
                     </section>
                 ) : (
-                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-                        {filteredBatches.map((batch) => (
-                            <Link
-                                key={batch.id}
-                                to={`/admin-managebatches/${batch.id}`}
-                                className="group flex min-h-[230px] flex-col rounded-3xl border border-sky-100 bg-white/92 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-sky-100"
-                            >
+                    <>
+                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                            {batches.map((batch) => (
+                                <Link
+                                    key={batch.id}
+                                    to={`/admin-managebatches/${batch.id}`}
+                                    className="group flex min-h-[230px] flex-col rounded-3xl border border-sky-100 bg-white/92 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-sky-100"
+                                >
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-100 bg-sky-50 text-sky-700 shadow-sm">
                                         <PiFolderOpen className="h-6 w-6" />
@@ -236,9 +254,34 @@ const ManageBatches = () => {
                                         </div>
                                     )}
                                 </div>
-                            </Link>
-                        ))}
-                    </div>
+                                </Link>
+                            ))}
+                        </div>
+
+                        {pagination && pagination.totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-3">
+                                <button
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={!pagination.hasPrev}
+                                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-white text-slate-500 shadow-sm transition-colors hover:bg-sky-50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    aria-label="Previous page"
+                                >
+                                    <PiCaretLeft className="h-5 w-5" />
+                                </button>
+                                <span className="rounded-xl border border-sky-100 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm">
+                                    Page {pagination.page} of {pagination.totalPages}
+                                </span>
+                                <button
+                                    onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                                    disabled={!pagination.hasNext}
+                                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-white text-slate-500 shadow-sm transition-colors hover:bg-sky-50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    aria-label="Next page"
+                                >
+                                    <PiCaretRight className="h-5 w-5" />
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>

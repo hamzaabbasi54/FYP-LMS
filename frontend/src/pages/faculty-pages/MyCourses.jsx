@@ -22,7 +22,7 @@ import { useQuery } from '@tanstack/react-query';
 // Component for Course Management Cards
 const ManagementCard = ({ icon: Icon, title, description, buttonText, iconColor, buttonColor, iconBgColor, to = "#" }) => {
     return (
-        <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-5 flex flex-col h-full hover:shadow-md transition-shadow duration-200">
+        <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-4 flex flex-col h-full hover:shadow-md transition-shadow duration-200 sm:p-5">
             <div className={`w-12 h-12 rounded-3xl flex items-center justify-center ${iconBgColor} mb-4 flex-shrink-0`}>
                 <Icon className={`w-6 h-6 ${iconColor}`} />
             </div>
@@ -32,7 +32,7 @@ const ManagementCard = ({ icon: Icon, title, description, buttonText, iconColor,
             </p>
             <Link
                 to={to}
-                className={`inline-flex items-center ${buttonColor} font-semibold text-sm hover:underline group mt-auto`}
+                className={`mt-auto inline-flex w-fit items-center rounded-full border border-sky-100 bg-white px-3 py-2 text-sm font-semibold shadow-sm transition-colors hover:bg-sky-50 ${buttonColor} group`}
             >
                 {buttonText}
                 <MdArrowForward className="ml-1 w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -104,7 +104,7 @@ const MyCourses = () => {
     };
 
     return (
-        <div className="min-h-[calc(100vh-140px)] space-y-6">
+        <div className="min-h-[calc(100dvh-116px)] space-y-4 sm:space-y-6">
             {/* Back Button */}
             <button
                 onClick={() => navigate('/faculty-dashboard')}
@@ -115,10 +115,10 @@ const MyCourses = () => {
             </button>
 
             {/* Course Header Section */}
-            <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-5">
+            <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-4 sm:p-5">
                 {/* Course Title and Badge */}
                 <div className="flex flex-wrap items-center gap-3 mb-4">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 break-words">
                         {course.title}
                     </h1>
                     <span className="bg-sky-50 text-sky-700 border border-sky-100 text-sm font-bold tracking-wider px-2 py-0.5 rounded">
@@ -147,19 +147,19 @@ const MyCourses = () => {
                     </div>
 
                     {/* Right Side - Action Buttons and Student Count */}
-                    <div className="flex flex-col items-start lg:items-end gap-4">
+                    <div className="flex w-full flex-col items-start gap-4 lg:w-auto lg:items-end">
                         {/* Action Buttons */}
-                        <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
                             <Link
                                 to={`/faculty-mycourses/${course.assignment_id}/register-student`}
-                                className="flex items-center justify-center bg-sky-600 text-white px-4 py-2 rounded-3xl hover:bg-sky-700 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
+                                className="flex items-center justify-center rounded-full bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-700"
                             >
                                 <MdPeople className="w-4 h-4 mr-2" />
                                 Add Student
                             </Link>
                             <Link
                                 to={`/faculty-mycourses/${course.assignment_id}/edit-syllabus`}
-                                className="flex items-center justify-center bg-white border border-sky-100 text-slate-700 px-4 py-2 rounded-3xl hover:bg-sky-50/45 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
+                                className="flex items-center justify-center rounded-full border border-sky-100 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-sky-50/45"
                             >
                                 <MdEdit className="w-4 h-4 mr-2" />
                                 Edit Syllabus
@@ -179,7 +179,7 @@ const MyCourses = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Weekly Schedule */}
                 <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 overflow-hidden">
-                    <div className="flex items-center gap-3 p-5 border-b border-sky-100">
+                            <div className="flex items-center gap-3 p-4 border-b border-sky-100 sm:p-5">
                         <div className="w-10 h-10 rounded-3xl bg-sky-600 flex items-center justify-center shadow-sm">
                             <MdSchedule className="w-5 h-5 text-white" />
                         </div>
@@ -189,7 +189,7 @@ const MyCourses = () => {
                         </div>
                     </div>
 
-                    <div className="p-5">
+                    <div className="p-4 sm:p-5">
                         {loadingSchedule ? (
                             <div className="space-y-3">
                                 {[1, 2, 3].map(i => (
@@ -199,9 +199,9 @@ const MyCourses = () => {
                         ) : sortedSchedule.length > 0 ? (
                             <div className="space-y-2.5">
                                 {sortedSchedule.map((entry, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-3.5 bg-sky-50/45 border border-sky-100 rounded-3xl hover:shadow-sm transition-shadow">
-                                        <div className="flex items-center gap-3">
-                                            <span className="w-20 text-sm font-bold text-slate-700">
+                                    <div key={idx} className="flex flex-col gap-3 p-3.5 bg-sky-50/45 border border-sky-100 rounded-3xl hover:shadow-sm transition-shadow sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="flex min-w-0 flex-wrap items-center gap-3">
+                                            <span className="w-20 text-sm font-bold text-slate-700 flex-shrink-0">
                                                 {DAY_LABELS[entry.day_of_week] || entry.day_of_week}
                                             </span>
                                             <div className="flex items-center gap-1.5 text-sm text-slate-600">
@@ -234,7 +234,7 @@ const MyCourses = () => {
 
                 {/* Course Content / Syllabus Files */}
                 <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 overflow-hidden">
-                    <div className="flex items-center gap-3 p-5 border-b border-sky-100">
+                            <div className="flex items-center gap-3 p-4 border-b border-sky-100 sm:p-5">
                         <div className="w-10 h-10 rounded-3xl bg-emerald-600 flex items-center justify-center shadow-sm">
                             <MdMenuBook className="w-5 h-5 text-white" />
                         </div>
@@ -244,7 +244,7 @@ const MyCourses = () => {
                         </div>
                     </div>
 
-                    <div className="p-5">
+                    <div className="p-4 sm:p-5">
                         {loadingFiles ? (
                             <div className="space-y-3">
                                 {[1, 2].map(i => (
@@ -254,7 +254,7 @@ const MyCourses = () => {
                         ) : files.length > 0 ? (
                             <div className="space-y-2.5">
                                 {files.map(f => (
-                                    <div key={f.id} className="flex items-center justify-between p-3.5 bg-sky-50/45 border border-sky-100 rounded-3xl hover:shadow-sm transition-shadow">
+                                    <div key={f.id} className="flex flex-col gap-3 p-3.5 bg-sky-50/45 border border-sky-100 rounded-3xl hover:shadow-sm transition-shadow sm:flex-row sm:items-center sm:justify-between">
                                         <div className="flex items-center gap-3 flex-1 min-w-0">
                                             <div className="w-8 h-8 rounded-3xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
                                                 <MdMenuBook className="w-4 h-4 text-emerald-600" />
@@ -268,7 +268,7 @@ const MyCourses = () => {
                                             href={`/document-viewer?url=${encodeURIComponent(getFileUrl(f.file_path))}&name=${encodeURIComponent(f.file_name)}`}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-sky-100 text-slate-700 shadow-sm rounded-3xl text-xs font-semibold hover:bg-sky-50/45 transition-colors flex-shrink-0"
+                                            className="inline-flex w-fit items-center gap-1 rounded-full border border-sky-100 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-sky-50/45 sm:flex-shrink-0"
                                         >
                                             <MdOpenInNew className="w-3.5 h-3.5" />
                                             View

@@ -11,14 +11,15 @@ import {
     PiInfo as MdAnnouncement,
     PiLifebuoy as MdHelp,
     PiWarningCircle as MdWarning,
-    PiCalendarCheck as MdEventNote
+    PiCalendarCheck as MdEventNote,
+    PiList
 } from 'react-icons/pi';
 import { useCourse } from '../../../context/CourseContext';
 import { useAuth } from '../../../context/AuthContext';
 import { notificationApi } from '../../../services/api';
 import { toast } from 'react-toastify';
 
-const Navbar = () => {
+const Navbar = ({ onMenuClick }) => {
     const location = useLocation();
     const [showNotifications, setShowNotifications] = useState(false);
     const notificationRef = useRef(null);
@@ -109,7 +110,7 @@ const Navbar = () => {
 
     const getPageTitle = (pathname) => {
         // We use 'startsWith' or 'includes' so sub-pages still show the correct Parent Title.
-        if (pathname === '/faculty-dashboard' || pathname === '/faculty') return 'Overview';
+        if (pathname === '/faculty-dashboard' || pathname === '/faculty') return 'Dashboard';
 
         if (pathname.includes('/faculty-mycourses')) return 'My Courses';
         if (pathname.includes('/faculty-schedule')) return 'Schedule';
@@ -146,12 +147,21 @@ const Navbar = () => {
     return (
         <div className="flex flex-col h-full bg-white/90 border-b border-sky-100">
             {/* Top Section: Title/Breadcrumbs and Actions */}
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center px-4 sm:px-6 lg:px-8 py-3 sm:py-4 gap-3 sm:gap-4">
+            <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3 sm:py-4 gap-3 sm:gap-4">
                 {/* Left Side - Title or Breadcrumbs */}
-                <div className="flex-1">
+                <div className="flex flex-1 items-center gap-3 min-w-0">
+                    <button
+                        type="button"
+                        className="mobile-menu-button"
+                        aria-label="Open navigation"
+                        onClick={onMenuClick}
+                    >
+                        <PiList className="h-5 w-5" />
+                    </button>
+                    <div className="min-w-0 flex-1">
                     {isBatchCoursesPage ? (
                         // Breadcrumbs for Batch Courses page
-                        <div className="flex items-center text-sm text-slate-500">
+                        <div className="flex items-center text-sm text-slate-500 overflow-x-auto whitespace-nowrap">
                             <Link to="/faculty-dashboard" className="hover:text-sky-700 transition-colors">
                                 Dashboard
                             </Link>
@@ -162,7 +172,7 @@ const Navbar = () => {
                         </div>
                     ) : isManageStudentsPage ? (
                         // Breadcrumbs for Manage Students page
-                        <div className="flex items-center text-sm text-slate-500">
+                        <div className="flex items-center text-sm text-slate-500 overflow-x-auto whitespace-nowrap">
                             <Link to="/faculty-mycourses" className="hover:text-sky-700 transition-colors">
                                 My Courses
                             </Link>
@@ -173,7 +183,7 @@ const Navbar = () => {
                         </div>
                     ) : isMonthlyReportPage ? (
                         // Breadcrumbs for Monthly Report page
-                        <div className="flex items-center text-sm text-slate-500">
+                        <div className="flex items-center text-sm text-slate-500 overflow-x-auto whitespace-nowrap">
                             <Link to="/faculty-mycourses" className="hover:text-sky-700 transition-colors">
                                 My Courses
                             </Link>
@@ -184,7 +194,7 @@ const Navbar = () => {
                         </div>
                     ) : isAttendancePage ? (
                         // Breadcrumbs for Attendance page
-                        <div className="flex items-center text-sm text-slate-500">
+                        <div className="flex items-center text-sm text-slate-500 overflow-x-auto whitespace-nowrap">
                             <Link to="/faculty-dashboard" className="hover:text-sky-700 transition-colors">
                                 Dashboard
                             </Link>
@@ -197,7 +207,7 @@ const Navbar = () => {
                         </div>
                     ) : isMyCoursesPage ? (
                         // Breadcrumbs for My Courses page
-                        <div className="flex items-center text-sm text-slate-500">
+                        <div className="flex items-center text-sm text-slate-500 overflow-x-auto whitespace-nowrap">
                             <Link to="/faculty-dashboard" className="hover:text-sky-700 transition-colors">
                                 Dashboard
                             </Link>
@@ -208,7 +218,7 @@ const Navbar = () => {
                         </div>
                     ) : isCreateAssessmentPage ? (
                         // Breadcrumbs for Create Assessment page
-                        <div className="flex items-center text-sm text-slate-500">
+                        <div className="flex items-center text-sm text-slate-500 overflow-x-auto whitespace-nowrap">
                             <Link to="/faculty-mycourses" className="hover:text-sky-700 transition-colors">
                                 My Courses
                             </Link>
@@ -225,7 +235,7 @@ const Navbar = () => {
                         </div>
                     ) : isGradeAssignmentPage ? (
                         // Breadcrumbs for Grade Assignment page
-                        <div className="flex items-center text-sm text-slate-500">
+                        <div className="flex items-center text-sm text-slate-500 overflow-x-auto whitespace-nowrap">
                             <Link to={assignmentId ? `/faculty-mycourses/${assignmentId}` : '/faculty-mycourses'} className="hover:text-sky-700 transition-colors">
                                 {courseCode}
                             </Link>
@@ -238,7 +248,7 @@ const Navbar = () => {
                         </div>
                     ) : isGradingPage ? (
                         // Breadcrumbs for Grading page
-                        <div className="flex items-center text-sm text-slate-500">
+                        <div className="flex items-center text-sm text-slate-500 overflow-x-auto whitespace-nowrap">
                             <Link to="/faculty-mycourses" className="hover:text-sky-700 transition-colors">
                                 Courses
                             </Link>
@@ -262,21 +272,22 @@ const Navbar = () => {
                         </div>
                     ) : (
                         // Regular title for other pages
-                        <div>
+                        <div className="min-w-0">
                             <h1 className="text-lg sm:text-xl font-bold text-slate-800">
                                 {currentTitle}
                             </h1>
-                            {currentTitle === 'Overview' && (
-                                <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                            {currentTitle === 'Dashboard' && (
+                                <p className="faculty-navbar-subtitle text-xs sm:text-sm text-slate-500 mt-1">
                                     Welcome back, {professorName}. Manage your active courses.
                                 </p>
                             )}
                         </div>
                     )}
+                    </div>
                 </div>
 
                 {/* Right Side - Help and Notifications */}
-                <div className="flex items-center space-x-3 sm:space-x-4">
+                <div className="flex flex-shrink-0 items-center space-x-3 sm:space-x-4">
                     {isGradeAssignmentPage && (
                         <Link
                             to="#"

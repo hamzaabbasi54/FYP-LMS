@@ -177,7 +177,7 @@ const BatchDetails = () => {
     };
 
     if (loading) return (
-        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200 p-8">
+        <div className="campus-detail-page min-h-full bg-gradient-to-br from-slate-100 to-slate-200 p-8">
             <div className="max-w-7xl mx-auto animate-pulse">
                 <div className="h-8 bg-slate-200 rounded w-1/3 mb-8"></div>
                 <div className="grid grid-cols-3 gap-5 mb-10">
@@ -188,7 +188,7 @@ const BatchDetails = () => {
     );
 
     if (!batchData) return (
-        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200 p-8 flex items-center justify-center">
+        <div className="campus-detail-page min-h-full bg-gradient-to-br from-slate-100 to-slate-200 p-8 flex items-center justify-center">
             <div className="text-center">
                 <h2 className="text-xl font-bold text-slate-600 mb-2">Batch not found</h2>
                 <Link to="/admin-managebatches" className="text-blue-600 hover:underline">Back to Batches</Link>
@@ -201,7 +201,7 @@ const BatchDetails = () => {
     const electiveCourses = activeSemData?.courses?.filter(c => c.type === 'elective') || [];
 
     return (
-        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200">
+        <div className="campus-detail-page min-h-full bg-gradient-to-br from-slate-100 to-slate-200">
             <div className="p-8 max-w-7xl mx-auto">
                 {/* Breadcrumb */}
                 <div className="mb-6">
@@ -231,11 +231,11 @@ const BatchDetails = () => {
                         { label: 'PLOs', value: batchData.plos?.length || 0, icon: MdLibraryBooks, color: 'from-fuchsia-500 to-pink-600', onClick: handleOpenPloModal },
                     ].map((s, i) => {
                         const card = (
-                            <div onClick={s.onClick} className={`group bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-all h-full relative ${s.link || s.onClick ? 'cursor-pointer hover:border-blue-300' : ''}`}>
+                            <div onClick={s.onClick} className={`group bg-white/90 rounded-2xl border border-sky-100 p-4 shadow-sm transition-all h-full relative ${s.link || s.onClick ? 'cursor-pointer hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg hover:shadow-sky-900/5' : ''}`}>
                                 <div className="flex items-start justify-between h-full flex-col pr-6">
                                     <div className="w-full">
-                                        <div className={`inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br ${s.color} mb-3 shadow-sm group-hover:shadow-lg transition-all`}>
-                                            <s.icon className="w-5 h-5 text-white" />
+                                        <div className="inline-flex items-center justify-center w-10 h-10 rounded-2xl border border-sky-100 bg-sky-50 text-sky-700 mb-3 shadow-sm transition-all group-hover:bg-white">
+                                            <s.icon className="w-5 h-5" />
                                         </div>
                                         <p className="text-slate-500 text-xs mb-1">{s.label}</p>
                                         <h3 className="text-base font-bold text-slate-800 leading-tight">{s.value}</h3>
@@ -296,7 +296,7 @@ const BatchDetails = () => {
                                     Semester {activeSemester}
                                     <span className="text-sm font-normal text-slate-500 ml-2">({(coreCourses.length + electiveCourses.length)} courses)</span>
                                 </h3>
-                                <button onClick={handleOpenAddCourse} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm shadow-sm transition-colors">
+                                <button onClick={handleOpenAddCourse} className="flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-semibold text-sm shadow-sm transition-colors">
                                     <MdAdd className="w-4 h-4" /> Add Courses
                                 </button>
                             </div>
@@ -305,7 +305,7 @@ const BatchDetails = () => {
                                 <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
                                     <MdLibraryBooks className="w-10 h-10 text-slate-300 mx-auto mb-3" />
                                     <p className="text-slate-400 mb-4 text-sm">No courses in this semester</p>
-                                    <button onClick={handleOpenAddCourse} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm shadow-sm">
+                                    <button onClick={handleOpenAddCourse} className="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-semibold text-sm shadow-sm">
                                         <MdAdd className="w-4 h-4" /> Add Courses
                                     </button>
                                 </div>
@@ -321,8 +321,8 @@ const BatchDetails = () => {
                                                 {coreCourses.map(c => (
                                                     <div key={c.course_id} className="flex items-center justify-between p-3.5 bg-white border border-slate-200 rounded-lg hover:border-blue-300 transition-colors group shadow-sm">
                                                         <Link to={`/admin-managebatches/${id}/course/${c.course_id}`} className="flex items-center gap-3 flex-1 cursor-pointer">
-                                                            <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${semColors[(activeSemester-1) % semColors.length]} flex items-center justify-center shadow-sm`}>
-                                                                <MdMenuBook className="w-5 h-5 text-white" />
+                                                            <div className="w-10 h-10 rounded-2xl border border-sky-100 bg-sky-50 flex items-center justify-center shadow-sm">
+                                                                <MdMenuBook className="w-5 h-5 text-sky-700" />
                                                             </div>
                                                             <div>
                                                                 <div className="flex items-center gap-2">
@@ -358,8 +358,8 @@ const BatchDetails = () => {
                                                 {electiveCourses.map(c => (
                                                     <div key={c.course_id} className="flex items-center justify-between p-3.5 bg-white border border-slate-200 rounded-lg hover:border-amber-300 transition-colors group shadow-sm">
                                                         <Link to={`/admin-managebatches/${id}/course/${c.course_id}`} className="flex items-center gap-3 flex-1 cursor-pointer">
-                                                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-sm">
-                                                                <MdMenuBook className="w-5 h-5 text-white" />
+                                                            <div className="w-10 h-10 rounded-2xl border border-amber-100 bg-amber-50 flex items-center justify-center shadow-sm">
+                                                                <MdMenuBook className="w-5 h-5 text-amber-700" />
                                                             </div>
                                                             <div>
                                                                 <div className="flex items-center gap-2">
@@ -395,44 +395,46 @@ const BatchDetails = () => {
             {/* Add Course Modal */}
             {showAddCourse && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between p-5 border-b border-slate-200">
-                            <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
+                    <div className="w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col rounded-[1.35rem] border border-sky-100 bg-white shadow-[0_30px_90px_rgba(15,82,127,0.22)]">
+                        <div className="flex items-center justify-between bg-white p-5 border-b border-sky-100">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl border border-sky-100 bg-sky-50 text-sky-700 flex items-center justify-center shadow-sm">
+                                    <MdMenuBook className="w-5 h-5" />
+                                </div>
                                 <h2 className="text-lg font-bold text-slate-800">Add Courses — Semester {activeSemester}</h2>
                             </div>
-                            <button onClick={() => setShowAddCourse(false)} disabled={addingCourses} className="p-1.5 hover:bg-slate-100 rounded text-slate-500 transition-colors"><MdClose className="w-5 h-5" /></button>
+                            <button onClick={() => setShowAddCourse(false)} disabled={addingCourses} className="p-2 hover:bg-white rounded-xl text-slate-500 hover:text-sky-700 transition-colors"><MdClose className="w-5 h-5" /></button>
                         </div>
 
                         {/* Type Toggle + Search */}
-                        <div className="p-4 border-b border-slate-100 space-y-3 bg-slate-50/50">
+                        <div className="p-5 border-b border-sky-100 space-y-3 bg-[#eff8ff]">
                             <div className="flex gap-2">
-                                <button onClick={() => setCourseType('core')} className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${courseType === 'core' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                                <button onClick={() => setCourseType('core')} className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${courseType === 'core' ? 'border-transparent bg-[#0078c5] text-white shadow-[0_10px_22px_rgba(7,152,231,0.18)]' : 'border-sky-100 bg-white text-slate-600 hover:bg-sky-50'}`}>
                                     Core Course
                                 </button>
-                                <button onClick={() => setCourseType('elective')} className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${courseType === 'elective' ? 'bg-amber-500 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                                <button onClick={() => setCourseType('elective')} className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${courseType === 'elective' ? 'border-orange-200 bg-orange-50 text-orange-700 shadow-[0_10px_22px_rgba(251,146,60,0.12)]' : 'border-sky-100 bg-white text-slate-600 hover:bg-sky-50'}`}>
                                     Elective Course
                                 </button>
                             </div>
                             <div className="relative">
-                                <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                 <input type="text" placeholder="Search courses..." value={courseSearch} onChange={(e) => setCourseSearch(e.target.value)} autoFocus
-                                    className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" />
+                                    className="w-full pl-12 pr-4 py-3 bg-white border border-sky-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 transition-all shadow-sm" />
                             </div>
-                            {selectedCourses.length > 0 && <p className="text-sm text-blue-600 font-medium">{selectedCourses.length} selected</p>}
+                            {selectedCourses.length > 0 && <p className="text-sm text-sky-700 font-semibold">{selectedCourses.length} selected</p>}
                         </div>
 
                         {/* Course List */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                        <div className="min-h-52 flex-1 overflow-y-auto bg-white p-5 space-y-2">
                             {filteredAvailable().length === 0 ? (
-                                <div className="text-center py-12"><p className="text-slate-400">No courses available</p></div>
+                                <div className="flex min-h-40 items-center justify-center rounded-2xl border border-dashed border-sky-100 bg-sky-50/45 text-center"><p className="text-slate-400">No courses available</p></div>
                             ) : filteredAvailable().map(c => {
                                 const sel = selectedCourses.includes(c.id);
                                 return (
                                     <button key={c.id} onClick={() => setSelectedCourses(p => sel ? p.filter(x => x !== c.id) : [...p, c.id])}
-                                        className={`w-full text-left flex items-center justify-between p-3.5 rounded-lg border transition-colors ${sel ? 'border-blue-300 bg-blue-50/50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                                        className={`w-full text-left flex items-center justify-between p-3.5 rounded-2xl border transition-colors ${sel ? 'border-sky-200 bg-sky-50/70 shadow-sm' : 'border-sky-100 bg-white hover:bg-sky-50/40 hover:border-sky-200'}`}>
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-6 h-6 rounded flex items-center justify-center border ${sel ? 'bg-blue-600 border-blue-600' : 'bg-slate-50 border-slate-300'}`}>
+                                            <div className={`w-7 h-7 rounded-xl flex items-center justify-center border ${sel ? 'bg-sky-500 border-sky-500' : 'bg-sky-50 border-sky-100 text-sky-700'}`}>
                                                 {sel && <MdCheckCircle className="w-4 h-4 text-white" />}
                                             </div>
                                             <div>
@@ -449,10 +451,10 @@ const BatchDetails = () => {
                         </div>
 
                         {/* Footer */}
-                        <div className="flex items-center justify-end gap-3 p-4 border-t border-slate-200 bg-slate-50">
-                            <button onClick={() => setShowAddCourse(false)} disabled={addingCourses} className="px-4 py-2 text-sm font-medium text-slate-700 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors">Cancel</button>
+                        <div className="flex items-center justify-end gap-3 p-4 border-t border-sky-100 bg-[#eff8ff]">
+                            <button onClick={() => setShowAddCourse(false)} disabled={addingCourses} className="rounded-xl border border-sky-100 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-sky-50 disabled:opacity-50">Cancel</button>
                             <button onClick={handleAddCourses} disabled={!selectedCourses.length || addingCourses}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors">
+                                className="flex items-center gap-2 rounded-xl bg-[#0078c5] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#05629f] disabled:cursor-not-allowed disabled:bg-sky-200 disabled:shadow-none">
                                 <MdAdd className="w-4 h-4" />
                                 {addingCourses ? 'Adding...' : `Add ${selectedCourses.length} as ${courseType}`}
                             </button>
@@ -464,13 +466,18 @@ const BatchDetails = () => {
             {/* Manage PLOs Modal */}
             {showPloModal && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh]">
-                        <div className="flex items-center justify-between p-5 border-b border-slate-200">
-                            <div>
+                    <div className="bg-white rounded-2xl border border-sky-100 w-full max-w-2xl shadow-2xl shadow-sky-900/10 flex flex-col max-h-[90vh] overflow-hidden">
+                        <div className="flex items-center justify-between p-5 border-b border-sky-100 bg-sky-50/50">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl border border-sky-100 bg-white text-sky-700 flex items-center justify-center shadow-sm">
+                                    <MdLibraryBooks className="w-5 h-5" />
+                                </div>
+                                <div>
                                 <h2 className="text-lg font-bold text-slate-800">Manage Batch PLOs</h2>
                                 <p className="text-xs text-slate-500 mt-0.5">Select which PLOs apply to this specific batch</p>
+                                </div>
                             </div>
-                            <button onClick={() => setShowPloModal(false)} className="p-1.5 hover:bg-slate-100 rounded text-slate-400 transition-colors">
+                            <button onClick={() => setShowPloModal(false)} className="p-2 hover:bg-white rounded-xl text-slate-400 hover:text-sky-700 transition-colors">
                                 <MdClose className="w-5 h-5" />
                             </button>
                         </div>
@@ -490,12 +497,12 @@ const BatchDetails = () => {
                                                         setSelectedPloIds(prev => [...prev, plo.id]);
                                                     }
                                                 }}
-                                                className={`flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer transition-colors ${
-                                                    isSelected ? 'border-blue-500 bg-blue-50/50' : 'border-slate-200 bg-white hover:border-slate-300'
+                                                className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                                                    isSelected ? 'border-sky-200 bg-sky-50/70 shadow-sm' : 'border-sky-100 bg-white hover:border-sky-200 hover:bg-sky-50/40'
                                                 }`}
                                             >
-                                                <div className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded flex items-center justify-center border transition-colors ${
-                                                    isSelected ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white text-transparent'
+                                                <div className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-lg flex items-center justify-center border transition-colors ${
+                                                    isSelected ? 'border-sky-500 bg-sky-500 text-white' : 'border-sky-200 bg-white text-transparent'
                                                 }`}>
                                                     <MdCheckCircle className="w-3.5 h-3.5" />
                                                 </div>
@@ -509,11 +516,11 @@ const BatchDetails = () => {
                                 </div>
                             )}
                         </div>
-                        <div className="p-4 border-t border-slate-200 flex justify-end gap-3 bg-slate-50">
-                            <button onClick={() => setShowPloModal(false)} className="px-4 py-2 text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg font-medium text-sm transition-colors">
+                        <div className="p-4 border-t border-sky-100 flex justify-end gap-3 bg-sky-50/50">
+                            <button onClick={() => setShowPloModal(false)} className="px-4 py-2 text-slate-700 bg-white border border-sky-100 hover:bg-sky-50 rounded-xl font-semibold text-sm transition-colors">
                                 Cancel
                             </button>
-                            <button onClick={handleSaveBatchPlos} disabled={savingPlos} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm font-medium text-sm transition-colors disabled:opacity-50">
+                            <button onClick={handleSaveBatchPlos} disabled={savingPlos} className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl shadow-sm font-semibold text-sm transition-colors disabled:opacity-50">
                                 {savingPlos ? 'Saving...' : 'Save PLOs'}
                             </button>
                         </div>
@@ -559,12 +566,15 @@ const BatchDetails = () => {
             {/* Curriculum Selection Modal */}
             {showCurriculumModal && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl w-full max-w-md shadow-xl flex flex-col overflow-hidden">
-                        <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <div className="w-2 h-6 bg-blue-500 rounded-full"></div> Assign Curriculum
+                    <div className="bg-white rounded-2xl border border-sky-100 w-full max-w-md shadow-2xl shadow-sky-900/10 flex flex-col overflow-hidden">
+                        <div className="p-5 border-b border-sky-100 flex justify-between items-center bg-sky-50/50">
+                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-3">
+                                <span className="w-10 h-10 rounded-2xl border border-sky-100 bg-white text-sky-700 flex items-center justify-center shadow-sm">
+                                    <MdMenuBook className="w-5 h-5" />
+                                </span>
+                                Assign Curriculum
                             </h3>
-                            <button onClick={() => setShowCurriculumModal(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-colors">
+                            <button onClick={() => setShowCurriculumModal(false)} className="p-2 text-slate-400 hover:bg-white hover:text-sky-700 rounded-xl transition-colors">
                                 <MdClose className="w-5 h-5" />
                             </button>
                         </div>
@@ -574,7 +584,7 @@ const BatchDetails = () => {
                                 value={selectedCurriculumId}
                                 onChange={(e) => setSelectedCurriculumId(e.target.value)}
                                 disabled={assigningCurriculum}
-                                className="w-full px-3 py-2 border border-slate-200 shadow-sm rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm text-slate-700 disabled:opacity-50 appearance-none bg-white"
+                                className="w-full px-3 py-2 border border-sky-100 shadow-sm rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 outline-none text-sm text-slate-700 disabled:opacity-50 appearance-none bg-white"
                             >
                                 <option value="">No Curriculum</option>
                                 {curricula.map(c => <option key={c.id} value={c.id}>{c.name} ({c.department_name})</option>)}
@@ -582,20 +592,20 @@ const BatchDetails = () => {
                             
                             {batchData.curriculum_id && selectedCurriculumId == batchData.curriculum_id && (
                                 <div className="mt-4 flex items-center justify-center">
-                                    <Link onClick={() => setShowCurriculumModal(false)} to={`/admin-curricula/${batchData.curriculum_id}`} className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg text-sm font-medium transition-colors">
+                                    <Link onClick={() => setShowCurriculumModal(false)} to={`/admin-curricula/${batchData.curriculum_id}`} className="inline-flex items-center gap-2 px-4 py-2 bg-sky-50 border border-sky-100 text-sky-700 hover:bg-white rounded-xl text-sm font-semibold transition-colors">
                                         <MdMenuBook className="w-4 h-4" /> View Blueprint
                                     </Link>
                                 </div>
                             )}
                         </div>
-                        <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-3 justify-end">
-                            <button onClick={() => setShowCurriculumModal(false)} className="px-4 py-2 text-slate-700 font-medium text-sm border border-slate-200 bg-white hover:bg-slate-50 rounded-lg transition-colors">
+                        <div className="p-4 border-t border-sky-100 bg-sky-50/50 flex gap-3 justify-end">
+                            <button onClick={() => setShowCurriculumModal(false)} className="px-4 py-2 text-slate-700 font-semibold text-sm border border-sky-100 bg-white hover:bg-sky-50 rounded-xl transition-colors">
                                 Cancel
                             </button>
                             <button 
                                 onClick={() => handleCurriculumChange(selectedCurriculumId ? parseInt(selectedCurriculumId) : null)} 
                                 disabled={assigningCurriculum || (selectedCurriculumId == (batchData.curriculum_id || ''))}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm font-medium text-sm transition-colors disabled:opacity-50"
+                                className="flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl shadow-sm font-semibold text-sm transition-colors disabled:opacity-50"
                             >
                                 {assigningCurriculum ? 'Saving...' : 'Save'}
                             </button>

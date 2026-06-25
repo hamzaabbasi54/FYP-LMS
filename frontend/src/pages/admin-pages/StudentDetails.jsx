@@ -6,22 +6,22 @@ import { toast } from 'react-toastify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const InfoField = ({ icon: Icon, label, value, field, type = 'text', options, editable = true, editing, editData, handleChange }) => (
-    <div className="flex items-start gap-4 p-4 bg-white border-2 border-slate-300 rounded-xl shadow-sm border-2 border-slate-200">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center flex-shrink-0">
-            <Icon className="w-5 h-5 text-slate-600" />
+    <div className="group flex items-start gap-4 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm transition-all hover:border-sky-200 hover:shadow-[0_18px_40px_rgba(7,152,231,0.10)]">
+        <div className="w-11 h-11 rounded-2xl border border-sky-100 bg-[#eff8ff] flex items-center justify-center flex-shrink-0 shadow-sm transition group-hover:bg-sky-50">
+            <Icon className="w-5 h-5 text-sky-700" />
         </div>
         <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.16em] mb-1">{label}</p>
             {editing && editable ? (
                 options ? (
                     <select value={editData[field] || ''} onChange={(e) => handleChange(field, e.target.value)}
-                        className="w-full px-3 py-2 border-2 border-slate-300 shadow-sm rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white">
+                        className="w-full rounded-xl border border-sky-100 bg-sky-50/50 px-3 py-2.5 text-sm font-medium text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400">
                         <option value="">Select...</option>
                         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                 ) : (
                     <input type={type} value={editData[field] ?? ''} onChange={(e) => handleChange(field, e.target.value)}
-                        className="w-full px-3 py-2 border-2 border-slate-300 shadow-sm rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                        className="w-full rounded-xl border border-sky-100 bg-sky-50/50 px-3 py-2.5 text-sm font-medium text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400" />
                 )
             ) : (
                 <p className={`text-sm font-medium ${value ? 'text-slate-800' : 'text-red-400 italic'}`}>
@@ -136,7 +136,7 @@ const StudentDetails = () => {
     };
 
     if (loading) return (
-        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200 p-8">
+        <div className="min-h-full bg-[#eff8ff] p-8">
             <div className="max-w-4xl mx-auto animate-pulse">
                 <div className="h-8 bg-slate-200 rounded w-1/3 mb-8"></div>
                 <div className="h-64 bg-slate-200 rounded-2xl mb-6"></div>
@@ -146,7 +146,7 @@ const StudentDetails = () => {
     );
 
     if (!student) return (
-        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200 p-8 flex items-center justify-center">
+        <div className="min-h-full bg-[#eff8ff] p-8 flex items-center justify-center">
             <div className="text-center">
                 <h2 className="text-xl font-bold text-slate-600 mb-2">Student not found</h2>
                 <Link to={`/admin-managebatches/${batchId}/students`} className="text-blue-600 hover:underline">Back to Students</Link>
@@ -157,33 +157,39 @@ const StudentDetails = () => {
     const missingFields = getMissingFields();
 
     return (
-        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200">
-            <div className="p-8 max-w-4xl mx-auto">
+        <div className="campus-detail-page min-h-full bg-[#eff8ff]">
+            <div className="p-8 max-w-5xl mx-auto">
                 <div className="mb-6">
-                    <Link to={`/admin-managebatches/${batchId}/students`} className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 text-sm">
+                    <Link to={`/admin-managebatches/${batchId}/students`} className="inline-flex items-center gap-2 text-sky-700 hover:text-sky-900 text-sm font-semibold">
                         <MdArrowBack className="w-4 h-4" /> Back to Students
                     </Link>
                 </div>
 
-                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6 mb-6">
-                    <div className="flex items-center justify-between">
+                <div className="rounded-[1.5rem] border border-sky-100 bg-white/95 shadow-[0_18px_45px_rgba(15,82,127,0.08)] p-6 mb-6">
+                    <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                         <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                            <div className="relative flex h-20 w-20 items-center justify-center rounded-[1.35rem] border border-sky-100 bg-[#eff8ff] shadow-sm">
+                                <div className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full border border-sky-100 bg-white text-sky-700 shadow-sm">
+                                    <MdSchool className="h-4 w-4" />
+                                </div>
                                 <span className="text-white text-xl font-bold">
-                                    {(student.first_name || '?')[0]}{(student.last_name || '?')[0]}
+                                    <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0078c5] shadow-[0_14px_28px_rgba(7,152,231,0.22)]">
+                                        {(student.first_name || '?')[0]}{(student.last_name || '?')[0]}
+                                    </span>
                                 </span>
                             </div>
                             <div>
+                                <p className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-sky-700">Student Profile</p>
                                 <h1 className="text-2xl font-bold text-slate-800">
                                     {student.first_name} {student.last_name}
                                 </h1>
                                 <div className="flex items-center gap-3 mt-1">
                                     {student.student_id_number && (
-                                        <span className="px-3 py-0.5 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold font-mono">
+                                        <span className="px-3 py-1 bg-sky-50 text-sky-700 border border-sky-100 rounded-full text-xs font-bold font-mono">
                                             {student.student_id_number}
                                         </span>
                                     )}
-                                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${student.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${student.is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'}`}>
                                         {student.is_active ? 'Active' : 'Inactive'}
                                     </span>
                                     {student.batch_name && (
@@ -196,17 +202,17 @@ const StudentDetails = () => {
                             {editing ? (
                                 <>
                                     <button onClick={handleCancel} disabled={updateMutation.isPending}
-                                        className="inline-flex items-center gap-2 px-4 py-2.5 border-2 border-slate-300 shadow-sm text-slate-600 rounded-xl font-medium text-sm hover:bg-slate-50 disabled:opacity-50">
+                                        className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:-translate-y-0.5 hover:bg-sky-50 disabled:translate-y-0 disabled:opacity-50">
                                         <MdClose className="w-4 h-4" /> Cancel
                                     </button>
                                     <button onClick={handleSave} disabled={updateMutation.isPending}
-                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-medium text-sm hover:shadow-lg disabled:opacity-50">
+                                        className="inline-flex items-center gap-2 rounded-full bg-[#0078c5] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(7,152,231,0.22)] transition-all hover:-translate-y-0.5 hover:bg-[#05629f] disabled:translate-y-0 disabled:opacity-50">
                                         <MdSave className="w-4 h-4" /> {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
                                     </button>
                                 </>
                             ) : (
                                 <button onClick={() => setEditing(true)}
-                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium text-sm hover:shadow-lg transition-all">
+                                    className="inline-flex items-center gap-2 rounded-full bg-[#0078c5] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(7,152,231,0.22)] transition-all hover:-translate-y-0.5 hover:bg-[#05629f]">
                                     <MdEdit className="w-4 h-4" /> Edit Student
                                 </button>
                             )}
@@ -227,9 +233,9 @@ const StudentDetails = () => {
                     </div>
                 )}
 
-                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6 mb-6">
+                <div className="rounded-[1.5rem] border border-sky-100 bg-white/95 shadow-[0_18px_45px_rgba(15,82,127,0.08)] p-6 mb-6">
                     <div className="flex items-center gap-3 mb-5">
-                        <div className="w-2 h-6 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full"></div>
+                        <div className="w-2 h-7 bg-[#0798e7] rounded-full"></div>
                         <h3 className="text-lg font-bold text-slate-800">Personal Information</h3>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -240,9 +246,9 @@ const StudentDetails = () => {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6 mb-6">
+                <div className="rounded-[1.5rem] border border-sky-100 bg-white/95 shadow-[0_18px_45px_rgba(15,82,127,0.08)] p-6 mb-6">
                     <div className="flex items-center gap-3 mb-5">
-                        <div className="w-2 h-6 bg-gradient-to-b from-violet-500 to-purple-600 rounded-full"></div>
+                        <div className="w-2 h-7 bg-[#0798e7] rounded-full"></div>
                         <h3 className="text-lg font-bold text-slate-800">Academic Information</h3>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -269,9 +275,9 @@ const StudentDetails = () => {
                 </div>
 
                 {student.parent && (
-                    <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-6">
+                    <div className="rounded-[1.5rem] border border-sky-100 bg-white/95 shadow-[0_18px_45px_rgba(15,82,127,0.08)] p-6">
                         <div className="flex items-center gap-3 mb-5">
-                            <div className="w-2 h-6 bg-gradient-to-b from-emerald-500 to-teal-600 rounded-full"></div>
+                            <div className="w-2 h-7 bg-[#0798e7] rounded-full"></div>
                             <h3 className="text-lg font-bold text-slate-800">Parent / Guardian</h3>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

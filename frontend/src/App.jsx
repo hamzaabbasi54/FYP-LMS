@@ -3,76 +3,19 @@ import { Routes, Route } from "react-router-dom";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            staleTime: 0,                // data is immediately stale, ensuring fresh fetches
-            refetchOnMount: true,         // refetch when component mounts (e.g. navigating back)
-            refetchOnWindowFocus: true,   // refetch when browser tab regains focus
+            staleTime: 2 * 60 * 1000,
+            gcTime: 10 * 60 * 1000,
+            refetchOnMount: false,
+            refetchOnWindowFocus: false,
+            retry: 1,
         },
     },
 });
 
-// Layouts
-import AdminMainLayout from "./components/layout/admin/AdminMainLayout.jsx";
-import FacultyMainLayout from "./components/layout/faculty/FacultyMainLayout.jsx";
-
-// Auth Pages
-import Login from "./pages/login/Login.jsx";
-import ForgotPassword from "./pages/login/ForgotPassword.jsx";
-import ResetPassword from "./pages/login/ResetPassword.jsx";
-import SetPassword from "./pages/login/SetPassword.jsx";
-
-// Admin (Department Admin) Pages
-import Dashboard from "./pages/admin-pages/Dashboard.jsx";
-import CourseAssignment from "./pages/admin-pages/CourseAssignment.jsx";
-import ManageBatches from "./pages/admin-pages/ManageBatches.jsx";
-import ManageFaculty from "./pages/admin-pages/ManageFaculty.jsx";
-import Parents from "./pages/admin-pages/Parents.jsx";
-import Reports from "./pages/admin-pages/Reports.jsx";
-import ManageCourses from "./pages/admin-pages/ManageCourses.jsx";
-import Settings from "./pages/admin-pages/Settings.jsx";
-import AddCourses from "./pages/admin-pages/AddCourses.jsx";
-import CourseDetails from "./pages/admin-pages/CourseDetails.jsx";
-import ManageCLOs from "./pages/admin-pages/ManageCLOs.jsx";
-import ManagePLOs from "./pages/admin-pages/ManagePLOs.jsx";
-import AddFaculty from './pages/admin-pages/AddFaculty.jsx';
-import AddBatch from './pages/admin-pages/AddBatch.jsx';
-import BatchDetails from "./pages/admin-pages/BatchDetails.jsx";
-import BatchCourseSchedule from "./pages/admin-pages/BatchCourseSchedule.jsx";
-import StudentsList from './pages/admin-pages/StudentsList.jsx';
-import StudentDetails from './pages/admin-pages/StudentDetails.jsx';
-import SemesterCourses from "./pages/admin-pages/SemesterCourses.jsx";
-import CreateAccount from './pages/admin-pages/CreateAccount.jsx';
-import ManageUsers from './pages/admin-pages/ManageUsers.jsx';
-import OBEReports from './pages/admin-pages/OBEReports.jsx';
-import ExternalLinks from './pages/admin-pages/ExternalLinks.jsx';
-import ManageCurricula from './pages/admin-pages/ManageCurricula.jsx';
-import CurriculumDetails from './pages/admin-pages/CurriculumDetails.jsx';
-import ManageDeptAdmins from './pages/admin-pages/ManageDeptAdmins.jsx';
-import SuperAdminPanel from './pages/admin-pages/SuperAdminPanel.jsx';
-
-// Shared Pages
-import DocumentViewer from './pages/shared/DocumentViewer.jsx';
-
-// Faculty Pages
-import FacultyDashboard from "./pages/faculty-pages/Dashboard.jsx";
-import MyCourses from "./pages/faculty-pages/MyCourses.jsx";
-import EditSyllabus from "./pages/faculty-pages/EditSyllabus.jsx";
-import BatchCourses from "./pages/faculty-pages/BatchCourses.jsx";
-import Attendance from "./pages/faculty-pages/Attendance.jsx";
-import MonthlyReport from "./pages/faculty-pages/MonthlyReport.jsx";
-import RegisterStudent from "./pages/faculty-pages/RegisterStudent.jsx";
-import Grading from "./pages/faculty-pages/Grading.jsx";
-import GradeAssignment from "./pages/faculty-pages/GradeAssignment.jsx";
-import CreateAssessment from "./pages/faculty-pages/CreateAssessment.jsx";
-import Messages from "./pages/faculty-pages/Messages.jsx";
-import Notifications from "./pages/faculty-pages/Notifications.jsx";
-import Schedule from "./pages/faculty-pages/Schedule.jsx";
-import ManageStudents from "./pages/faculty-pages/ManageStudents.jsx";
-import AssessmentDetails from "./pages/faculty-pages/AssessmentDetails.jsx";
 import { CourseProvider } from "./context/CourseContext.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { SocketProvider } from "./context/SocketContext.jsx";
@@ -83,12 +26,69 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 // Global Components
 import UndoToast from "./components/common/UndoToast.jsx";
 
+// Code-split route pages so production does not load the whole app at login.
+const AdminMainLayout = React.lazy(() => import("./components/layout/admin/AdminMainLayout.jsx"));
+const FacultyMainLayout = React.lazy(() => import("./components/layout/faculty/FacultyMainLayout.jsx"));
+const Login = React.lazy(() => import("./pages/login/Login.jsx"));
+const ForgotPassword = React.lazy(() => import("./pages/login/ForgotPassword.jsx"));
+const ResetPassword = React.lazy(() => import("./pages/login/ResetPassword.jsx"));
+const SetPassword = React.lazy(() => import("./pages/login/SetPassword.jsx"));
+const Dashboard = React.lazy(() => import("./pages/admin-pages/Dashboard.jsx"));
+const ManageBatches = React.lazy(() => import("./pages/admin-pages/ManageBatches.jsx"));
+const ManageFaculty = React.lazy(() => import("./pages/admin-pages/ManageFaculty.jsx"));
+const Parents = React.lazy(() => import("./pages/admin-pages/Parents.jsx"));
+const Reports = React.lazy(() => import("./pages/admin-pages/Reports.jsx"));
+const ManageCourses = React.lazy(() => import("./pages/admin-pages/ManageCourses.jsx"));
+const Settings = React.lazy(() => import("./pages/admin-pages/Settings.jsx"));
+const AddCourses = React.lazy(() => import("./pages/admin-pages/AddCourses.jsx"));
+const CourseDetails = React.lazy(() => import("./pages/admin-pages/CourseDetails.jsx"));
+const ManageCLOs = React.lazy(() => import("./pages/admin-pages/ManageCLOs.jsx"));
+const ManagePLOs = React.lazy(() => import("./pages/admin-pages/ManagePLOs.jsx"));
+const AddFaculty = React.lazy(() => import("./pages/admin-pages/AddFaculty.jsx"));
+const AddBatch = React.lazy(() => import("./pages/admin-pages/AddBatch.jsx"));
+const BatchDetails = React.lazy(() => import("./pages/admin-pages/BatchDetails.jsx"));
+const BatchCourseSchedule = React.lazy(() => import("./pages/admin-pages/BatchCourseSchedule.jsx"));
+const StudentsList = React.lazy(() => import("./pages/admin-pages/StudentsList.jsx"));
+const StudentDetails = React.lazy(() => import("./pages/admin-pages/StudentDetails.jsx"));
+const SemesterCourses = React.lazy(() => import("./pages/admin-pages/SemesterCourses.jsx"));
+const CreateAccount = React.lazy(() => import("./pages/admin-pages/CreateAccount.jsx"));
+const ManageUsers = React.lazy(() => import("./pages/admin-pages/ManageUsers.jsx"));
+const OBEReports = React.lazy(() => import("./pages/admin-pages/OBEReports.jsx"));
+const ExternalLinks = React.lazy(() => import("./pages/admin-pages/ExternalLinks.jsx"));
+const ManageCurricula = React.lazy(() => import("./pages/admin-pages/ManageCurricula.jsx"));
+const CurriculumDetails = React.lazy(() => import("./pages/admin-pages/CurriculumDetails.jsx"));
+const ManageDeptAdmins = React.lazy(() => import("./pages/admin-pages/ManageDeptAdmins.jsx"));
+const SuperAdminPanel = React.lazy(() => import("./pages/admin-pages/SuperAdminPanel.jsx"));
+const DocumentViewer = React.lazy(() => import("./pages/shared/DocumentViewer.jsx"));
+const FacultyDashboard = React.lazy(() => import("./pages/faculty-pages/Dashboard.jsx"));
+const MyCourses = React.lazy(() => import("./pages/faculty-pages/MyCourses.jsx"));
+const EditSyllabus = React.lazy(() => import("./pages/faculty-pages/EditSyllabus.jsx"));
+const BatchCourses = React.lazy(() => import("./pages/faculty-pages/BatchCourses.jsx"));
+const Attendance = React.lazy(() => import("./pages/faculty-pages/Attendance.jsx"));
+const MonthlyReport = React.lazy(() => import("./pages/faculty-pages/MonthlyReport.jsx"));
+const RegisterStudent = React.lazy(() => import("./pages/faculty-pages/RegisterStudent.jsx"));
+const Grading = React.lazy(() => import("./pages/faculty-pages/Grading.jsx"));
+const GradeAssignment = React.lazy(() => import("./pages/faculty-pages/GradeAssignment.jsx"));
+const CreateAssessment = React.lazy(() => import("./pages/faculty-pages/CreateAssessment.jsx"));
+const Messages = React.lazy(() => import("./pages/faculty-pages/Messages.jsx"));
+const Notifications = React.lazy(() => import("./pages/faculty-pages/Notifications.jsx"));
+const Schedule = React.lazy(() => import("./pages/faculty-pages/Schedule.jsx"));
+const ManageStudents = React.lazy(() => import("./pages/faculty-pages/ManageStudents.jsx"));
+const AssessmentDetails = React.lazy(() => import("./pages/faculty-pages/AssessmentDetails.jsx"));
+
+const RouteLoader = () => (
+    <div className="min-h-screen bg-sky-50/50 flex items-center justify-center">
+        <div className="h-10 w-10 rounded-full border-2 border-sky-200 border-t-sky-600 animate-spin" />
+    </div>
+);
+
 function App() {
     return (
         <QueryClientProvider client={queryClient}>
             <AuthProvider>
                 <SocketProvider>
-                    <Routes>
+                    <React.Suspense fallback={<RouteLoader />}>
+                        <Routes>
                         {/* Authentication Routes */}
                 <Route path="/" element={<Login />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -172,14 +172,25 @@ function App() {
                     </Route>
                 </Route>
 
-            </Routes>
+                        </Routes>
+                    </React.Suspense>
                     </SocketProvider>
                     <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
                     <UndoToast />
                 </AuthProvider>
-                <ReactQueryDevtools initialIsOpen={false} />
+                {import.meta.env.DEV && (
+                    <React.Suspense fallback={null}>
+                        <Devtools />
+                    </React.Suspense>
+                )}
             </QueryClientProvider>
     );
 }
+
+const Devtools = React.lazy(() =>
+    import('@tanstack/react-query-devtools').then((mod) => ({
+        default: mod.ReactQueryDevtools,
+    }))
+);
 
 export default App;

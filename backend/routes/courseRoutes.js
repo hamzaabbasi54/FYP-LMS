@@ -85,31 +85,56 @@ router.get('/clos/all', async (req, res) => {
             `SELECT cl.id, cl.clo_number, cl.title, cl.description, cl.cognitive_level
              FROM clos cl ORDER BY cl.title, cl.clo_number`
         );
-        for (const clo of clos) {
-            // Get mapped courses from both junction table and direct course_id
-            const [courses] = await pool.query(
-                `SELECT c.id, c.title, c.code 
-                 FROM courses c
-                 LEFT JOIN course_clo_mapping ccm ON c.id = ccm.course_id AND ccm.clo_id = ?
-                 LEFT JOIN clos cl ON c.id = cl.course_id AND cl.id = ?
-                 WHERE ccm.clo_id IS NOT NULL OR cl.course_id IS NOT NULL
-                 GROUP BY c.id, c.title, c.code`, 
-                 [clo.id, clo.id]
-            );
-            clo.mapped_courses = courses;
-            
-            // Get mapped PLOs from both global mappings and batch-specific mappings
-            const [plos] = await pool.query(
-                `SELECT p.id, p.plo_number, p.description
-                 FROM plos p
-                 LEFT JOIN clo_plo_mapping cpm ON p.id = cpm.plo_id AND cpm.clo_id = ?
-                 LEFT JOIN batch_clo_plo_mapping bcpm ON p.id = bcpm.plo_id AND bcpm.clo_id = ?
-                 WHERE cpm.clo_id IS NOT NULL OR bcpm.clo_id IS NOT NULL
-                 GROUP BY p.id, p.plo_number, p.description`, 
-                 [clo.id, clo.id]
-            );
-            clo.mapped_plos = plos;
+
+        if (clos.length === 0) {
+            return res.json({ success: true, data: [] });
         }
+
+        const cloIds = clos.map((clo) => clo.id);
+        const [mappedCourses] = await pool.query(
+            `SELECT DISTINCT mapped.clo_id, mapped.id, mapped.title, mapped.code
+             FROM (
+                SELECT ccm.clo_id, c.id, c.title, c.code
+                FROM course_clo_mapping ccm
+                JOIN courses c ON c.id = ccm.course_id
+                WHERE ccm.clo_id IN (?)
+                UNION
+                SELECT cl.id as clo_id, c.id, c.title, c.code
+                FROM clos cl
+                JOIN courses c ON c.id = cl.course_id
+                WHERE cl.id IN (?)
+             ) mapped
+             ORDER BY mapped.code`,
+            [cloIds, cloIds]
+        );
+        const [mappedPlos] = await pool.query(
+            `SELECT DISTINCT mapped.clo_id, p.id, p.plo_number, p.description
+             FROM (
+                SELECT clo_id, plo_id FROM clo_plo_mapping WHERE clo_id IN (?)
+                UNION
+                SELECT clo_id, plo_id FROM batch_clo_plo_mapping WHERE clo_id IN (?)
+             ) mapped
+             JOIN plos p ON p.id = mapped.plo_id
+             ORDER BY p.plo_number`,
+            [cloIds, cloIds]
+        );
+
+        const coursesByClo = new Map();
+        mappedCourses.forEach(({ clo_id, id, title, code }) => {
+            if (!coursesByClo.has(clo_id)) coursesByClo.set(clo_id, []);
+            coursesByClo.get(clo_id).push({ id, title, code });
+        });
+
+        const plosByClo = new Map();
+        mappedPlos.forEach(({ clo_id, id, plo_number, description }) => {
+            if (!plosByClo.has(clo_id)) plosByClo.set(clo_id, []);
+            plosByClo.get(clo_id).push({ id, plo_number, description });
+        });
+
+        clos.forEach((clo) => {
+            clo.mapped_courses = coursesByClo.get(clo.id) || [];
+            clo.mapped_plos = plosByClo.get(clo.id) || [];
+        });
         res.json({ success: true, data: clos });
     } catch (error) {
         console.error('Get all CLOs error:', error);

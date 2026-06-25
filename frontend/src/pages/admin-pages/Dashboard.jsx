@@ -24,12 +24,13 @@ const Dashboard = () => {
     });
 
     const { data: dashStats = {} } = useQuery({
-        queryKey: ['dashboardStats'],
+        queryKey: ['dashboardStats', user?.id, user?.department_id || user?.department],
         queryFn: async () => {
             const response = await dashboardApi.getStats();
             if (response.success) return response.data || {};
             throw new Error('Failed to load stats');
-        }
+        },
+        enabled: !!user?.id
     });
 
     const stats = [
@@ -97,15 +98,15 @@ const Dashboard = () => {
     ];
 
     return (
-        <div className="h-[calc(100vh-128px)] overflow-hidden">
-            <div className="max-w-7xl w-full mx-auto h-full flex flex-col gap-3">
-                <section className="relative min-h-[126px] overflow-hidden rounded-3xl border border-white/70 bg-white/82 p-4 shadow-[0_24px_80px_rgba(14,116,144,0.14)] backdrop-blur-2xl lg:p-5">
+        <div className="min-h-[calc(100dvh-116px)] pb-[calc(env(safe-area-inset-bottom)+5rem)] lg:h-[calc(100dvh-128px)] lg:overflow-hidden lg:pb-0">
+            <div className="max-w-7xl w-full mx-auto min-h-full flex flex-col gap-3 lg:h-full">
+                <section className="relative overflow-hidden rounded-3xl border border-white/70 bg-white/82 p-4 shadow-[0_24px_80px_rgba(14,116,144,0.14)] backdrop-blur-2xl lg:min-h-[126px] lg:p-5">
                     <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-sky-200/35 blur-3xl" />
                     <div className="absolute bottom-0 right-10 hidden h-24 w-64 rounded-full bg-cyan-100/60 blur-2xl md:block" />
                     <div className="relative grid h-full gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                         <div className="min-w-0">
                             <p className="text-xs font-bold uppercase tracking-[0.18em] text-sky-700">Campus Flow</p>
-                            <h1 className="mt-1.5 text-3xl font-bold text-slate-950">
+                            <h1 className="mt-1.5 text-2xl font-bold text-slate-950 sm:text-3xl">
                                 Department Dashboard
                             </h1>
                             <p className="mt-1.5 max-w-3xl text-sm leading-5 text-slate-600">

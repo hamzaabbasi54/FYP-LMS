@@ -33,16 +33,16 @@ const CourseCard = ({ course, icon }) => {
         <button
             type="button"
             onClick={handleClick}
-            className="group w-full rounded-2xl border border-sky-100 bg-white/92 p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-sky-100"
+            className="group w-full rounded-2xl border border-sky-100 bg-white/92 p-3.5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-sky-100 sm:p-4"
         >
-            <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-sky-100 bg-sky-50 text-sky-700">
-                    {React.createElement(icon, { className: 'w-6 h-6' })}
+            <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-sky-100 bg-sky-50 text-sky-700 sm:h-12 sm:w-12">
+                    {React.createElement(icon, { className: 'w-5 h-5 sm:w-6 sm:h-6' })}
                 </div>
 
                 <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate text-base font-bold text-slate-950 transition-colors group-hover:text-sky-700">{course.title}</h3>
+                        <h3 className="text-sm font-bold text-slate-950 transition-colors group-hover:text-sky-700 sm:text-base">{course.title}</h3>
                         <span className="rounded-full border border-sky-100 bg-sky-50 px-2 py-0.5 text-[11px] font-bold text-sky-700">
                             {course.code}
                         </span>
@@ -56,7 +56,7 @@ const CourseCard = ({ course, icon }) => {
                     </div>
                 </div>
 
-                <div className="hidden items-center gap-5 sm:flex">
+                <div className="hidden items-center gap-5 md:flex">
                     <div className="text-right">
                         <p className="text-xl font-bold leading-none text-slate-950">{course.student_count}</p>
                         <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Students</p>
@@ -86,7 +86,6 @@ const Dashboard = () => {
             if (response.success) return response.data || [];
             throw new Error('Failed to load assigned courses. Please try again.');
         },
-        refetchOnWindowFocus: true,
         retry: 2
     });
 
@@ -121,16 +120,16 @@ const Dashboard = () => {
     ];
 
     return (
-        <div className="h-[calc(100vh-154px)] overflow-hidden">
-            <div className="mx-auto flex h-full max-w-7xl flex-col gap-3">
+        <div className="min-h-[calc(100dvh-116px)] pb-[calc(env(safe-area-inset-bottom)+5rem)] lg:h-[calc(100dvh-132px)] lg:overflow-hidden lg:pb-0">
+            <div className="mx-auto flex min-h-full max-w-7xl flex-col gap-3 lg:h-full">
                 {/* Hero Section */}
-                <section className="relative min-h-[126px] overflow-hidden rounded-3xl border border-white/70 bg-white/82 p-4 shadow-[0_24px_80px_rgba(14,116,144,0.14)] backdrop-blur-2xl lg:p-5">
+                <section className="relative overflow-hidden rounded-3xl border border-white/70 bg-white/82 p-4 shadow-[0_24px_80px_rgba(14,116,144,0.14)] backdrop-blur-2xl lg:min-h-[126px] lg:p-5">
                     <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-sky-200/35 blur-3xl" />
                     <div className="absolute bottom-0 right-10 hidden h-24 w-64 rounded-full bg-cyan-100/60 blur-2xl md:block" />
                     <div className="relative grid h-full gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                         <div className="min-w-0">
                             <p className="text-xs font-bold uppercase tracking-[0.18em] text-sky-700">Campus Flow</p>
-                            <h1 className="mt-1.5 text-3xl font-bold text-slate-950">
+                            <h1 className="mt-1.5 text-2xl font-bold text-slate-950 sm:text-3xl">
                                 Faculty Dashboard
                             </h1>
                             <p className="mt-1.5 max-w-3xl text-sm leading-5 text-slate-600">
@@ -165,25 +164,25 @@ const Dashboard = () => {
                 </div>
 
                 {/* --- Assigned Courses Section --- */}
-                <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-sky-100 bg-white/90 shadow-sm backdrop-blur">
-                    <div className="border-b border-sky-100 bg-sky-50/70 px-5 py-3.5">
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3">
+                <section className="flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-3xl border border-sky-100 bg-white/90 shadow-sm backdrop-blur">
+                    <div className="border-b border-sky-100 bg-sky-50/70 px-4 py-3.5 sm:px-5">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex items-center gap-3 min-w-0">
                                 <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-sky-100 bg-white text-sky-700 shadow-sm">
                                     <PiGraduationCap className="h-5 w-5" />
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                     <h2 className="text-sm font-bold text-slate-900">Assigned Courses</h2>
                                     <p className="text-xs text-slate-500 mt-0.5">Select a course to manage attendance, grades, and syllabus.</p>
                                 </div>
                             </div>
-                            <div className="hidden rounded-full border border-sky-100 bg-white px-3 py-1.5 text-xs font-bold text-sky-700 shadow-sm sm:block">
+                            <div className="w-fit rounded-full border border-sky-100 bg-white px-3 py-1.5 text-xs font-bold text-sky-700 shadow-sm">
                                 {loading ? 'Loading' : `${totalCourses} active`}
                             </div>
                         </div>
                     </div>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto bg-sky-50/30 p-4">
+                    <div className="min-h-0 flex-1 overflow-y-auto bg-sky-50/30 p-3 sm:p-4">
                         {/* Loading State */}
                         {loading && (
                             <div className="flex justify-center items-center py-16">

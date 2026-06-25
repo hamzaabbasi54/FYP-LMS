@@ -57,7 +57,7 @@ router.use(verifyToken);
 // GET all batches (paginated, with stats)
 router.get('/', async (req, res) => {
     try {
-        const { department_id: queryDeptId, status: batchStatus } = req.query;
+        const { department_id: queryDeptId, status: batchStatus, search } = req.query;
         const { page, limit, offset } = parsePagination(req.query);
 
         // Force department scope for dept admins
@@ -67,9 +67,17 @@ router.get('/', async (req, res) => {
         const params = [];
         if (department_id) { whereClause += ' AND b.department_id = ?'; params.push(department_id); }
         if (batchStatus) { whereClause += ' AND b.status = ?'; params.push(batchStatus); }
+        if (search) {
+            whereClause += ' AND (b.name LIKE ? OR d.name LIKE ?)';
+            const term = `%${search}%`;
+            params.push(term, term);
+        }
 
         const [[{ total }]] = await pool.query(
-            `SELECT COUNT(*) as total FROM batches b ${whereClause}`, params
+            `SELECT COUNT(*) as total
+             FROM batches b
+             JOIN departments d ON b.department_id = d.id
+             ${whereClause}`, params
         );
 
         const [batches] = await pool.query(
@@ -1115,4 +1123,3 @@ router.post('/:id/clo-mappings', isAdmin, async (req, res) => {
 });
 
 export default router;
-

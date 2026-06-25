@@ -7,11 +7,18 @@ import campusFlowLogo from '../../assets/campus-flow-logo-clean.svg';
 const Login = () => {
     const navigate = useNavigate();
     const { login } = useAuth();
+    const rememberedLogin = (() => {
+        try {
+            return JSON.parse(localStorage.getItem('campusFlowRememberedLogin') || '{}');
+        } catch {
+            return {};
+        }
+    })();
     const [formData, setFormData] = useState({
-        email: '',
+        email: rememberedLogin.email || '',
         password: '',
-        role: 'faculty',
-        rememberMe: false
+        role: rememberedLogin.role || 'faculty',
+        rememberMe: Boolean(rememberedLogin.email)
     });
     const [showPassword, setShowPassword] = useState(false);
     const [errors, setErrors] = useState({});
@@ -59,9 +66,17 @@ const Login = () => {
         if (validateForm()) {
             setLoading(true);
             try {
-                const data = await login(formData.email, formData.password, formData.role);
+                const data = await login(formData.email, formData.password, formData.role, formData.rememberMe);
 
                 if (data.success) {
+                    if (formData.rememberMe) {
+                        localStorage.setItem('campusFlowRememberedLogin', JSON.stringify({
+                            email: formData.email,
+                            role: formData.role
+                        }));
+                    } else {
+                        localStorage.removeItem('campusFlowRememberedLogin');
+                    }
                     // Redirect based on role
                     const redirectMap = {
                         super_admin: '/admin-dashboard',

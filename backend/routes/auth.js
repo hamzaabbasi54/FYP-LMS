@@ -11,6 +11,7 @@ import { verifyToken, isAdmin } from '../middleware/auth.js';
 import pool from '../config/db.js';
 import { sendInviteEmail, sendPasswordResetEmail } from '../utils/email.js';
 import { cacheDel } from '../config/redis.js';
+import { parsePagination, paginatedResponse } from '../utils/pagination.js';
 
 const router = express.Router();
 
@@ -260,10 +261,12 @@ router.post('/create-account', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
-// GET /api/auth/users — List all users (with optional role/search filter)
+// GET /api/auth/users — List users with optional role/search filter
 router.get('/users', verifyToken, isAdmin, async (req, res) => {
     try {
         const { role, search } = req.query;
+        const { page, limit, offset } = parsePagination(req.query);
+        const shouldPaginate = req.query.page !== undefined || req.query.limit !== undefined;
 
         let whereClause = 'WHERE 1=1';
         const params = [];
@@ -300,15 +303,29 @@ router.get('/users', verifyToken, isAdmin, async (req, res) => {
              LEFT JOIN departments d ON u.department_id = d.id
              LEFT JOIN faculties f ON u.faculty_id = f.id
              ${whereClause}
-             ORDER BY u.created_at DESC`,
+             ORDER BY u.created_at DESC
+             ${shouldPaginate ? 'LIMIT ? OFFSET ?' : ''}`,
+            shouldPaginate ? [...params, limit, offset] : params
+        );
+
+        if (!shouldPaginate) {
+            return res.status(200).json({
+                success: true,
+                count: users.length,
+                data: users
+            });
+        }
+
+        const [countRows] = await pool.query(
+            `SELECT COUNT(*) AS total
+             FROM users u
+             LEFT JOIN departments d ON u.department_id = d.id
+             LEFT JOIN faculties f ON u.faculty_id = f.id
+             ${whereClause}`,
             params
         );
 
-        res.status(200).json({
-            success: true,
-            count: users.length,
-            data: users
-        });
+        res.status(200).json(paginatedResponse(users, countRows[0].total, page, limit));
     } catch (error) {
         console.error('Get users error:', error);
         res.status(500).json({

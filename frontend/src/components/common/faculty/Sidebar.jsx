@@ -17,7 +17,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { messageApi } from '../../../services/api';
 import campusFlowLogo from '../../../assets/campus-flow-logo-clean.svg';
 
-const Sidebar = () => {
+const Sidebar = ({ onClose }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const { selectedCourse } = useCourse();
@@ -31,7 +31,8 @@ const Sidebar = () => {
             const res = await messageApi.getUnreadCount();
             return res.success ? res.count : 0;
         },
-        refetchInterval: 30000,
+        staleTime: 60 * 1000,
+        refetchInterval: 60 * 1000,
     });
     const unreadCount = unreadData || 0;
 

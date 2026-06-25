@@ -40,7 +40,8 @@ const Messages = () => {
             const res = await messageApi.getContacts();
             return res.success ? res.data : [];
         },
-        refetchInterval: 30000,
+        staleTime: 60 * 1000,
+        refetchInterval: 60 * 1000,
     });
 
     const contacts = contactsData || [];
@@ -52,6 +53,7 @@ const Messages = () => {
             return res.success ? res.data : [];
         },
         enabled: !!selectedContact?.id,
+        staleTime: 30 * 1000,
     });
 
     // Sync server data to local state
@@ -234,13 +236,13 @@ const Messages = () => {
     // Render
     // ============================================
     return (
-        <div className="h-[calc(100vh-128px)] overflow-hidden">
+        <div className="h-[calc(100dvh-104px)] overflow-hidden sm:h-[calc(100dvh-116px)]">
             <div className="h-full w-full max-w-7xl mx-auto flex bg-white rounded-3xl border border-sky-100 shadow-md overflow-hidden">
             {/* ========== LEFT: Contact List ========== */}
             <div className={`w-full md:w-[340px] lg:w-[380px] flex-shrink-0 border-r border-slate-200 flex flex-col bg-slate-50 ${showMobileChat ? 'hidden md:flex' : 'flex'}`}>
                 {/* Header */}
                 <div className="p-4 border-b border-slate-200">
-                    <h2 className="text-xl font-bold text-slate-800 mb-3">Messages</h2>
+                    <h2 className="text-lg font-bold text-slate-800 mb-3 sm:text-xl">Messages</h2>
                     <div className="relative">
                         <PiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
@@ -284,7 +286,7 @@ const Messages = () => {
                                     }`}
                                 >
                                     {/* Avatar */}
-                                    <div className={`relative w-12 h-12 rounded-full bg-gradient-to-br ${getAvatarColor(contact.id)} flex items-center justify-center flex-shrink-0 shadow-sm ring-2 ring-white`}>
+                                    <div className={`relative h-11 w-11 rounded-2xl bg-gradient-to-br ${getAvatarColor(contact.id)} flex items-center justify-center flex-shrink-0 shadow-sm ring-2 ring-white sm:h-12 sm:w-12`}>
                                         <PiUserCircle className="h-7 w-7 text-white/90" />
                                         <span className="absolute -right-1 -bottom-0.5 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-white text-sky-600 shadow-sm">
                                             <PiChatTeardropText className="h-3 w-3" />
@@ -341,14 +343,14 @@ const Messages = () => {
                 ) : (
                     <>
                         {/* Conversation Header */}
-                        <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-slate-200 shadow-sm">
+                        <div className="flex items-center gap-3 px-3 py-3 bg-white border-b border-slate-200 shadow-sm sm:px-4">
                             <button
                                 onClick={() => { setShowMobileChat(false); setSelectedContact(null); }}
-                                className="md:hidden p-1 hover:bg-slate-100 rounded-lg text-slate-400"
+                                className="md:hidden p-2 hover:bg-slate-100 rounded-xl text-slate-500"
                             >
                                 <PiArrowLeft className="w-5 h-5" />
                             </button>
-                            <div className={`relative w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(selectedContact.id)} flex items-center justify-center shadow-sm ring-2 ring-white`}>
+                            <div className={`relative h-10 w-10 rounded-2xl bg-gradient-to-br ${getAvatarColor(selectedContact.id)} flex items-center justify-center shadow-sm ring-2 ring-white`}>
                                 <PiUserCircle className="h-6 w-6 text-white/90" />
                                 <span className="absolute -right-1 -bottom-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full border border-white bg-white text-sky-600 shadow-sm">
                                     <PiChatTeardropText className="h-2.5 w-2.5" />
@@ -367,7 +369,7 @@ const Messages = () => {
                         </div>
 
                         {/* Messages */}
-                        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+                        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 sm:px-4">
                             {loadingConversation ? (
                                 <div className="flex items-center justify-center h-full">
                                     <div className="w-8 h-8 border-3 border-sky-200 border-t-sky-600 rounded-lg animate-spin"></div>
@@ -399,7 +401,7 @@ const Messages = () => {
                                                     </div>
                                                 )}
                                                 <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${isConsecutive ? 'mt-0.5' : 'mt-3'}`}>
-                                                    <div className={`max-w-[75%] ${isMine ? 'order-1' : 'order-1'}`}>
+                                                    <div className={`max-w-[86%] sm:max-w-[75%] ${isMine ? 'order-1' : 'order-1'}`}>
                                                         <div className={`px-3.5 py-2 rounded-3xl text-sm leading-relaxed shadow-sm ${
                                                             isMine
                                                                 ? 'bg-sky-600 text-white rounded-br-md'
@@ -439,7 +441,7 @@ const Messages = () => {
                         </div>
 
                         {/* Message Input */}
-                        <div className="px-4 py-3 bg-slate-50 border-t border-slate-200">
+                        <div className="px-3 py-3 bg-slate-50 border-t border-slate-200 sm:px-4">
                             <div className="flex items-end gap-2">
                                 <div className="flex-1 relative">
                                     <textarea

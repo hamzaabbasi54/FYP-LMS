@@ -4,6 +4,8 @@ node_modules/
 .DS_Store
 dist/
 build/
+backend/backups/
+backend/qa-results/
 
 *.xlsx
 *.csv

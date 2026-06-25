@@ -131,7 +131,7 @@ const UndoToast = () => {
         <div
             style={{
                 position: 'fixed',
-                bottom: '24px',
+                top: '24px',
                 right: '24px',
                 zIndex: 99999,
                 display: 'flex',
@@ -147,11 +147,11 @@ const UndoToast = () => {
                 @keyframes undoSlideIn {
                     from {
                         opacity: 0;
-                        transform: translateX(40px);
+                        transform: translate(40px, -8px);
                     }
                     to {
                         opacity: 1;
-                        transform: translateX(0);
+                        transform: translate(0, 0);
                     }
                 }
             `}</style>

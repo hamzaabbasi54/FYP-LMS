@@ -6,7 +6,12 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "migrate": "node migrate.js"
+    "backup": "node scripts/backup-db.js",
+    "db:indexes": "node scripts/apply-performance-indexes.js",
+    "migrate": "node migrate.js",
+    "perf:smoke": "node scripts/perf-smoke.js",
+    "qa:seed": "node scripts/qa-seed-large.js",
+    "qa:perf": "node scripts/qa-performance-audit.js"
   },
   "keywords": [],
   "author": "",

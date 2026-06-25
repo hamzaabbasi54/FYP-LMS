@@ -134,7 +134,7 @@ export const signup = async (req, res) => {
 // Login Controller — supports deptadmin and faculty
 export const login = async (req, res) => {
     try {
-        const { email, password, role } = req.body;
+        const { email, password, role, rememberMe = false } = req.body;
 
         // Validate required fields
         if (!email || !password) {
@@ -208,6 +208,7 @@ export const login = async (req, res) => {
         }
 
         // Generate JWT (includes token_version for invalidation support)
+        const tokenMaxAge = rememberMe ? '30d' : '7d';
         const token = jwt.sign(
             {
                 id: user.id,
@@ -220,16 +221,21 @@ export const login = async (req, res) => {
                 token_version: user.token_version || 0
             },
             process.env.JWT_SECRET,
-            { expiresIn: '7d' }
+            { expiresIn: tokenMaxAge }
         );
 
         // Set HTTP-Only cookie
-        res.cookie('token', token, {
+        const cookieOptions = {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-        });
+            sameSite: 'lax'
+        };
+
+        if (rememberMe) {
+            cookieOptions.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+        }
+
+        res.cookie('token', token, cookieOptions);
 
         res.status(200).json({
             success: true,

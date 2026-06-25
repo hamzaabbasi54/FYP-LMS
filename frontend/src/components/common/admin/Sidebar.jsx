@@ -15,7 +15,7 @@ import {
     PiListChecks,
     PiSignOut,
     PiTarget,
-    PiUsersThree
+    PiUsersThree,
 } from 'react-icons/pi';
 import { useAuth } from '../../../context/AuthContext';
 import { useSocket } from '../../../context/SocketContext';
@@ -23,7 +23,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { messageApi } from '../../../services/api';
 import campusFlowLogo from '../../../assets/campus-flow-logo-clean.svg';
 
-const Sidebar = () => {
+const Sidebar = ({ onClose }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const [operationsExpanded, setOperationsExpanded] = useState(true);
@@ -37,7 +37,8 @@ const Sidebar = () => {
             const res = await messageApi.getUnreadCount();
             return res.success ? res.count : 0;
         },
-        refetchInterval: 30000,
+        staleTime: 60 * 1000,
+        refetchInterval: 60 * 1000,
     });
     const unreadCount = unreadData || 0;
 
@@ -154,6 +155,10 @@ const Sidebar = () => {
             <div className="mt-4 pt-3 border-t border-slate-200">
                 <Link 
                     to="/admin-settings" 
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        onClose?.();
+                    }}
                     className="flex items-center gap-3 p-2 mb-2 rounded-xl hover:bg-sky-50 transition-colors group cursor-pointer"
                     title="Account Settings"
                 >
@@ -168,7 +173,10 @@ const Sidebar = () => {
                     </div>
                 </Link>
                 <button
-                    onClick={handleLogout}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        handleLogout();
+                    }}
                     className="flex items-center w-full px-4 py-2.5 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all"
                 >
                     <PiSignOut className="w-5 h-5 mr-3 text-slate-400 group-hover:text-red-500" />
