@@ -236,6 +236,11 @@ router.delete('/:id', isAdmin, scopeDept, deleteGuard('department'), async (req,
 router.get('/plos/all', async (req, res) => {
     try {
         const department_id = (req.user.role === 'deptadmin') ? req.user.department_id : req.query.department_id;
+        
+        if (!department_id) {
+            return res.status(400).json({ success: false, message: 'Department ID is required' });
+        }
+
         const cacheKey = `plos:${department_id}`;
         const cached = await cacheGet(cacheKey);
         if (cached) return res.json({ success: true, data: cached });

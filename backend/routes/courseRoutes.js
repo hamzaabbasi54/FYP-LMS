@@ -831,11 +831,13 @@ router.post('/:id/clos/single', isAdmin, async (req, res) => {
         const courseId = req.params.id;
 
         if (!title) {
+            await conn.rollback();
             return res.status(400).json({ success: false, message: 'CLO title is required' });
         }
 
         const cloPattern = /^CLO-\d+$/;
         if (!cloPattern.test(title)) {
+            await conn.rollback();
             return res.status(400).json({ success: false, message: 'CLO title must be in CLO-X format (e.g. CLO-1, CLO-2)' });
         }
         const cloNumber = parseInt(title.split('-')[1]);
@@ -848,6 +850,7 @@ router.post('/:id/clos/single', isAdmin, async (req, res) => {
         `, [courseId, title, courseId]);
 
         if (existing) {
+            await conn.rollback();
             return res.status(400).json({ success: false, message: 'A CLO with this title is already mapped to this course' });
         }
 

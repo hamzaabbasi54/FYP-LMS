@@ -315,9 +315,6 @@ router.post('/import', isAdmin, upload.single('file'), validateMagicBytes, async
         }
 
         const targetBatchId = req.body.batch_id;
-        if (!targetBatchId && !rows[0].batch_id) {
-            return res.status(400).json({ success: false, message: 'Batch ID is required either in the URL/body or the CSV' });
-        }
 
         const validRows = [];
         const preflightErrors = [];
@@ -329,12 +326,14 @@ router.post('/import', isAdmin, upload.single('file'), validateMagicBytes, async
             const rowNum = i + 2;
             const rowErrors = [];
 
-            const rollNumber = String(row.student_id_number || '').trim();
+            const rollNumber = String(row.student_id_number || row.roll_number || '').trim();
             const email = String(row.email || '').trim().toLowerCase();
             const firstName = String(row.first_name || '').trim();
             const lastName = String(row.last_name || '').trim();
 
             // Required field checks
+            const rowBatchId = row.batch_id || targetBatchId;
+            if (!rowBatchId) rowErrors.push('batch_id is required (not provided in request body or CSV)');
             if (!rollNumber) rowErrors.push('student_id_number is required');
             if (!firstName) rowErrors.push('first_name is required');
             if (!lastName) rowErrors.push('last_name is required');
@@ -378,7 +377,7 @@ router.post('/import', isAdmin, upload.single('file'), validateMagicBytes, async
                     error: rowErrors.join('; ')
                 });
             } else {
-                validRows.push({ ...row, student_id_number: rollNumber, email });
+                validRows.push({ ...row, student_id_number: rollNumber, email, batch_id: rowBatchId });
             }
         }
 
@@ -395,7 +394,7 @@ router.post('/import', isAdmin, upload.single('file'), validateMagicBytes, async
         await conn.beginTransaction();
 
         const studentValues = validRows.map(row => {
-            const studentBatchId = row.batch_id || targetBatchId; // endpoint 1
+            const studentBatchId = row.batch_id; // already validated in pre-flight
             return [
                 row.student_id_number,
                 row.first_name,
@@ -462,6 +461,7 @@ router.post('/import', isAdmin, upload.single('file'), validateMagicBytes, async
 
         await conn.commit();
         await cacheDelPattern('students:*');
+        await cacheDelPattern('parents:*');
         await cacheDelPattern('dashboard:*');
 
         const imported = validRows.length;
@@ -535,6 +535,21 @@ router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file
             });
         }
 
+        // Verify assignment and get batch_id before processing rows
+        const [assignments] = await pool.query(
+            `SELECT ca.id, s.batch_id 
+             FROM course_assignments ca
+             JOIN semesters s ON ca.semester_id = s.id
+             WHERE ca.id = ?`,
+            [assignmentId]
+        );
+
+        if (assignments.length === 0) {
+            return res.status(404).json({ success: false, message: 'Course assignment not found' });
+        }
+
+        const targetBatchId = assignments[0].batch_id;
+
         const validRows = [];
         const preflightErrors = [];
         const seenRollNumbers = new Set();
@@ -551,6 +566,8 @@ router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file
             const lastName = String(row.last_name || '').trim();
 
             // Required field checks
+            const rowBatchId = row.batch_id || targetBatchId;
+            if (!rowBatchId) rowErrors.push('batch_id is required');
             if (!rollNumber) rowErrors.push('student_id_number is required');
             if (!firstName) rowErrors.push('first_name is required');
             if (!lastName) rowErrors.push('last_name is required');
@@ -594,7 +611,7 @@ router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file
                     error: rowErrors.join('; ')
                 });
             } else {
-                validRows.push({ ...row, student_id_number: rollNumber, email });
+                validRows.push({ ...row, student_id_number: rollNumber, email, batch_id: rowBatchId });
             }
         }
 
@@ -610,31 +627,14 @@ router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file
         conn = await pool.getConnection();
         await conn.beginTransaction();
 
-        // Verify assignment and get batch_id
-        const [assignments] = await conn.query(
-            `SELECT ca.id, s.batch_id 
-             FROM course_assignments ca
-             JOIN semesters s ON ca.semester_id = s.id
-             WHERE ca.id = ?`,
-            [assignmentId]
-        );
-
-        if (assignments.length === 0) {
-            await conn.rollback();
-            return res.status(404).json({ success: false, message: 'Course assignment not found' });
-        }
-
-        const batchId = assignments[0].batch_id;
-
         const studentValues = validRows.map(row => {
-            // For endpoint 2: always use batchId (the one fetched from the assignment)
             return [
                 row.student_id_number,
                 row.first_name,
                 row.last_name,
                 row.email,
                 row.phone || '',
-                batchId,
+                row.batch_id, // Already validated during pre-flight
                 row.matric_marks || null,
                 row.fsc_marks || null,
                 parseAcademicBackground(row.background)
@@ -711,6 +711,7 @@ router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file
 
         await conn.commit();
         await cacheDelPattern('students:*');
+        await cacheDelPattern('parents:*');
         await cacheDelPattern('dashboard:*');
 
         const imported = validRows.length;
@@ -788,12 +789,24 @@ router.get('/by-batch/:batchId', isAuthenticated, async (req, res) => {
     }
 });
 
-// GET all student IDs for a batch (for Delete All)
-router.get('/by-batch/:batchId/ids', isAuthenticated, async (req, res) => {
+// GET all student IDs for a batch (for Delete All - admin only)
+router.get('/by-batch/:batchId/ids', isAdmin, async (req, res) => {
     try {
+        const { batchId } = req.params;
+
+        // Department scoping: verify batch belongs to deptadmin's department
+        if (req.user.role === 'deptadmin') {
+            const [[batch]] = await pool.query(
+                'SELECT department_id FROM batches WHERE id = ?', [batchId]
+            );
+            if (!batch || batch.department_id !== req.user.department_id) {
+                return res.status(403).json({ success: false, message: 'Access denied. Batch belongs to a different department.' });
+            }
+        }
+
         const [students] = await pool.query(
             'SELECT id FROM students WHERE batch_id = ?',
-            [req.params.batchId]
+            [batchId]
         );
         res.json({ success: true, data: students.map(s => s.id) });
     } catch (error) {
@@ -874,6 +887,7 @@ router.post('/course/:assignmentId/register', isAuthenticated, async (req, res) 
 
         await conn.commit();
         await cacheDelPattern('students:*');
+        await cacheDelPattern('parents:*');
         await cacheDelPattern('dashboard:*');
         res.status(201).json({
             success: true,
@@ -951,6 +965,7 @@ router.put('/:studentId/parent', isAdmin, async (req, res) => {
             [req.params.studentId, name, email || null, phone || null]
         );
         await cacheDelPattern('parents:*');
+        await cacheDelPattern('students:*');
         res.json({ success: true, message: 'Parent info saved' });
     } catch (error) {
         console.error('Save parent error:', error);

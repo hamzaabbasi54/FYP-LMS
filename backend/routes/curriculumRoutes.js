@@ -20,15 +20,15 @@ router.use(verifyToken);
 // GET all curricula (paginated, with stats)
 router.get('/', async (req, res) => {
     try {
-        const cacheKey = `curricula:${req.originalUrl}`;
-        const cached = await cacheGet(cacheKey);
-        if (cached) return res.json(cached);
-
         const { department_id: queryDeptId, search, status } = req.query;
         const { page, limit, offset } = parsePagination(req.query);
 
         // Force department scope for dept admins
         const department_id = (req.user.role === 'deptadmin') ? req.user.department_id : queryDeptId;
+
+        const cacheKey = `curricula:dept_${department_id || 'all'}:page_${page}:limit_${limit}:search_${search || 'none'}:status_${status || 'all'}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json(cached);
 
         let whereClause = 'WHERE 1=1';
         const params = [];

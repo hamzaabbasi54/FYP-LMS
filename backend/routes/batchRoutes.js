@@ -138,7 +138,12 @@ router.get('/:id', async (req, res) => {
     try {
         const cacheKey = `batch:${req.params.id}`;
         const cached = await cacheGet(cacheKey);
-        if (cached) return res.json({ success: true, data: cached });
+        if (cached) {
+            if (req.user.role === 'deptadmin' && cached.department_id !== req.user.department_id) {
+                return res.status(403).json({ success: false, message: 'Access denied' });
+            }
+            return res.json({ success: true, data: cached });
+        }
 
         const [batches] = await pool.query(
             `SELECT b.*, d.name as department_name, f.name as faculty_name,
@@ -327,6 +332,7 @@ router.put('/:id', isAdmin, scopeBatch, async (req, res) => {
 
         // Invalidate scope cache for this batch
         await cacheDel(`scope:batches:${req.params.id}`);
+        await cacheDel(`batch:${req.params.id}`);
     } catch (error) {
         await conn.rollback();
         console.error('Update batch error:', error.code, error.sqlMessage || error.message, error.sql || '');
@@ -812,7 +818,6 @@ router.post('/:batchId/semesters/:semesterNumber/courses/:courseId/assign', isAd
                 updatedBy: req.user.email
             });
         }
-        await conn.commit();
         await cacheDelPattern(`batchCourseDetails:${batchId}:*`);
         res.json({ success: true, message: 'Faculty assigned successfully' });
     } catch (error) {
@@ -870,7 +875,7 @@ router.post('/:batchId/semesters/:semesterNumber/courses/:courseId/upload', isAd
 
         await pool.query(
             'INSERT INTO course_assignment_files (course_assignment_id, file_name, file_path, file_type) VALUES (?, ?, ?, ?)',
-            [assignmentId, req.file.originalname, req.file.filename, req.file.mimetype]
+            [assignmentId, req.file.originalname, filePath, req.file.mimetype]
         );
 
         await cacheDelPattern(`batchCourseDetails:${batchId}:*`);

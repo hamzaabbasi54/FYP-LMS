@@ -17,6 +17,10 @@ router.get('/', isAdmin, async (req, res) => {
         const params = [];
         
         // Filter by department if user is a deptadmin
+        if (req.user.role === 'deptadmin' && !req.user.department_id) {
+            return res.status(403).json({ success: false, message: 'Access denied: Department admin has no department assigned.' });
+        }
+
         const department_id = (req.user.role === 'deptadmin') ? req.user.department_id : req.query.department_id;
         if (department_id) {
             whereClause += ' AND b.department_id = ?';

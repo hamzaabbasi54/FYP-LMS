@@ -15,7 +15,7 @@ const StudentList = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [newStudent, setNewStudent] = useState({
-        firstName: '', lastName: '', email: '', roll_number: '', contact_number: '', cgpa: '',
+        firstName: '', lastName: '', email: '', student_id_number: '', contact_number: '', cgpa: '',
         matric_marks: '', fsc_marks: '', background: '',
         parentName: '', parentEmail: '', parentPhone: ''
     });
@@ -27,6 +27,7 @@ const StudentList = () => {
     const [isProcessingDeleteAll, setIsProcessingDeleteAll] = useState(false);
     const [activeDataWarning, setActiveDataWarning] = useState(null);
     const [pendingDeleteAction, setPendingDeleteAction] = useState(null);
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
     // Pagination & Search
     const [page, setPage] = useState(1);
@@ -67,7 +68,7 @@ const StudentList = () => {
         onSuccess: () => {
             toast.success('Student added successfully!');
             setShowAddModal(false);
-            setNewStudent({ firstName: '', lastName: '', email: '', roll_number: '', contact_number: '', cgpa: '', matric_marks: '', fsc_marks: '', background: '', parentName: '', parentEmail: '', parentPhone: '' });
+            setNewStudent({ firstName: '', lastName: '', email: '', student_id_number: '', contact_number: '', cgpa: '', matric_marks: '', fsc_marks: '', background: '', parentName: '', parentEmail: '', parentPhone: '' });
             queryClient.invalidateQueries({ queryKey: ['students', id] });
             queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
         },
@@ -83,7 +84,7 @@ const StudentList = () => {
             last_name: newStudent.lastName,
             email: newStudent.email,
             phone: newStudent.contact_number,
-            student_id_number: newStudent.roll_number,
+            student_id_number: newStudent.student_id_number,
             cgpa: parseFloat(newStudent.cgpa) || 0,
             matric_marks: parseFloat(newStudent.matric_marks) || null,
             fsc_marks: parseFloat(newStudent.fsc_marks) || null,
@@ -203,12 +204,13 @@ const StudentList = () => {
 
     const handleBulkDelete = async () => {
         if (selectedStudents.size === 0) return;
+        setIsBulkDeleting(true);
         const ids = Array.from(selectedStudents);
         const undoId = `students-bulk-${ids.join('-').substring(0, 30)}`;
 
         // Pre-flight: check for active data via deleteGuard
         try {
-            const guardRes = await studentApi.bulkDelete(ids);
+            const guardRes = await studentApi.bulkDelete(ids, { dryRun: true });
             if (guardRes.requiresConfirmation && guardRes.hasActiveData) {
                 setActiveDataWarning(guardRes.message);
                 setPendingDeleteAction(() => () => {
@@ -240,6 +242,7 @@ const StudentList = () => {
                         }
                     });
                 });
+                setIsBulkDeleting(false);
                 return;
             }
         } catch { /* proceed */ }
@@ -272,6 +275,7 @@ const StudentList = () => {
                 toast.info(`Deletion of ${ids.length} student(s) undone`);
             }
         });
+        setIsBulkDeleting(false);
     };
 
     const handleDeleteAll = () => {
@@ -288,7 +292,7 @@ const StudentList = () => {
 
                 // Pre-flight check
                 try {
-                    const guardRes = await studentApi.bulkDelete(ids);
+                    const guardRes = await studentApi.bulkDelete(ids, { dryRun: true });
                     if (guardRes.requiresConfirmation && guardRes.hasActiveData) {
                         setActiveDataWarning(guardRes.message);
                         setPendingDeleteAction(() => () => {
@@ -385,8 +389,8 @@ const StudentList = () => {
 
                     <div className="flex flex-wrap items-center gap-3">
                         {selectedStudents.size > 0 ? (
-                            <button onClick={handleBulkDelete} disabled={deleting} className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-all disabled:opacity-50">
-                                <MdDelete className="w-5 h-5" /> {deleting ? 'Deleting...' : `Delete (${selectedStudents.size})`}
+                            <button onClick={handleBulkDelete} disabled={isBulkDeleting} className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-all disabled:opacity-50">
+                                <MdDelete className="w-5 h-5" /> {isBulkDeleting ? 'Deleting...' : `Delete (${selectedStudents.size})`}
                             </button>
                         ) : (
                             <button onClick={handleDeleteAll} disabled={students.length === 0 || isProcessingDeleteAll} className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-all disabled:opacity-50">
@@ -469,7 +473,7 @@ const StudentList = () => {
                                                 </div>
                                             </td>
                                             <td className="py-4 px-6">
-                                                <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-sm font-mono">{student.student_id_number || student.roll_number || 'N/A'}</span>
+                                                <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-sm font-mono">{student.student_id_number || 'N/A'}</span>
                                             </td>
                                             <td className="py-4 px-6 text-sm text-slate-500">{student.phone || student.contact_number || 'N/A'}</td>
                                             <td className="py-4 px-6">
@@ -560,7 +564,7 @@ const StudentList = () => {
                                             <label className="block text-sm font-bold text-slate-700 mb-2">Roll Number</label>
                                             <div className="relative">
                                                 <MdBadge className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-                                                <input type="text" required value={newStudent.roll_number} onChange={(e) => setNewStudent({ ...newStudent, roll_number: e.target.value })}
+                                                <input type="text" required value={newStudent.student_id_number} onChange={(e) => setNewStudent({ ...newStudent, student_id_number: e.target.value })}
                                                     placeholder="e.g. 04162213027"
                                                     className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400" />
                                             </div>
@@ -777,7 +781,7 @@ const StudentList = () => {
                                                         <tr key={idx} className="hover:bg-slate-50 transition-colors">
                                                             <td className="px-4 py-3 text-center font-bold text-slate-700 bg-slate-50/50">{err.row}</td>
                                                             <td className="px-4 py-3 text-slate-600">
-                                                                {err.roll_number && <div className="font-medium text-slate-800">{err.roll_number}</div>}
+                                                                {err.student_id_number && <div className="font-medium text-slate-800">{err.student_id_number}</div>}
                                                                 {err.email && <div className="text-xs text-slate-500 truncate max-w-[120px]">{err.email}</div>}
                                                             </td>
                                                             <td className="px-4 py-3 text-rose-600 font-medium">{err.error}</td>

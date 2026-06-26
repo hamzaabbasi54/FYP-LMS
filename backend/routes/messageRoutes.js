@@ -93,6 +93,7 @@ router.get('/conversation/:userId', async (req, res) => {
                 if (result.affectedRows > 0) {
                     cacheDelPattern(`messages:contacts:${otherUserId}`);
                     cacheDelPattern(`messages:contacts:${currentUserId}`);
+                    cacheDelPattern(cacheKey);
                 }
             }).catch(() => {});
             return res.json({ success: true, data: cached, contact: { id: otherUser[0].id, full_name: otherUser[0].full_name } });
@@ -243,8 +244,11 @@ router.put('/read/:userId', async (req, res) => {
             [senderId, currentUserId]
         );
 
+        const cacheKey = `messages:conversation:${Math.min(currentUserId, senderId)}:${Math.max(currentUserId, senderId)}`;
+
         await cacheDelPattern(`messages:contacts:${senderId}`);
         await cacheDelPattern(`messages:contacts:${currentUserId}`);
+        await cacheDelPattern(cacheKey);
 
         res.json({ success: true, message: 'Messages marked as read' });
     } catch (error) {

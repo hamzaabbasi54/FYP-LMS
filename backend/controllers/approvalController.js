@@ -79,6 +79,7 @@ export const approveUser = async (req, res) => {
         const user = users[0];
 
         await cacheDelPattern(`facultyUsers:${approver.department_id}`);
+        await cacheDelPattern('dashboard:stats:*');
 
         res.status(200).json({
             success: true,
@@ -127,6 +128,7 @@ export const rejectUser = async (req, res) => {
         const user = users[0];
 
         await cacheDelPattern(`facultyUsers:${approver.department_id}`);
+        await cacheDelPattern('dashboard:stats:*');
 
         res.status(200).json({
             success: true,

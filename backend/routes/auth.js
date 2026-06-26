@@ -425,6 +425,7 @@ router.delete('/users/:id', verifyToken, isAdmin, async (req, res) => {
 
         if (users[0].role === 'faculty') {
             await cacheDelPattern(`facultyUsers:${users[0].department_id}`);
+            await cacheDelPattern('dashboard:stats:*');
         }
 
         res.status(200).json({
@@ -470,6 +471,7 @@ router.patch('/users/:id/status', verifyToken, isAdmin, async (req, res) => {
 
         if (users[0].role === 'faculty') {
             await cacheDelPattern(`facultyUsers:${users[0].department_id}`);
+            await cacheDelPattern('dashboard:stats:*');
         }
 
         res.status(200).json({
