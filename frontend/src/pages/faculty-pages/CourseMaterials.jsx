@@ -114,7 +114,7 @@ const CourseMaterials = () => {
 
             {/* Upload Dialog - Simulates UC-8 Sequence */}
             {showUploadDialog && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-xl shadow-lg w-full max-w-lg overflow-hidden border border-slate-200">
                         {/* Dialog Header */}
                         <div className="flex items-center justify-between p-5 border-b border-slate-200">

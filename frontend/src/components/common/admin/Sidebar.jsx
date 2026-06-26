@@ -1,11 +1,27 @@
 import React, { useState } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
-import { MdDashboard, MdPeople, MdAssignment, MdBook, MdSchool, MdSettings, MdExpandMore, MdExpandLess, MdBuild, MdLink, MdTrackChanges, MdLogout, MdMenuBook, MdAdminPanelSettings, MdMessage } from 'react-icons/md';
+import {
+    PiAddressBook,
+    PiBookOpenText,
+    PiBooks,
+    PiCaretDown,
+    PiCaretUp,
+    PiChatsCircle,
+    PiCompass,
+    PiFolders,
+    PiGauge,
+    PiGraduationCap,
+    PiLinkSimple,
+    PiListChecks,
+    PiSignOut,
+    PiTarget,
+    PiUsersThree
+} from 'react-icons/pi';
 import { useAuth } from '../../../context/AuthContext';
 import { useSocket } from '../../../context/SocketContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { messageApi } from '../../../services/api';
-import qauLogo from '../../../assets/QAU-Logo.png';
+import campusFlowLogo from '../../../assets/campus-flow-logo-clean.svg';
 
 const Sidebar = () => {
     const location = useLocation();
@@ -51,9 +67,9 @@ const Sidebar = () => {
                         ? 'flex items-center justify-between w-full text-sm font-normal text-slate-600 hover:text-slate-900 hover:bg-slate-50 px-3 py-1.5 rounded-lg transition-all duration-200 mb-0.5'
                         : 'flex items-center justify-between w-full h-9 px-3 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 mb-1'}
                     ${isActive && !indent
-                        ? 'bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600'
+                        ? 'bg-sky-50 text-sky-700 font-semibold border-l-4 border-sky-500 shadow-sm'
                         : isActive && indent
-                            ? 'text-blue-700 font-medium bg-blue-50'
+                            ? 'text-sky-700 font-medium bg-sky-50'
                             : ''
                     }
                 `}
@@ -61,7 +77,7 @@ const Sidebar = () => {
                 {({ isActive }) => (
                     <>
                         <div className="flex items-center gap-2">
-                            <Icon className={`w-5 h-5 ${isActive ? 'text-blue-700' : 'text-slate-400'}`} />
+                            <Icon className={`w-5 h-5 stroke-[1.8] ${isActive ? 'text-sky-700' : 'text-slate-400'}`} />
                             <span className="text-sm">{label}</span>
                         </div>
                         {badge && (
@@ -76,26 +92,23 @@ const Sidebar = () => {
     };
 
     return (
-        <div className="flex flex-col w-full h-full px-4 py-4 bg-slate-50 border-r border-slate-200 overflow-y-auto shadow-sm">
+        <div className="flex flex-col w-full h-full px-4 py-4 bg-white/82 backdrop-blur-xl border-r border-sky-100 overflow-y-auto shadow-sm">
             {/* Logo */}
-            <div className="flex items-center mb-5 px-2">
-                <div className="w-10 h-10 flex items-center justify-center mr-3">
-                    <img src={qauLogo} alt="QAU Logo" className="w-full h-full object-contain drop-shadow-sm" />
-                </div>
+            <div className="mb-5 rounded-2xl border border-sky-100 bg-gradient-to-br from-white to-sky-50/80 px-3 py-3 shadow-sm">
+                <img src={campusFlowLogo} alt="Campus Flow" className="h-9 w-40 object-contain object-left" />
                 <div>
-                    <h2 className="text-lg font-bold text-slate-800 leading-tight">Uni LMS</h2>
-                    <p className="text-xs text-slate-500 font-medium">{user.role === 'super_admin' ? 'Super Admin' : 'Director Panel'}</p>
+                    <p className="mt-2 text-xs font-medium text-slate-500">{user.role === 'super_admin' ? 'Super Admin' : 'Department Admin'}</p>
                 </div>
             </div>
 
             {/* Navigation */}
             <nav className="flex flex-col">
                 <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-2 mb-1 px-3">Main</p>
-                <NavItem to="/deptadmin-dashboard" icon={MdDashboard} label="Dashboard" />
+                <NavItem to="/deptadmin-dashboard" icon={PiGauge} label="Dashboard" />
 
                 {/* User Management Section */}
                 <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-4 mb-1 pt-3 border-t border-slate-200 px-3">User Management</p>
-                <NavItem to="/admin-manageusers" icon={MdPeople} label="Manage Users" />
+                <NavItem to="/admin-manageusers" icon={PiUsersThree} label="Manage Users" />
 
                 {/* Operations Section */}
                 <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-4 mb-1 pt-3 border-t border-slate-200 px-3">Operations</p>
@@ -103,54 +116,54 @@ const Sidebar = () => {
                     onClick={() => setOperationsExpanded(!operationsExpanded)}
                     className={`
                         flex items-center justify-between w-full h-9 px-3 rounded-lg text-left transition-all duration-200 mb-1
-                        ${isOperationsActive ? 'bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600' : 'text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900'}
+                        ${isOperationsActive ? 'bg-sky-50 text-sky-700 font-semibold border-l-4 border-sky-500 shadow-sm' : 'text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900'}
                     `}
                 >
                     <div className="flex items-center gap-2">
-                        <MdBuild className={`w-5 h-5 ${isOperationsActive ? 'text-blue-700' : 'text-slate-400'}`} />
+                        <PiCompass className={`w-5 h-5 ${isOperationsActive ? 'text-sky-700' : 'text-slate-400'}`} />
                         <span className="text-sm">Operations</span>
                     </div>
                     {operationsExpanded ? (
-                        <MdExpandLess className={`w-5 h-5 ${isOperationsActive ? 'text-blue-700' : 'text-slate-400'}`} />
+                        <PiCaretUp className={`w-5 h-5 ${isOperationsActive ? 'text-sky-700' : 'text-slate-400'}`} />
                     ) : (
-                        <MdExpandMore className={`w-5 h-5 ${isOperationsActive ? 'text-blue-700' : 'text-slate-400'}`} />
+                        <PiCaretDown className={`w-5 h-5 ${isOperationsActive ? 'text-sky-700' : 'text-slate-400'}`} />
                     )}
                 </button>
 
                 {operationsExpanded && (
                     <div className="ml-3 border-l-2 border-slate-100 pl-2 mt-1 flex flex-col gap-0.5">
-                        <NavItem to="/admin-managebatches" icon={MdPeople} label="Batches" indent />
-                        <NavItem to="/admin-managecourses" icon={MdBook} label="Courses" indent />
-                        <NavItem to="/admin-curricula" icon={MdMenuBook} label="Curricula" indent />
-                        <NavItem to="/admin-managefaculty" icon={MdSchool} label="Faculty" indent />
-                        <NavItem to="/admin-obe" icon={MdTrackChanges} label="OBE" indent />
-                        <NavItem to="/admin-managecourses/plos" icon={MdTrackChanges} label="PLOs" indent />
-                        <NavItem to="/admin-managecourses/clos" icon={MdTrackChanges} label="CLOs" indent />
-                        <NavItem to="/admin-external-links" icon={MdLink} label="Links" indent />
+                        <NavItem to="/admin-managebatches" icon={PiFolders} label="Batches" indent />
+                        <NavItem to="/admin-managecourses" icon={PiBooks} label="Courses" indent />
+                        <NavItem to="/admin-curricula" icon={PiBookOpenText} label="Curricula" indent />
+                        <NavItem to="/admin-managefaculty" icon={PiGraduationCap} label="Faculty" indent />
+                        <NavItem to="/admin-obe" icon={PiTarget} label="OBE" indent />
+                        <NavItem to="/admin-managecourses/plos" icon={PiListChecks} label="PLOs" indent />
+                        <NavItem to="/admin-managecourses/clos" icon={PiListChecks} label="CLOs" indent />
+                        <NavItem to="/admin-external-links" icon={PiLinkSimple} label="Links" indent />
                     </div>
                 )}
 
                 <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-4 mb-1 pt-3 border-t border-slate-200 px-3">Communication</p>
-                <NavItem to="/admin-messages" icon={MdMessage} label="Messages" badge={unreadCount > 0 ? unreadCount : undefined} />
+                <NavItem to="/admin-messages" icon={PiChatsCircle} label="Messages" badge={unreadCount > 0 ? unreadCount : undefined} />
 
                 <p className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase mt-4 mb-1 pt-3 border-t border-slate-200 px-3">Other</p>
-                <NavItem to="/admin-parents" icon={MdPeople} label="Parents" />
+                <NavItem to="/admin-parents" icon={PiAddressBook} label="Parents" />
             </nav>
 
             {/* User Profile */}
             <div className="mt-4 pt-3 border-t border-slate-200">
                 <Link 
                     to="/admin-settings" 
-                    className="flex items-center gap-3 p-2 mb-2 rounded-lg hover:bg-slate-100 transition-colors group cursor-pointer"
+                    className="flex items-center gap-3 p-2 mb-2 rounded-xl hover:bg-sky-50 transition-colors group cursor-pointer"
                     title="Account Settings"
                 >
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                        <span className="text-blue-700 font-bold text-sm">
+                    <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center group-hover:bg-sky-200 transition-colors">
+                        <span className="text-sky-700 font-bold text-sm">
                             {user.fullName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'AD'}
                         </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-800 truncate group-hover:text-blue-600 transition-colors">{user.fullName || 'Admin'}</p>
+                        <p className="text-sm font-semibold text-slate-800 truncate group-hover:text-sky-700 transition-colors">{user.fullName || 'Admin'}</p>
                         <p className="text-xs text-slate-500 truncate">{user.department || 'Department'}</p>
                     </div>
                 </Link>
@@ -158,7 +171,7 @@ const Sidebar = () => {
                     onClick={handleLogout}
                     className="flex items-center w-full px-4 py-2.5 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all"
                 >
-                    <MdLogout className="w-5 h-5 mr-3 text-slate-400 group-hover:text-red-500" />
+                    <PiSignOut className="w-5 h-5 mr-3 text-slate-400 group-hover:text-red-500" />
                     <span className="font-medium text-sm">Logout</span>
                 </button>
             </div>

@@ -1,6 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { MdPerson, MdSchool, MdEmail, MdBadge, MdPhone, MdDescription, MdAdd, MdChevronRight, MdFileUpload, MdClose, MdSearch, MdPeople, MdSwapHoriz, MdCheck } from 'react-icons/md';
+import {
+    PiArrowRight as MdChevronRight,
+    PiCheck as MdCheck,
+    PiEnvelopeSimple as MdEmail,
+    PiFileText as MdDescription,
+    PiIdentificationBadge as MdBadge,
+    PiMagnifyingGlass as MdSearch,
+    PiPhone as MdPhone,
+    PiPlus as MdAdd,
+    PiStudent as MdSchool,
+    PiSwap as MdSwapHoriz,
+    PiUploadSimple as MdFileUpload,
+    PiUser as MdPerson,
+    PiUsersThree as MdPeople,
+    PiX as MdClose
+} from 'react-icons/pi';
 import { toast } from 'react-toastify';
 import { studentApi, batchApi } from '../../services/api';
 import OverlayLoader from '../../components/common/OverlayLoader';
@@ -214,11 +229,11 @@ const RegisterStudent = () => {
     };
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="min-h-[calc(100vh-140px)] space-y-6">
             <OverlayLoader isLoading={isImporting} text="Importing and enrolling students..." />
             {/* Breadcrumbs */}
             <div className="flex items-center text-sm text-slate-500 mb-4 font-medium">
-                <Link to="/faculty-mycourses" className="hover:text-blue-600 transition-colors">
+                <Link to="/faculty-mycourses" className="hover:text-sky-700 transition-colors">
                     Courses
                 </Link>
                 <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
@@ -239,7 +254,7 @@ const RegisterStudent = () => {
                 </div>
                 <div className="flex gap-3">
                     <input type="file" accept=".csv,.xlsx,.xls" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
-                    <button type="button" onClick={handleImportClick} className="flex items-center justify-center px-5 py-2.5 bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm transition-colors font-semibold text-sm whitespace-nowrap">
+                    <button type="button" onClick={handleImportClick} className="flex items-center justify-center px-5 py-2.5 bg-white text-slate-700 border border-sky-100 rounded-3xl hover:bg-sky-50/45 shadow-sm transition-colors font-semibold text-sm whitespace-nowrap">
                         <MdDescription className="w-5 h-5 mr-2" />
                         Import CSV
                     </button>
@@ -247,11 +262,11 @@ const RegisterStudent = () => {
             </div>
 
             {/* Cross-Batch Picker Banner */}
-            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-5">
+            <div className="bg-white/92 border border-sky-100 rounded-3xl p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center shadow-sm">
-                            <MdSwapHoriz className="w-5 h-5 text-indigo-600" />
+                        <div className="w-10 h-10 bg-sky-50 rounded-3xl flex items-center justify-center shadow-sm">
+                            <MdSwapHoriz className="w-5 h-5 text-sky-700" />
                         </div>
                         <div>
                             <h3 className="text-sm font-bold text-slate-800">Enroll from Another Batch</h3>
@@ -261,7 +276,7 @@ const RegisterStudent = () => {
                     <button
                         type="button"
                         onClick={handleOpenPicker}
-                        className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold text-sm transition-all whitespace-nowrap hover:bg-indigo-700 shadow-sm"
+                        className="px-5 py-2.5 bg-sky-600 text-white rounded-3xl font-semibold text-sm transition-all whitespace-nowrap hover:bg-sky-700 shadow-sm"
                     >
                         📋 Select Existing Student
                     </button>
@@ -269,8 +284,8 @@ const RegisterStudent = () => {
 
                 {/* Confirmed Student Badge */}
                 {confirmedStudent && (
-                    <div className="mt-4 flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg shadow-sm">
-                        <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                    <div className="mt-4 flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-100 rounded-3xl shadow-sm">
+                        <div className="w-9 h-9 rounded-3xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
                             <MdCheck className="w-5 h-5 text-emerald-600" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -279,13 +294,13 @@ const RegisterStudent = () => {
                             </p>
                             <p className="text-xs font-semibold text-emerald-600">{confirmedStudent.student_id_number} · {confirmedStudent.email}</p>
                         </div>
-                        <span className="text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-bold whitespace-nowrap">
+                        <span className="text-xs bg-amber-50 text-amber-700 px-2.5 py-1 rounded-3xl font-bold whitespace-nowrap">
                             From: {confirmedStudent.batch_name}
                         </span>
                         <button
                             type="button"
                             onClick={handleClearStudent}
-                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-3xl transition-colors"
                             title="Clear selection"
                         >
                             <MdClose className="w-4 h-4" />
@@ -295,14 +310,14 @@ const RegisterStudent = () => {
             </div>
 
             {/* Main Form Card */}
-            <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8">
+            <form onSubmit={handleSubmit} className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-6 sm:p-8">
                 {/* Student Information Section */}
                 <div className="mb-8">
                     <div className="flex items-center gap-2 mb-6">
                         <MdPerson className="w-5 h-5 text-slate-600" />
                         <h2 className="text-xl font-bold text-slate-800">Student Information</h2>
                         {confirmedStudent && (
-                            <span className="text-[10px] uppercase tracking-wider font-bold bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full ml-2">Auto-filled from batch picker</span>
+                            <span className="text-[10px] uppercase tracking-wider font-bold bg-sky-50 text-sky-700 px-2.5 py-1 rounded-3xl ml-2">Auto-filled from batch picker</span>
                         )}
                     </div>
 
@@ -319,7 +334,7 @@ const RegisterStudent = () => {
                                 value={formData.firstName}
                                 onChange={handleChange}
                                 placeholder="e.g. Sara"
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
+                                className="w-full px-4 py-2.5 border border-sky-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
                                 required
                             />
                         </div>
@@ -336,7 +351,7 @@ const RegisterStudent = () => {
                                 value={formData.lastName}
                                 onChange={handleChange}
                                 placeholder="e.g. Malik"
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
+                                className="w-full px-4 py-2.5 border border-sky-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
                                 required
                             />
                         </div>
@@ -355,7 +370,7 @@ const RegisterStudent = () => {
                                     value={formData.studentId}
                                     onChange={handleChange}
                                     placeholder="e.g. 04162213027"
-                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
+                                    className="w-full pl-10 pr-4 py-2.5 border border-sky-100 rounded-3xl focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
                                     required
                                 />
                             </div>
@@ -375,7 +390,7 @@ const RegisterStudent = () => {
                                     value={formData.phoneNumber}
                                     onChange={handleChange}
                                     placeholder="+1 (555) 000-0000"
-                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
+                                    className="w-full pl-10 pr-4 py-2.5 border border-sky-100 rounded-3xl focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
                                 />
                             </div>
                         </div>
@@ -394,7 +409,7 @@ const RegisterStudent = () => {
                                     value={formData.email}
                                     onChange={handleChange}
                                     placeholder="sara.malik@university.edu"
-                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
+                                    className="w-full pl-10 pr-4 py-2.5 border border-sky-100 rounded-3xl focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
                                     required
                                 />
                             </div>
@@ -406,7 +421,7 @@ const RegisterStudent = () => {
                 </div>
 
                 {/* Additional Information Section */}
-                <div className="mb-8 pt-8 border-t border-slate-200">
+                <div className="mb-8 pt-8 border-t border-sky-100">
                     <div className="flex items-center gap-2 mb-6">
                         <MdDescription className="w-5 h-5 text-slate-600" />
                         <h2 className="text-xl font-bold text-slate-800">Additional Information</h2>
@@ -424,7 +439,7 @@ const RegisterStudent = () => {
                                 value={formData.parentName}
                                 onChange={handleChange}
                                 placeholder="Parent's full name"
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
+                                className="w-full px-4 py-2.5 border border-sky-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
                             />
                         </div>
                         <div>
@@ -438,7 +453,7 @@ const RegisterStudent = () => {
                                 value={formData.parentPhone}
                                 onChange={handleChange}
                                 placeholder="+1 (555) 000-0000"
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
+                                className="w-full px-4 py-2.5 border border-sky-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
                             />
                         </div>
                         <div className="md:col-span-2">
@@ -452,7 +467,7 @@ const RegisterStudent = () => {
                                 value={formData.parentEmail}
                                 onChange={handleChange}
                                 placeholder="parent@example.com"
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
+                                className="w-full px-4 py-2.5 border border-sky-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
                             />
                         </div>
 
@@ -467,7 +482,7 @@ const RegisterStudent = () => {
                                 value={formData.matricMarks}
                                 onChange={handleChange}
                                 placeholder="e.g. 950"
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
+                                className="w-full px-4 py-2.5 border border-sky-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
                             />
                         </div>
                         <div>
@@ -481,7 +496,7 @@ const RegisterStudent = () => {
                                 value={formData.fscMarks}
                                 onChange={handleChange}
                                 placeholder="e.g. 900"
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
+                                className="w-full px-4 py-2.5 border border-sky-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
                             />
                         </div>
                         <div className="md:col-span-2">
@@ -493,7 +508,7 @@ const RegisterStudent = () => {
                                 name="background"
                                 value={formData.background}
                                 onChange={handleChange}
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white font-medium text-slate-800"
+                                className="w-full px-4 py-2.5 border border-sky-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent text-sm bg-white font-medium text-slate-800"
                             >
                                 <option value="">Select background...</option>
                                 <option value="pre-med">Pre-Medical</option>
@@ -505,23 +520,23 @@ const RegisterStudent = () => {
                 </div>
 
                 {/* Form Actions */}
-                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 border-t border-slate-200 mt-8">
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 border-t border-sky-100 mt-8">
                     <button
                         type="button"
                         onClick={handleCancel}
                         disabled={registerMutation.isPending}
-                        className="px-6 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-semibold text-sm transition-colors"
+                        className="px-6 py-2.5 border border-sky-100 text-slate-700 rounded-3xl hover:bg-sky-50/45 font-semibold text-sm transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={registerMutation.isPending}
-                        className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-sm transition-colors flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
+                        className="px-6 py-2.5 bg-sky-600 text-white rounded-3xl hover:bg-sky-700 font-semibold text-sm transition-colors flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
                     >
                         {registerMutation.isPending ? (
                             <>
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-3xl animate-spin mr-2"></div>
                                 {confirmedStudent ? 'Enrolling...' : 'Registering...'}
                             </>
                         ) : (
@@ -536,15 +551,15 @@ const RegisterStudent = () => {
 
             {/* ==================== STUDENT PICKER MODAL ==================== */}
             {showPickerModal && (
-                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col" style={{ maxHeight: '85vh' }}>
                         {/* Modal Header */}
-                        <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-blue-50 flex-shrink-0">
+                        <div className="flex items-center justify-between p-5 border-b border-sky-100 bg-white/92 flex-shrink-0">
                             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <MdSwapHoriz className="w-5 h-5 text-indigo-600" />
+                                <MdSwapHoriz className="w-5 h-5 text-sky-700" />
                                 Select Student from Batch
                             </h3>
-                            <button onClick={handleClosePicker} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                            <button onClick={handleClosePicker} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-sky-50 rounded-3xl transition-colors">
                                 <MdClose className="w-5 h-5" />
                             </button>
                         </div>
@@ -557,7 +572,7 @@ const RegisterStudent = () => {
                                 <select
                                     value={selectedBatchId}
                                     onChange={(e) => { setSelectedBatchId(e.target.value); setTempSelectedStudent(null); setDebouncedSearch(''); }}
-                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white font-medium text-slate-800"
+                                    className="w-full px-4 py-2.5 border border-sky-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white font-medium text-slate-800"
                                 >
                                     <option value="">Choose a batch...</option>
                                     {(batchesData || []).map(batch => (
@@ -579,7 +594,7 @@ const RegisterStudent = () => {
                                             value={debouncedSearch}
                                             onChange={(e) => setDebouncedSearch(e.target.value)}
                                             placeholder="Search by name or roll number..."
-                                            className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
+                                            className="w-full pl-10 pr-4 py-2.5 border border-sky-100 rounded-3xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400"
                                             autoFocus
                                         />
                                     </div>
@@ -588,11 +603,11 @@ const RegisterStudent = () => {
 
                             {/* Student List */}
                             {selectedBatchId && (
-                                <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                <div className="border border-sky-100 rounded-3xl overflow-hidden">
                                     <div className="max-h-72 overflow-y-auto">
                                         {loadingStudents ? (
                                             <div className="p-8 text-center">
-                                                <div className="inline-block w-7 h-7 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3"></div>
+                                                <div className="inline-block w-7 h-7 border-3 border-sky-100 border-t-indigo-600 rounded-3xl animate-spin mb-3"></div>
                                                 <p className="text-slate-500 text-sm font-medium">Loading students...</p>
                                             </div>
                                         ) : batchStudents.length === 0 ? (
@@ -607,21 +622,21 @@ const RegisterStudent = () => {
                                                     key={student.id}
                                                     type="button"
                                                     onClick={() => setTempSelectedStudent(student)}
-                                                    className={`w-full text-left px-4 py-3.5 flex items-center gap-3 transition-colors border-b border-slate-100 last:border-b-0 ${
+                                                    className={`w-full text-left px-4 py-3.5 flex items-center gap-3 transition-colors border-b border-sky-100 last:border-b-0 ${
                                                         tempSelectedStudent?.id === student.id
-                                                            ? 'bg-indigo-50 ring-2 ring-inset ring-indigo-500'
-                                                            : 'hover:bg-slate-50'
+                                                            ? 'bg-sky-50 ring-2 ring-inset ring-indigo-500'
+                                                            : 'hover:bg-sky-50/45'
                                                     }`}
                                                 >
-                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                                    <div className={`w-10 h-10 rounded-3xl flex items-center justify-center flex-shrink-0 ${
                                                         tempSelectedStudent?.id === student.id
-                                                            ? 'bg-indigo-600'
-                                                            : 'bg-indigo-100'
+                                                            ? 'bg-sky-600'
+                                                            : 'bg-sky-50'
                                                     }`}>
                                                         {tempSelectedStudent?.id === student.id ? (
                                                             <MdCheck className="w-5 h-5 text-white" />
                                                         ) : (
-                                                            <span className="text-indigo-700 font-bold text-xs">
+                                                            <span className="text-sky-700 font-bold text-xs">
                                                                 {(student.first_name?.[0] || '')}{(student.last_name?.[0] || '')}
                                                             </span>
                                                         )}
@@ -635,7 +650,7 @@ const RegisterStudent = () => {
                                                         </p>
                                                     </div>
                                                     {tempSelectedStudent?.id === student.id && (
-                                                        <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-600 bg-indigo-100 px-2.5 py-1 rounded-full">
+                                                        <span className="text-[10px] uppercase tracking-wider font-bold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-3xl">
                                                             Selected
                                                         </span>
                                                     )}
@@ -648,8 +663,8 @@ const RegisterStudent = () => {
 
                             {/* Selected Student Preview */}
                             {tempSelectedStudent && (
-                                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-                                    <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-2">Selected Student</p>
+                                <div className="bg-sky-50 border border-sky-100 rounded-3xl p-4">
+                                    <p className="text-[10px] font-bold text-sky-700 uppercase tracking-wider mb-2">Selected Student</p>
                                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                                         <div><span className="text-slate-500 font-medium">Name:</span> <span className="font-bold text-slate-800">{tempSelectedStudent.first_name} {tempSelectedStudent.last_name}</span></div>
                                         <div><span className="text-slate-500 font-medium">Roll No:</span> <span className="font-bold text-slate-800">{tempSelectedStudent.student_id_number}</span></div>
@@ -663,11 +678,11 @@ const RegisterStudent = () => {
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="flex gap-3 p-5 border-t border-slate-100 bg-slate-50 flex-shrink-0">
+                        <div className="flex gap-3 p-5 border-t border-sky-100 bg-sky-50/45 flex-shrink-0">
                             <button
                                 type="button"
                                 onClick={handleClosePicker}
-                                className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-100 font-semibold text-sm transition-colors"
+                                className="flex-1 px-4 py-2.5 border border-sky-100 text-slate-700 rounded-3xl hover:bg-sky-50 font-semibold text-sm transition-colors"
                             >
                                 Cancel
                             </button>
@@ -675,7 +690,7 @@ const RegisterStudent = () => {
                                 type="button"
                                 onClick={handleConfirmStudent}
                                 disabled={!tempSelectedStudent}
-                                className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                className="flex-1 px-4 py-2.5 bg-sky-600 text-white rounded-3xl hover:bg-sky-700 font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                             >
                                 <MdCheck className="w-5 h-5" />
                                 OK — Use This Student
@@ -687,13 +702,13 @@ const RegisterStudent = () => {
 
             {/* ==================== IMPORT MODAL ==================== */}
             {showImportModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
-                        <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-emerald-50 to-teal-50">
+                        <div className="flex items-center justify-between p-5 border-b border-sky-100 bg-gradient-to-r from-emerald-50 to-teal-50">
                             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                                 <MdFileUpload className="w-5 h-5 text-emerald-500" /> Import Students
                             </h3>
-                            <button onClick={() => setShowImportModal(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg">
+                            <button onClick={() => setShowImportModal(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-sky-50 rounded-3xl">
                                 <MdClose className="w-5 h-5" />
                             </button>
                         </div>
@@ -701,7 +716,7 @@ const RegisterStudent = () => {
                             <h4 className="font-semibold text-slate-800 mb-2">Excel File Format Requirements</h4>
                             <p className="text-sm text-slate-600 mb-4">Please ensure your Excel file (.xlsx or .csv) contains the following column headers exactly as shown:</p>
                             
-                            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6">
+                            <div className="bg-sky-50/45 rounded-3xl p-4 border border-sky-100 mb-6">
                                 <ul className="text-sm text-slate-600 space-y-2 font-mono">
                                     <li><span className="font-bold text-emerald-600">roll_number</span> (Required, Unique)</li>
                                     <li><span className="font-bold text-emerald-600">first_name</span> (Required)</li>
@@ -718,8 +733,8 @@ const RegisterStudent = () => {
                             </div>
 
                             <div className="flex gap-3">
-                                <button onClick={() => setShowImportModal(false)} className="flex-1 px-4 py-2.5 border-2 border-slate-300 shadow-sm text-slate-700 rounded-xl hover:bg-slate-50 font-medium">Cancel</button>
-                                <button onClick={triggerFileInput} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:shadow-lg font-medium flex items-center justify-center gap-2">
+                                <button onClick={() => setShowImportModal(false)} className="flex-1 px-4 py-2.5 border-2 border-sky-100 shadow-sm text-slate-700 rounded-3xl hover:bg-sky-50/45 font-medium">Cancel</button>
+                                <button onClick={triggerFileInput} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-3xl hover:shadow-lg font-medium flex items-center justify-center gap-2">
                                     <MdFileUpload className="w-5 h-5" /> Select File
                                 </button>
                             </div>

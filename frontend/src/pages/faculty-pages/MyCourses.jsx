@@ -1,6 +1,20 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MdEdit, MdPeople, MdCheckCircle, MdAssignment, MdArrowForward, MdArrowBack, MdSchedule, MdMenuBook, MdAccessTime, MdWbSunny, MdNightsStay, MdOpenInNew, MdFileDownload } from 'react-icons/md';
+import {
+    PiArrowLeft as MdArrowBack,
+    PiArrowRight as MdArrowForward,
+    PiBookOpen as MdMenuBook,
+    PiCalendarCheck as MdSchedule,
+    PiCheckCircle as MdCheckCircle,
+    PiClock as MdAccessTime,
+    PiClipboardText as MdAssignment,
+    PiDownloadSimple as MdFileDownload,
+    PiMoon as MdNightsStay,
+    PiNotePencil as MdEdit,
+    PiArrowSquareOut as MdOpenInNew,
+    PiSun as MdWbSunny,
+    PiUsersThree as MdPeople
+} from 'react-icons/pi';
 import { useCourse } from '../../context/CourseContext';
 import { batchApi, getFileUrl } from '../../services/api';
 import { useQuery } from '@tanstack/react-query';
@@ -8,8 +22,8 @@ import { useQuery } from '@tanstack/react-query';
 // Component for Course Management Cards
 const ManagementCard = ({ icon: Icon, title, description, buttonText, iconColor, buttonColor, iconBgColor, to = "#" }) => {
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full hover:shadow-md transition-shadow duration-200">
-            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${iconBgColor} mb-4 flex-shrink-0`}>
+        <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-5 flex flex-col h-full hover:shadow-md transition-shadow duration-200">
+            <div className={`w-12 h-12 rounded-3xl flex items-center justify-center ${iconBgColor} mb-4 flex-shrink-0`}>
                 <Icon className={`w-6 h-6 ${iconColor}`} />
             </div>
             <h3 className="text-lg font-bold text-slate-800 mb-3">{title}</h3>
@@ -57,12 +71,12 @@ const MyCourses = () => {
     if (!selectedCourse) {
         return (
             <div className="p-4 sm:p-6 lg:p-8">
-                <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-12 text-center">
+                <div className="bg-white/92 border border-sky-100 shadow-sm rounded-3xl p-12 text-center">
                     <h3 className="text-lg font-semibold text-slate-700 mb-2">No Course Selected</h3>
                     <p className="text-slate-500 mb-4">Please select a course from the dashboard first.</p>
                     <button
                         onClick={() => navigate('/faculty-dashboard')}
-                        className="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm"
+                        className="inline-flex items-center bg-sky-600 text-white px-4 py-2 rounded-3xl hover:bg-sky-700 shadow-sm transition-colors font-medium text-sm"
                     >
                         <MdArrowBack className="w-4 h-4 mr-2" />
                         Go to Dashboard
@@ -90,7 +104,7 @@ const MyCourses = () => {
     };
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="min-h-[calc(100vh-140px)] space-y-6">
             {/* Back Button */}
             <button
                 onClick={() => navigate('/faculty-dashboard')}
@@ -101,13 +115,13 @@ const MyCourses = () => {
             </button>
 
             {/* Course Header Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-5">
                 {/* Course Title and Badge */}
                 <div className="flex flex-wrap items-center gap-3 mb-4">
                     <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
                         {course.title}
                     </h1>
-                    <span className="bg-blue-50 text-blue-700 border border-blue-200 text-sm font-bold tracking-wider px-2 py-0.5 rounded">
+                    <span className="bg-sky-50 text-sky-700 border border-sky-100 text-sm font-bold tracking-wider px-2 py-0.5 rounded">
                         {course.code}
                     </span>
                 </div>
@@ -138,14 +152,14 @@ const MyCourses = () => {
                         <div className="flex flex-col sm:flex-row gap-3">
                             <Link
                                 to={`/faculty-mycourses/${course.assignment_id}/register-student`}
-                                className="flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
+                                className="flex items-center justify-center bg-sky-600 text-white px-4 py-2 rounded-3xl hover:bg-sky-700 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
                             >
                                 <MdPeople className="w-4 h-4 mr-2" />
                                 Add Student
                             </Link>
                             <Link
                                 to={`/faculty-mycourses/${course.assignment_id}/edit-syllabus`}
-                                className="flex items-center justify-center bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
+                                className="flex items-center justify-center bg-white border border-sky-100 text-slate-700 px-4 py-2 rounded-3xl hover:bg-sky-50/45 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
                             >
                                 <MdEdit className="w-4 h-4 mr-2" />
                                 Edit Syllabus
@@ -164,9 +178,9 @@ const MyCourses = () => {
             {/* Schedule & Syllabus Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Weekly Schedule */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="flex items-center gap-3 p-5 border-b border-slate-100">
-                        <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center shadow-sm">
+                <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 overflow-hidden">
+                    <div className="flex items-center gap-3 p-5 border-b border-sky-100">
+                        <div className="w-10 h-10 rounded-3xl bg-sky-600 flex items-center justify-center shadow-sm">
                             <MdSchedule className="w-5 h-5 text-white" />
                         </div>
                         <div>
@@ -179,13 +193,13 @@ const MyCourses = () => {
                         {loadingSchedule ? (
                             <div className="space-y-3">
                                 {[1, 2, 3].map(i => (
-                                    <div key={i} className="h-12 bg-slate-100 rounded-lg animate-pulse"></div>
+                                    <div key={i} className="h-12 bg-sky-50 rounded-3xl animate-pulse"></div>
                                 ))}
                             </div>
                         ) : sortedSchedule.length > 0 ? (
                             <div className="space-y-2.5">
                                 {sortedSchedule.map((entry, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-100 rounded-lg hover:shadow-sm transition-shadow">
+                                    <div key={idx} className="flex items-center justify-between p-3.5 bg-sky-50/45 border border-sky-100 rounded-3xl hover:shadow-sm transition-shadow">
                                         <div className="flex items-center gap-3">
                                             <span className="w-20 text-sm font-bold text-slate-700">
                                                 {DAY_LABELS[entry.day_of_week] || entry.day_of_week}
@@ -197,10 +211,10 @@ const MyCourses = () => {
                                                 <span>{formatTime(entry.end_time)}</span>
                                             </div>
                                         </div>
-                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold ${
+                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-xl text-[10px] uppercase tracking-wider font-bold ${
                                             entry.shift === 'morning'
-                                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                                : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                                ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                                                : 'bg-sky-50 text-sky-700 border border-sky-100'
                                         }`}>
                                             {entry.shift === 'morning' ? <MdWbSunny className="w-3 h-3" /> : <MdNightsStay className="w-3 h-3" />}
                                             {entry.shift === 'morning' ? 'Morning' : 'Evening'}
@@ -209,7 +223,7 @@ const MyCourses = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center py-10 bg-slate-50 border border-dashed border-slate-200 rounded-lg">
+                            <div className="text-center py-10 bg-sky-50/45 border border-dashed border-sky-100 rounded-3xl">
                                 <MdSchedule className="w-10 h-10 text-slate-300 mx-auto mb-3" />
                                 <p className="text-sm text-slate-500 font-medium">No schedule has been set for this course yet.</p>
                                 <p className="text-xs text-slate-400 mt-1">The admin will set the weekly schedule.</p>
@@ -219,9 +233,9 @@ const MyCourses = () => {
                 </div>
 
                 {/* Course Content / Syllabus Files */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="flex items-center gap-3 p-5 border-b border-slate-100">
-                        <div className="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center shadow-sm">
+                <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 overflow-hidden">
+                    <div className="flex items-center gap-3 p-5 border-b border-sky-100">
+                        <div className="w-10 h-10 rounded-3xl bg-emerald-600 flex items-center justify-center shadow-sm">
                             <MdMenuBook className="w-5 h-5 text-white" />
                         </div>
                         <div>
@@ -234,15 +248,15 @@ const MyCourses = () => {
                         {loadingFiles ? (
                             <div className="space-y-3">
                                 {[1, 2].map(i => (
-                                    <div key={i} className="h-12 bg-slate-100 rounded-lg animate-pulse"></div>
+                                    <div key={i} className="h-12 bg-sky-50 rounded-3xl animate-pulse"></div>
                                 ))}
                             </div>
                         ) : files.length > 0 ? (
                             <div className="space-y-2.5">
                                 {files.map(f => (
-                                    <div key={f.id} className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-100 rounded-lg hover:shadow-sm transition-shadow">
+                                    <div key={f.id} className="flex items-center justify-between p-3.5 bg-sky-50/45 border border-sky-100 rounded-3xl hover:shadow-sm transition-shadow">
                                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                                            <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+                                            <div className="w-8 h-8 rounded-3xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
                                                 <MdMenuBook className="w-4 h-4 text-emerald-600" />
                                             </div>
                                             <div className="min-w-0">
@@ -254,7 +268,7 @@ const MyCourses = () => {
                                             href={`/document-viewer?url=${encodeURIComponent(getFileUrl(f.file_path))}&name=${encodeURIComponent(f.file_name)}`}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 shadow-sm rounded-lg text-xs font-semibold hover:bg-slate-50 transition-colors flex-shrink-0"
+                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-sky-100 text-slate-700 shadow-sm rounded-3xl text-xs font-semibold hover:bg-sky-50/45 transition-colors flex-shrink-0"
                                         >
                                             <MdOpenInNew className="w-3.5 h-3.5" />
                                             View
@@ -263,7 +277,7 @@ const MyCourses = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center py-10 bg-slate-50 border border-dashed border-slate-200 rounded-lg">
+                            <div className="text-center py-10 bg-sky-50/45 border border-dashed border-sky-100 rounded-3xl">
                                 <MdMenuBook className="w-10 h-10 text-slate-300 mx-auto mb-3" />
                                 <p className="text-sm text-slate-500 font-medium">No course content uploaded yet.</p>
                                 <p className="text-xs text-slate-400 mt-1">The admin will upload syllabus and files.</p>
@@ -284,9 +298,9 @@ const MyCourses = () => {
                         title="Manage Students"
                         description="View the full student directory, enroll new students, and manage course access."
                         buttonText="View Student Details"
-                        iconColor="text-blue-600"
-                        buttonColor="text-blue-600"
-                        iconBgColor="bg-blue-50"
+                        iconColor="text-sky-700"
+                        buttonColor="text-sky-700"
+                        iconBgColor="bg-sky-50"
                         to={`/faculty-mycourses/${course.assignment_id}/students`}
                     />
                     <ManagementCard
@@ -294,9 +308,9 @@ const MyCourses = () => {
                         title="Manage Attendance"
                         description="Mark daily attendance, edit past records, and export attendance sheets."
                         buttonText="Go to Attendance"
-                        iconColor="text-green-600"
-                        buttonColor="text-green-600"
-                        iconBgColor="bg-green-50"
+                        iconColor="text-emerald-600"
+                        buttonColor="text-emerald-600"
+                        iconBgColor="bg-emerald-50"
                         to={`/faculty-mycourses/${course.assignment_id}/attendance`}
                     />
                     <ManagementCard
@@ -304,9 +318,9 @@ const MyCourses = () => {
                         title="Manage Grades"
                         description="Create and edit assignments, quizzes, and manage the full gradebook."
                         buttonText="Open Gradebook"
-                        iconColor="text-purple-600"
-                        buttonColor="text-purple-600"
-                        iconBgColor="bg-purple-50"
+                        iconColor="text-sky-700"
+                        buttonColor="text-sky-700"
+                        iconBgColor="bg-sky-50"
                         to={`/faculty-mycourses/${course.assignment_id}/grading`}
                     />
                 </div>

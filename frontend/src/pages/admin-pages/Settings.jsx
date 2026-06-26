@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MdPerson, MdSecurity, MdSave, MdLock, MdEmail, MdBadge, MdCheckCircle, MdError } from 'react-icons/md';
+import { PiCheckCircle, PiEnvelopeSimple, PiIdentificationBadge, PiLock, PiShieldCheck, PiUserCircle, PiWarningCircle } from 'react-icons/pi';
 import { authApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,8 +8,6 @@ const Settings = () => {
     const { user, setUser } = useAuth();
     const queryClient = useQueryClient();
     const [message, setMessage] = useState({ type: '', text: '' });
-
-    // Form states
     const [fullName, setFullName] = useState(user?.fullName || '');
 
     const [passwords, setPasswords] = useState({
@@ -89,163 +87,99 @@ const Settings = () => {
             newPassword: passwords.newPassword
         });
     };
-    
+
     const loading = updateProfileMutation.isPending || changePasswordMutation.isPending;
 
     return (
-        <div className="p-4 lg:p-6 space-y-6 max-w-5xl mx-auto">
-            {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-slate-800">Account Settings</h1>
-                <p className="text-slate-500 text-sm mt-1">Manage your profile and security preferences</p>
-            </div>
+        <div className="min-h-[calc(100vh-116px)]">
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+                <section className="relative overflow-hidden rounded-3xl border border-white/70 bg-white/82 p-6 shadow-[0_24px_80px_rgba(14,116,144,0.12)] backdrop-blur-2xl lg:p-7">
+                    <div className="relative">
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-sky-700">Campus Flow</p>
+                        <h1 className="mt-3 text-3xl font-bold text-slate-950">Account Settings</h1>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">Manage your profile and security preferences.</p>
+                    </div>
+                </section>
 
-            {/* Notification Message */}
-            {message.text && (
-                <div className={`p-4 rounded-xl flex items-center gap-3 ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
-                    }`}>
-                    {message.type === 'success' ? <MdCheckCircle className="w-5 h-5" /> : <MdError className="w-5 h-5" />}
-                    <span className="font-medium text-sm">{message.text}</span>
-                </div>
-            )}
+                {message.text && (
+                    <div className={`flex items-center gap-3 rounded-2xl border p-4 ${message.type === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-red-100 bg-red-50 text-red-700'}`}>
+                        {message.type === 'success' ? <PiCheckCircle className="h-5 w-5" /> : <PiWarningCircle className="h-5 w-5" />}
+                        <span className="text-sm font-semibold">{message.text}</span>
+                    </div>
+                )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column - User Card */}
-                <div className="lg:col-span-1">
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 text-center sticky top-6">
-                        <div className="w-20 h-20 mx-auto bg-gradient-to-br from-blue-500 to-violet-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/25 mb-3">
-                            <span className="text-white font-bold text-2xl">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                    <div className="rounded-3xl border border-sky-100 bg-white/92 p-5 text-center shadow-sm lg:sticky lg:top-6 lg:self-start">
+                        <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl border border-sky-100 bg-sky-50 text-sky-700 shadow-sm">
+                            <span className="text-2xl font-bold">
                                 {user.fullName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
                             </span>
                         </div>
-                        <h2 className="text-xl font-bold text-slate-800">{user.fullName}</h2>
-                        <p className="text-sm text-slate-500 mb-3">{user.email}</p>
-
-                        <div className="flex items-center justify-center gap-2 mb-2">
-                            <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-medium uppercase tracking-wider">
-                                {user.role?.replace('_', ' ')}
-                            </span>
+                        <h2 className="text-xl font-bold text-slate-950">{user.fullName}</h2>
+                        <p className="mt-1 text-sm text-slate-500">{user.email}</p>
+                        <div className="mt-4 inline-flex items-center gap-1.5 rounded-md border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-sky-700">
+                            <PiShieldCheck className="h-4 w-4" />
+                            {user.role?.replace('_', ' ')}
                         </div>
                         {user.faculty && (
-                            <p className="text-xs text-slate-400">{user.faculty}</p>
+                            <p className="mt-3 text-xs text-slate-400">{user.faculty}</p>
                         )}
                     </div>
-                </div>
 
-                {/* Middle Column - Profile Settings */}
-                <div className="lg:col-span-1">
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-full">
-                        <div className="p-4 border-b border-slate-100 flex items-center gap-2">
-                            <MdPerson className="w-5 h-5 text-blue-500" />
-                            <h3 className="font-semibold text-slate-800">Profile Information</h3>
+                    <div className="rounded-3xl border border-sky-100 bg-white/92 shadow-sm">
+                        <div className="flex items-center gap-2 border-b border-sky-100 p-5">
+                            <PiUserCircle className="h-5 w-5 text-sky-700" />
+                            <h3 className="font-bold text-slate-950">Profile Information</h3>
                         </div>
-                        <div className="p-5 flex flex-col justify-between" style={{ height: 'calc(100% - 57px)' }}>
-                            <form onSubmit={handleProfileUpdate} className="space-y-4 flex flex-col h-full">
-                                <div className="space-y-4 flex-1">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700">Full Name</label>
-                                        <div className="relative">
-                                            <input
-                                                type="text"
-                                                value={fullName}
-                                                onChange={(e) => setFullName(e.target.value)}
-                                                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
-                                                placeholder="Enter full name"
-                                            />
-                                            <MdBadge className="absolute left-3 top-2.5 w-5 h-5 text-slate-400" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700">Email Address</label>
-                                        <div className="relative">
-                                            <input
-                                                type="email"
-                                                value={user.email}
-                                                disabled
-                                                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-500 cursor-not-allowed text-sm"
-                                            />
-                                            <MdEmail className="absolute left-3 top-2.5 w-5 h-5 text-slate-400" />
-                                        </div>
+                        <form onSubmit={handleProfileUpdate} className="flex h-[calc(100%-65px)] flex-col justify-between space-y-4 p-5">
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-slate-700">Full Name</label>
+                                    <div className="relative">
+                                        <PiIdentificationBadge className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                                        <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="h-11 w-full rounded-xl border border-sky-100 bg-white pl-10 pr-4 text-sm outline-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100" placeholder="Enter full name" />
                                     </div>
                                 </div>
-                                <div className="pt-2 mt-auto">
-                                    <button
-                                        type="submit"
-                                        disabled={loading}
-                                        className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <MdSave className="w-4 h-4" />
-                                        Save Changes
-                                    </button>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-slate-700">Email Address</label>
+                                    <div className="relative">
+                                        <PiEnvelopeSimple className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                                        <input type="email" value={user.email} disabled className="h-11 w-full cursor-not-allowed rounded-xl border border-sky-100 bg-sky-50/60 pl-10 pr-4 text-sm text-slate-500" />
+                                    </div>
                                 </div>
-                            </form>
-                        </div>
+                            </div>
+                            <button type="submit" disabled={loading} className="mt-4 w-full rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50">
+                                Save Changes
+                            </button>
+                        </form>
                     </div>
-                </div>
 
-                {/* Right Column - Security Settings */}
-                <div className="lg:col-span-1">
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-full">
-                        <div className="p-4 border-b border-slate-100 flex items-center gap-2">
-                            <MdSecurity className="w-5 h-5 text-amber-500" />
-                            <h3 className="font-semibold text-slate-800">Security Settings</h3>
+                    <div className="rounded-3xl border border-sky-100 bg-white/92 shadow-sm">
+                        <div className="flex items-center gap-2 border-b border-sky-100 p-5">
+                            <PiLock className="h-5 w-5 text-sky-700" />
+                            <h3 className="font-bold text-slate-950">Security Settings</h3>
                         </div>
-                        <div className="p-5 flex flex-col justify-between" style={{ height: 'calc(100% - 57px)' }}>
-                            <form onSubmit={handlePasswordChange} className="space-y-4 flex flex-col h-full">
-                                <div className="space-y-4 flex-1">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700">Current Password</label>
+                        <form onSubmit={handlePasswordChange} className="flex h-[calc(100%-65px)] flex-col justify-between space-y-4 p-5">
+                            <div className="space-y-4">
+                                {[
+                                    ['Current Password', 'currentPassword', 'Enter current password'],
+                                    ['New Password', 'newPassword', 'Enter new password'],
+                                    ['Confirm Password', 'confirmPassword', 'Confirm new password'],
+                                ].map(([label, key, placeholder]) => (
+                                    <div key={key} className="space-y-2">
+                                        <label className="text-sm font-semibold text-slate-700">{label}</label>
                                         <div className="relative">
-                                            <input
-                                                type="password"
-                                                value={passwords.currentPassword}
-                                                onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
-                                                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
-                                                placeholder="Enter current password"
-                                            />
-                                            <MdLock className="absolute left-3 top-2.5 w-5 h-5 text-slate-400" />
+                                            <PiLock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                                            <input type="password" value={passwords[key]} onChange={(e) => setPasswords({ ...passwords, [key]: e.target.value })} className="h-11 w-full rounded-xl border border-sky-100 bg-white pl-10 pr-4 text-sm outline-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100" placeholder={placeholder} />
                                         </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700">New Password</label>
-                                        <div className="relative">
-                                            <input
-                                                type="password"
-                                                value={passwords.newPassword}
-                                                onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
-                                                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
-                                                placeholder="Enter new password"
-                                            />
-                                            <MdLock className="absolute left-3 top-2.5 w-5 h-5 text-slate-400" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700">Confirm Password</label>
-                                        <div className="relative">
-                                            <input
-                                                type="password"
-                                                value={passwords.confirmPassword}
-                                                onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
-                                                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
-                                                placeholder="Confirm new password"
-                                            />
-                                            <MdLock className="absolute left-3 top-2.5 w-5 h-5 text-slate-400" />
-                                        </div>
-                                    </div>
-                                </div>
+                                ))}
+                            </div>
 
-                                <div className="pt-2 mt-auto">
-                                    <button
-                                        type="submit"
-                                        disabled={loading || !passwords.currentPassword || !passwords.newPassword || !passwords.confirmPassword}
-                                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 transition-colors shadow-sm shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {changePasswordMutation.isPending ? 'Updating...' : 'Update Password'}
-                                        <MdSave className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+                            <button type="submit" disabled={loading || !passwords.currentPassword || !passwords.newPassword || !passwords.confirmPassword} className="mt-4 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
+                                {changePasswordMutation.isPending ? 'Updating...' : 'Update Password'}
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>

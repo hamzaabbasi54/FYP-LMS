@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MdExpandMore, MdExpandLess, MdTrendingUp, MdCheckCircle, MdWarning, MdSchool, MdBook, MdCloudDownload, MdInfoOutline } from 'react-icons/md';
+import { PiCaretDown, PiCaretUp, PiChartPieSlice, PiCheckCircle, PiDownloadSimple, PiGraph, PiInfo, PiListChecks, PiStack, PiTarget, PiTrendUp, PiWarningCircle } from 'react-icons/pi';
 import { obeApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import { useQuery } from '@tanstack/react-query';
@@ -26,9 +26,9 @@ const OBEReports = () => {
     };
 
     const getAchievementBadge = (percentage) => {
-        if (percentage >= 70) return { icon: MdCheckCircle, color: 'text-emerald-500', label: 'Excellent' };
-        if (percentage >= 40) return { icon: MdTrendingUp, color: 'text-amber-500', label: 'Average' };
-        return { icon: MdWarning, color: 'text-red-500', label: 'Needs Improvement' };
+        if (percentage >= 70) return { icon: PiCheckCircle, color: 'text-emerald-500', label: 'Excellent' };
+        if (percentage >= 40) return { icon: PiTrendUp, color: 'text-amber-500', label: 'Average' };
+        return { icon: PiWarningCircle, color: 'text-red-500', label: 'Needs Improvement' };
     };
 
     const toggleBatch = (batchId) => {
@@ -63,20 +63,20 @@ const OBEReports = () => {
 
     if (loading) {
         return (
-            <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col space-y-6">
+            <div className="min-h-[calc(100vh-116px)] space-y-6">
                 <div className="animate-pulse space-y-4">
                     <div className="h-8 bg-gray-200 rounded w-1/4"></div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {[1, 2, 3].map(i => <div key={i} className="h-32 bg-gray-200 rounded-2xl"></div>)}
+                        {[1, 2, 3].map(i => <div key={i} className="h-32 bg-gray-200 rounded-3xl"></div>)}
                     </div>
-                    <div className="h-40 bg-gray-200 rounded-2xl mt-6"></div>
+                    <div className="h-40 bg-gray-200 rounded-3xl mt-6"></div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col space-y-6">
+        <div className="min-h-[calc(100vh-116px)] space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                 <div>
@@ -87,19 +87,19 @@ const OBEReports = () => {
 
             {/* Summary Cards */}
             <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm">
                     <div className="flex items-center justify-between mb-2">
-                        <div className="bg-blue-50 text-blue-500 p-2 rounded-lg">
-                            <MdSchool className="w-6 h-6" />
+                        <div className="bg-blue-50 text-sky-700 p-2 rounded-lg">
+                            <PiStack className="w-6 h-6" />
                         </div>
                         <span className="text-2xl font-bold text-slate-900">{batches.length}</span>
                     </div>
                     <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Active Batches</p>
                 </div>
-                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm">
                     <div className="flex items-center justify-between mb-2">
                         <div className="bg-emerald-50 text-emerald-500 p-2 rounded-lg">
-                            <MdTrendingUp className="w-6 h-6" />
+                            <PiChartPieSlice className="w-6 h-6" />
                         </div>
                         <span className="text-2xl font-bold text-slate-900">
                             {batches.length > 0 ? Math.round(batches.reduce((acc, b) => acc + b.overallAchievement, 0) / batches.length) : 0}%
@@ -107,10 +107,10 @@ const OBEReports = () => {
                     </div>
                     <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Average Achievement</p>
                 </div>
-                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm">
                     <div className="flex items-center justify-between mb-2">
                         <div className="bg-purple-50 text-purple-500 p-2 rounded-lg">
-                            <MdBook className="w-6 h-6" />
+                            <PiTarget className="w-6 h-6" />
                         </div>
                         <span className="text-2xl font-bold text-slate-900">{batches.reduce((acc, b) => acc + (b.totalPLOs || 0), 0)}</span>
                     </div>
@@ -125,15 +125,15 @@ const OBEReports = () => {
                     const BadgeIcon = badge.icon;
 
                     return (
-                        <div key={batch.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-3">
+                        <div key={batch.id} className="bg-white rounded-3xl border border-slate-200 overflow-hidden mb-3">
                             {/* Batch Header */}
                             <div
                                 onClick={() => toggleBatch(batch.id)}
                                 className="w-full px-5 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer"
                             >
                                 <div className="flex items-center gap-4">
-                                    <div className="bg-blue-50 text-blue-600 p-2 rounded-lg">
-                                        <MdSchool className="w-5 h-5" />
+                                    <div className="bg-blue-50 text-sky-700 p-2 rounded-lg">
+                                        <PiGraph className="w-5 h-5" />
                                     </div>
                                     <div className="text-left">
                                         <h3 className="text-sm font-semibold text-slate-800">{batch.name}</h3>
@@ -149,19 +149,19 @@ const OBEReports = () => {
                                             <BadgeIcon className={`w-4 h-4 ${badge.color}`} />
                                             <span className="text-lg font-bold text-slate-800">{batch.overallAchievement}%</span>
                                         </div>
-                                        <p className={`text-[10px] font-semibold px-2 py-0.5 rounded-full inline-block mt-1 ${getAchievementColor(batch.overallAchievement)}`}>{badge.label}</p>
+                                        <p className={`text-[10px] font-semibold px-2 py-0.5 rounded-md inline-block mt-1 ${getAchievementColor(batch.overallAchievement)}`}>{badge.label}</p>
                                     </div>
                                     <button
                                         onClick={(e) => handleDownloadPLO(e, batch.id, batch.name)}
-                                        className="p-2 hover:bg-slate-200 rounded-lg text-blue-500 hover:text-blue-700 transition-colors"
+                                        className="p-2 hover:bg-slate-200 rounded-lg text-sky-700 hover:text-blue-700 transition-colors"
                                         title="Download PLO Report"
                                     >
-                                        <MdCloudDownload className="w-5 h-5" />
+                                        <PiDownloadSimple className="w-5 h-5" />
                                     </button>
                                     {expandedBatch === batch.id ? (
-                                        <MdExpandLess className="w-6 h-6 text-gray-400" />
+                                        <PiCaretUp className="w-6 h-6 text-gray-400" />
                                     ) : (
-                                        <MdExpandMore className="w-6 h-6 text-gray-400" />
+                                        <PiCaretDown className="w-6 h-6 text-gray-400" />
                                     )}
                                 </div>
                             </div>
@@ -171,9 +171,9 @@ const OBEReports = () => {
                                 <div className="border-t border-gray-100 bg-gray-50 p-5 space-y-4">
                                     {/* FIX Issue #1: Display unmapped question warnings */}
                                     {batch.warnings && batch.warnings.length > 0 && (
-                                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+                                        <div className="bg-amber-50 border border-amber-200 rounded-3xl p-4 mb-4">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <MdWarning className="w-5 h-5 text-amber-500" />
+                                                <PiWarningCircle className="w-5 h-5 text-amber-500" />
                                                 <span className="text-sm font-semibold text-amber-700">Unmapped Questions Detected</span>
                                             </div>
                                             <ul className="space-y-1">
@@ -188,20 +188,20 @@ const OBEReports = () => {
 
                                     {/* FIX Issue #8: Show notice when no PLOs attached */}
                                     {batch.totalPLOs === 0 && (
-                                        <div className="bg-slate-100 border border-slate-200 rounded-xl p-4 flex items-center gap-3">
-                                            <MdInfoOutline className="w-5 h-5 text-slate-400" />
+                                        <div className="bg-slate-100 border border-slate-200 rounded-3xl p-4 flex items-center gap-3">
+                                            <PiInfo className="w-5 h-5 text-slate-400" />
                                             <p className="text-sm text-slate-500">No PLOs are attached to this batch. Attach PLOs in the Batch Details page to see OBE data.</p>
                                         </div>
                                     )}
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {batch.plos.map((plo) => (
-                                            <div key={plo.id} className="bg-white rounded-xl p-4 border border-gray-200">
+                                            <div key={plo.id} className="bg-white rounded-3xl p-4 border border-gray-200">
                                                 <div className="flex items-center justify-between mb-2">
                                                     <span className="text-sm font-bold text-indigo-600">{plo.id}</span>
                                                     {/* FIX Issue #4: Show "Not Yet Assessed" badge for ungraded PLOs */}
                                                     {plo.notAssessed ? (
-                                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-500">
                                                             Not Yet Assessed
                                                         </span>
                                                     ) : (
@@ -213,9 +213,9 @@ const OBEReports = () => {
                                                 <p className="text-sm text-gray-700 mb-3">{plo.name}</p>
                                                 {/* FIX Issue #4: Only show progress bar for assessed PLOs */}
                                                 {!plo.notAssessed && (
-                                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                                    <div className="w-full bg-gray-200 rounded-md h-2">
                                                         <div
-                                                            className={`h-2 rounded-full ${plo.achievement >= 85 ? 'bg-green-500' :
+                                                            className={`h-2 rounded-md ${plo.achievement >= 85 ? 'bg-green-500' :
                                                                 plo.achievement >= 70 ? 'bg-blue-500' :
                                                                     plo.achievement >= 60 ? 'bg-amber-500' : 'bg-red-500'
                                                                 }`}
@@ -224,8 +224,8 @@ const OBEReports = () => {
                                                     </div>
                                                 )}
                                                 {plo.notAssessed && (
-                                                    <div className="w-full bg-gray-100 rounded-full h-2">
-                                                        <div className="h-2 rounded-full bg-gray-300 bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(148,163,184,0.3)_4px,rgba(148,163,184,0.3)_8px)]" style={{ width: '100%' }} />
+                                                    <div className="w-full bg-gray-100 rounded-md h-2">
+                                                        <div className="h-2 rounded-md bg-gray-300 bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(148,163,184,0.3)_4px,rgba(148,163,184,0.3)_8px)]" style={{ width: '100%' }} />
                                                     </div>
                                                 )}
                                             </div>
@@ -237,14 +237,14 @@ const OBEReports = () => {
                                         <h4 className="font-semibold text-gray-700 mb-3">Semester-wise CLO Achievement</h4>
                                         <div className="space-y-3">
                                             {batch.semesters.map((semester) => (
-                                                <div key={semester.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                                <div key={semester.id} className="bg-white rounded-3xl border border-gray-200 overflow-hidden">
                                                     <div
                                                         onClick={() => toggleSemester(semester.id)}
                                                         className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
                                                     >
                                                         <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                                                                <MdBook className="w-5 h-5 text-white" />
+                                                            <div className="w-10 h-10 rounded-lg border border-sky-100 bg-sky-50 flex items-center justify-center">
+                                                                <PiListChecks className="w-5 h-5 text-sky-700" />
                                                             </div>
                                                             <div className="text-left">
                                                                 <p className="font-semibold text-gray-800">{semester.name}</p>
@@ -254,16 +254,16 @@ const OBEReports = () => {
                                                         <div className="flex items-center gap-3">
                                                             <button
                                                                 onClick={(e) => handleDownloadCLO(e, batch.id, batch.name, semester.id)}
-                                                                className="p-1.5 hover:bg-gray-200 rounded-full text-emerald-600 hover:text-emerald-700 transition-colors"
+                                                                className="p-1.5 hover:bg-sky-50 rounded-lg text-sky-700 hover:text-sky-800 transition-colors"
                                                                 title="Download CLO Report"
                                                             >
-                                                                <MdCloudDownload className="w-5 h-5" />
+                                                                <PiDownloadSimple className="w-5 h-5" />
                                                             </button>
                                                             <span className="text-lg font-bold text-gray-800">{semester.achievement}%</span>
                                                             {expandedSemester === semester.id ? (
-                                                                <MdExpandLess className="w-5 h-5 text-gray-400" />
+                                                                <PiCaretUp className="w-5 h-5 text-gray-400" />
                                                             ) : (
-                                                                <MdExpandMore className="w-5 h-5 text-gray-400" />
+                                                                <PiCaretDown className="w-5 h-5 text-gray-400" />
                                                             )}
                                                         </div>
                                                     </div>
@@ -272,13 +272,13 @@ const OBEReports = () => {
                                                     {expandedSemester === semester.id && (
                                                         <div className="border-t border-gray-100 p-4 bg-gray-50 space-y-4">
                                                             {semester.courses.map((course) => (
-                                                                <div key={course.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                                                <div key={course.id} className="bg-white rounded-3xl border border-gray-200 overflow-hidden">
                                                                     <div className="w-full p-3 bg-gray-100 flex items-center justify-between">
                                                                         <div className="flex items-center gap-2">
                                                                             <span className="text-sm font-bold text-gray-800">{course.code}</span>
                                                                             <span className="text-sm text-gray-600">- {course.title}</span>
                                                                         </div>
-                                                                        <span className={`text-sm font-bold px-2 py-1 rounded ${getAchievementColor(course.achievement)}`}>
+                                                                        <span className={`text-sm font-bold px-2 py-1 rounded-md ${getAchievementColor(course.achievement)}`}>
                                                                             Course Avg: {course.achievement}%
                                                                         </span>
                                                                     </div>
@@ -289,7 +289,7 @@ const OBEReports = () => {
                                                                                     <div className="flex-1">
                                                                                         <div className="flex items-center gap-2 mb-1">
                                                                                             <span className="text-xs font-bold text-emerald-600">{clo.id}</span>
-                                                                                            <span className="text-xs px-2 py-0.5 bg-violet-100 text-violet-700 rounded-full font-medium">
+                                                                                            <span className="text-xs px-2 py-0.5 bg-violet-100 text-violet-700 rounded-md font-medium">
                                                                                                 Maps to {clo.plo}
                                                                                             </span>
                                                                                         </div>
@@ -299,9 +299,9 @@ const OBEReports = () => {
                                                                                         {clo.achievement}%
                                                                                     </span>
                                                                                 </div>
-                                                                                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                                                                <div className="w-full bg-gray-200 rounded-md h-1.5">
                                                                                     <div
-                                                                                        className={`h-1.5 rounded-full ${clo.achievement >= 85 ? 'bg-green-500' :
+                                                                                        className={`h-1.5 rounded-md ${clo.achievement >= 85 ? 'bg-green-500' :
                                                                                             clo.achievement >= 70 ? 'bg-blue-500' :
                                                                                                 clo.achievement >= 60 ? 'bg-amber-500' : 'bg-red-500'
                                                                                             }`}

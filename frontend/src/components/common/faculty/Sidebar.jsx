@@ -1,11 +1,21 @@
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { MdDashboard, MdBook, MdSchedule, MdPeople, MdGrade, MdMessage, MdNotifications, MdLogout, MdSchool } from 'react-icons/md';
+import {
+    PiBell,
+    PiBooks,
+    PiCalendarCheck,
+    PiChartBar,
+    PiChatCircleText,
+    PiGauge,
+    PiSignOut,
+    PiUsersThree
+} from 'react-icons/pi';
 import { useCourse } from '../../../context/CourseContext';
 import { useAuth } from '../../../context/AuthContext';
 import { useSocket } from '../../../context/SocketContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { messageApi } from '../../../services/api';
+import campusFlowLogo from '../../../assets/campus-flow-logo-clean.svg';
 
 const Sidebar = () => {
     const location = useLocation();
@@ -36,7 +46,6 @@ const Sidebar = () => {
     }, [socket, queryClient]);
 
     // Get logged-in user data from AuthContext
-    const facultyName = user?.faculty || 'Faculty';
     const professorName = user?.fullName || 'Professor';
     const professorInitials = professorName
         .split(' ')
@@ -63,7 +72,7 @@ const Sidebar = () => {
             ? excludePaths.some(path => location.pathname.includes(path))
             : false;
 
-        const baseClasses = "flex items-center justify-between w-full h-9 px-3 rounded-lg text-sm transition-all duration-200 mb-1";
+        const baseClasses = "flex items-center justify-between w-full min-h-10 px-3 rounded-xl text-sm transition-all duration-200 mb-1";
 
         if (disabled) {
             return (
@@ -85,8 +94,8 @@ const Sidebar = () => {
                     return `
                         ${baseClasses}
                         ${active
-                            ? 'bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600'
-                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium'
+                            ? 'bg-sky-50 text-sky-700 font-semibold border border-sky-100 shadow-sm'
+                            : 'text-slate-600 hover:bg-sky-50/70 hover:text-sky-800 font-medium'
                         }
                     `;
                 }}
@@ -97,11 +106,11 @@ const Sidebar = () => {
                     return (
                         <>
                             <div className="flex items-center gap-2 min-w-0">
-                                <Icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-blue-700' : 'text-slate-400'}`} />
+                                <Icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-sky-700' : 'text-slate-400'}`} />
                                 <span className="truncate">{label}</span>
                             </div>
                             {badge && (
-                                <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
+                                <span className="bg-red-500 text-white text-[10px] font-bold rounded-md min-w-5 h-5 px-1 flex items-center justify-center flex-shrink-0">
                                     {badge > 9 ? '9+' : badge}
                                 </span>
                             )}
@@ -113,25 +122,20 @@ const Sidebar = () => {
     };
 
     return (
-        <div className="flex flex-col w-full h-full px-3 sm:px-4 py-6 sm:py-8 bg-white border-r border-gray-200">
+        <div className="flex flex-col w-full h-full px-3 sm:px-4 py-5 sm:py-6 bg-white/95 border-r border-sky-100">
             {/* Header */}
-            <div className="flex items-center mb-6 sm:mb-8 px-2">
-                <div className="bg-blue-600 p-2 rounded-lg mr-2 sm:mr-3 flex-shrink-0">
-                    <MdSchool className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <div className="min-w-0">
-                    <h2 className="text-base sm:text-lg font-bold text-gray-800 leading-tight truncate">{facultyName} LMS</h2>
-                    <p className="text-xs text-gray-500 font-semibold">Faculty Panel</p>
-                </div>
+            <div className="mb-6 rounded-2xl border border-sky-100 bg-sky-50/60 px-3 py-4 shadow-sm">
+                <img src={campusFlowLogo} alt="Campus Flow" className="h-12 w-full object-contain object-left" />
+                <p className="mt-2 text-xs font-semibold text-slate-500">Faculty Panel</p>
             </div>
 
             {/* Navigation */}
             <nav className="flex flex-col flex-grow">
                 {/* The 'to' prop is the destination URL */}
-                <NavItem to="/faculty-dashboard" icon={MdDashboard} label="Dashboard" />
+                <NavItem to="/faculty-dashboard" icon={PiGauge} label="Dashboard" />
                 <NavItem
                     to={selectedCourse ? `/faculty-mycourses/${selectedCourse.assignment_id}` : '/faculty-dashboard'}
-                    icon={MdBook}
+                    icon={PiBooks}
                     label="My Courses"
                     matchPaths={['/faculty-mycourses']}
                     excludePaths={['/faculty-mycourses/grading', '/grading']}
@@ -139,14 +143,14 @@ const Sidebar = () => {
                 />
                 <NavItem
                     to="/faculty-attendance"
-                    icon={MdPeople}
+                    icon={PiUsersThree}
                     label="Attendance"
                     matchPaths={['/faculty-attendance/monthly-report']}
                     disabled={!selectedCourse}
                 />
                 <NavItem
                     to={selectedCourse ? `/faculty-mycourses/${selectedCourse.assignment_id}/grading` : '/faculty-dashboard'}
-                    icon={MdGrade}
+                    icon={PiChartBar}
                     label="Grades"
                     matchPaths={['/grading']}
                     disabled={!selectedCourse}
@@ -159,31 +163,31 @@ const Sidebar = () => {
                     </p>
                     <NavItem
                         to="/faculty-messages"
-                        icon={MdMessage}
+                        icon={PiChatCircleText}
                         label="Messages"
                         badge={unreadCount > 0 ? unreadCount : undefined}
                     />
-                    <NavItem to="/faculty-schedule" icon={MdSchedule} label="Schedule" />
-                    <NavItem to="/faculty-notifications" icon={MdNotifications} label="Notifications" />
+                    <NavItem to="/faculty-schedule" icon={PiCalendarCheck} label="Schedule" />
+                    <NavItem to="/faculty-notifications" icon={PiBell} label="Notifications" />
                 </div>
             </nav>
 
             {/* User Profile Section at Bottom */}
-            <div className="mt-auto pt-4 border-t border-gray-200">
+            <div className="mt-auto pt-4 border-t border-sky-100">
                 <div className="flex items-center px-2 mb-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
-                        <span className="text-blue-600 font-bold text-xs sm:text-sm">{professorInitials}</span>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
+                        <span className="text-sky-700 font-bold text-xs sm:text-sm">{professorInitials}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-gray-800 font-semibold text-xs sm:text-sm truncate">{professorName}</p>
-                        <p className="text-gray-500 text-xs truncate capitalize">{user.role || 'Faculty'}</p>
+                        <p className="text-slate-800 font-semibold text-xs sm:text-sm truncate">{professorName}</p>
+                        <p className="text-slate-500 text-xs truncate capitalize">{user.role || 'Faculty'}</p>
                     </div>
                     <button 
                         onClick={handleLogout}
-                        className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 ml-2"
+                        className="text-slate-400 hover:text-red-500 transition-colors flex-shrink-0 ml-2"
                         title="Logout"
                     >
-                        <MdLogout className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <PiSignOut className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                 </div>
             </div>

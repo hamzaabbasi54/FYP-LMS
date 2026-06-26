@@ -1,6 +1,5 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { MdNotifications } from 'react-icons/md';
 import { useAuth } from '../../../context/AuthContext';
 const Navbar = () => {
     const location = useLocation();
@@ -18,30 +17,23 @@ const Navbar = () => {
     };
 
     return (
-        <div className="flex justify-between items-center h-full px-8 bg-white/80 backdrop-blur-xl border-b border-slate-100">
+        <div className="flex justify-between items-center h-full px-8 bg-white/82 backdrop-blur-xl border-b border-sky-100">
             {/* Title */}
             <div>
-                <h1 className="text-xl font-bold text-slate-800">
+                <h1 className="text-xl font-bold text-slate-950">
                     {getPageTitle(location.pathname)}
                 </h1>
                 {user.department && (
-                    <p className="text-sm text-slate-400">Department: {user.department}</p>
+                    <p className="text-sm text-slate-500">Department: {user.department}</p>
                 )}
             </div>
 
             {/* Right Section */}
             <div className="flex items-center gap-4">
-
-                {/* Notifications */}
-                <button className="relative p-2.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
-                    <MdNotifications className="w-6 h-6" />
-                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white"></span>
-                </button>
-
                 {/* User */}
-                <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shadow-sm">
-                        <span className="text-blue-700 font-bold text-sm">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center shadow-sm">
+                        <span className="text-sky-700 font-bold text-sm">
                             {user.fullName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'AD'}
                         </span>
                     </div>

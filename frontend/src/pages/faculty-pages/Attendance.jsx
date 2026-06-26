@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { MdSearch, MdCheckCircle, MdRadioButtonUnchecked, MdFilterList, MdDownload, MdCalendarToday, MdChevronLeft, MdChevronRight, MdSave, MdGridOn } from 'react-icons/md';
+import {
+    PiCalendarBlank as MdCalendarToday,
+    PiCaretLeft as MdChevronLeft,
+    PiCaretRight as MdChevronRight,
+    PiCheckCircle as MdCheckCircle,
+    PiDownloadSimple as MdDownload,
+    PiFloppyDisk as MdSave,
+    PiFunnel as MdFilterList,
+    PiGridFour as MdGridOn,
+    PiMagnifyingGlass as MdSearch,
+    PiCircle as MdRadioButtonUnchecked
+} from 'react-icons/pi';
 import { useCourse } from '../../context/CourseContext';
 import { studentApi, attendanceApi } from '../../services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -21,6 +32,7 @@ const Attendance = () => {
     const [saving, setSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState(null);
     const [exporting, setExporting] = useState(false);
+    const historyRef = useRef(null);
 
     // Close calendar when clicking outside
     useEffect(() => {
@@ -254,6 +266,10 @@ const Attendance = () => {
         });
     };
 
+    const scrollToHistory = () => {
+        historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     // Reset attendance (cancel unsaved changes by refetching)
     const handleCancel = () => {
         // Re-trigger fetch by toggling a reload
@@ -299,27 +315,28 @@ const Attendance = () => {
     );
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="min-h-[calc(100vh-140px)] space-y-6">
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                 <div className="flex items-center gap-3">
                     <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
                         Attendance Management
                     </h1>
-                    <span className="bg-blue-50 text-blue-700 text-sm font-bold tracking-wider uppercase px-3 py-1 rounded">
+                    <span className="bg-sky-50 text-sky-700 text-sm font-bold tracking-wider uppercase px-3 py-1 rounded">
                         {selectedCourse ? selectedCourse.code : 'Course'}
                     </span>
                 </div>
-                <Link
-                    to="#"
-                    className="text-blue-600 hover:text-blue-700 font-medium text-sm whitespace-nowrap"
+                <button
+                    type="button"
+                    onClick={scrollToHistory}
+                    className="text-sky-700 hover:text-sky-700 font-medium text-sm whitespace-nowrap"
                 >
                     View History
-                </Link>
+                </button>
             </div>
 
             {/* Session Date and Summary Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-6">
                 <h2 className="text-lg font-bold text-slate-800 mb-4">Select Session Date</h2>
 
                 {/* Date Picker */}
@@ -327,13 +344,13 @@ const Attendance = () => {
                     <div className="relative flex items-center gap-2" ref={calendarRef}>
                         <button
                             onClick={handlePreviousDay}
-                            className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 transition-colors"
+                            className="p-2 rounded-3xl border border-sky-100 hover:bg-sky-50/45 text-slate-600 hover:text-slate-800 transition-colors"
                         >
                             <MdChevronLeft className="w-5 h-5" />
                         </button>
                         <div className="relative">
                             <div
-                                className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg bg-white cursor-pointer hover:bg-slate-50 transition-colors"
+                                className="flex items-center gap-2 px-4 py-2 border border-sky-100 rounded-3xl bg-white cursor-pointer hover:bg-sky-50/45 transition-colors"
                                 onClick={() => setShowCalendar(!showCalendar)}
                             >
                                 <MdCalendarToday className="w-5 h-5 text-slate-400" />
@@ -347,12 +364,12 @@ const Attendance = () => {
 
                             {/* Calendar Dropdown */}
                             {showCalendar && (
-                                <div className="absolute top-full left-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-lg z-50 w-80 p-4">
+                                <div className="absolute top-full left-0 mt-2 bg-white border border-sky-100 rounded-3xl shadow-lg z-50 w-80 p-4">
                                     {/* Calendar Header */}
                                     <div className="flex items-center justify-between mb-4">
                                         <button
                                             onClick={handlePreviousMonth}
-                                            className="p-1 rounded hover:bg-slate-100 transition-colors"
+                                            className="p-1 rounded-xl hover:bg-sky-50 transition-colors"
                                         >
                                             <MdChevronLeft className="w-5 h-5 text-slate-600" />
                                         </button>
@@ -361,7 +378,7 @@ const Attendance = () => {
                                         </h3>
                                         <button
                                             onClick={handleNextMonth}
-                                            className="p-1 rounded hover:bg-slate-100 transition-colors"
+                                            className="p-1 rounded-xl hover:bg-sky-50 transition-colors"
                                         >
                                             <MdChevronRight className="w-5 h-5 text-slate-600" />
                                         </button>
@@ -389,11 +406,11 @@ const Attendance = () => {
                                                 <button
                                                     key={day}
                                                     onClick={() => handleDateSelect(day)}
-                                                    className={`aspect-square flex items-center justify-center text-sm rounded transition-colors ${isSelectedDate
-                                                        ? 'bg-blue-600 text-white font-semibold'
+                                                    className={`aspect-square flex items-center justify-center text-sm rounded-xl transition-colors ${isSelectedDate
+                                                        ? 'bg-sky-600 text-white font-semibold'
                                                         : isTodayDate
-                                                            ? 'bg-blue-50 text-blue-700 font-semibold'
-                                                            : 'hover:bg-slate-100 text-slate-700'
+                                                            ? 'bg-sky-50 text-sky-700 font-semibold'
+                                                            : 'hover:bg-sky-50 text-slate-700'
                                                         }`}
                                                 >
                                                     {day}
@@ -403,10 +420,10 @@ const Attendance = () => {
                                     </div>
 
                                     {/* Calendar Footer */}
-                                    <div className="mt-4 pt-4 border-t border-slate-200">
+                                    <div className="mt-4 pt-4 border-t border-sky-100">
                                         <button
                                             onClick={handleToday}
-                                            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm"
+                                            className="w-full px-4 py-2 bg-sky-600 text-white rounded-3xl hover:bg-sky-700 shadow-sm transition-colors font-medium text-sm"
                                         >
                                             Today
                                         </button>
@@ -416,7 +433,7 @@ const Attendance = () => {
                         </div>
                         <button
                             onClick={handleNextDay}
-                            className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 transition-colors"
+                            className="p-2 rounded-3xl border border-sky-100 hover:bg-sky-50/45 text-slate-600 hover:text-slate-800 transition-colors"
                         >
                             <MdChevronRight className="w-5 h-5" />
                         </button>
@@ -425,39 +442,38 @@ const Attendance = () => {
                     <div className="flex items-center gap-3">
                         <button
                             onClick={handleToday}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm"
+                            className="px-4 py-2 bg-sky-600 text-white rounded-3xl hover:bg-sky-700 shadow-sm transition-colors font-medium text-sm"
                         >
                             Today
-                        </button>
-                        <button className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 shadow-sm transition-colors font-medium text-sm">
-                            Jump to Last Session
                         </button>
                     </div>
                 </div>
 
                 {/* Attendance Summary */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6">
+                    <div className="relative overflow-hidden bg-white/88 border border-emerald-100 rounded-3xl p-5 shadow-sm">
+                        <div className="absolute inset-y-0 left-0 w-1 bg-emerald-300" />
                         <p className="text-sm font-bold text-emerald-700 mb-2 tracking-wider uppercase">PRESENT</p>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-bold text-emerald-600">{presentCount}</span>
+                            <span className="text-4xl font-bold text-emerald-700">{presentCount}</span>
                             <span className="text-lg font-semibold text-emerald-600">{presentPercentage}%</span>
                         </div>
                     </div>
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                        <p className="text-sm font-bold text-red-700 mb-2 tracking-wider uppercase">ABSENT</p>
+                    <div className="relative overflow-hidden bg-white/88 border border-rose-100 rounded-3xl p-5 shadow-sm">
+                        <div className="absolute inset-y-0 left-0 w-1 bg-rose-300" />
+                        <p className="text-sm font-bold text-rose-700 mb-2 tracking-wider uppercase">ABSENT</p>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-bold text-red-600">{absentCount}</span>
-                            <span className="text-lg font-semibold text-red-600">{absentPercentage}%</span>
+                            <span className="text-4xl font-bold text-rose-700">{absentCount}</span>
+                            <span className="text-lg font-semibold text-rose-600">{absentPercentage}%</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Student Attendance List Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 overflow-hidden">
                 {/* Header with Search and Actions */}
-                <div className="p-6 border-b border-slate-200">
+                <div className="p-6 border-b border-sky-100">
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                         {/* Search Bar */}
                         <div className="relative flex-1 max-w-md">
@@ -467,7 +483,7 @@ const Attendance = () => {
                                 placeholder="Search student by name or ID..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full pl-10 pr-4 py-2 border border-sky-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent"
                             />
                         </div>
 
@@ -475,15 +491,15 @@ const Attendance = () => {
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={markAllPresent}
-                                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors font-medium text-sm"
+                                className="flex items-center px-4 py-2 bg-sky-600 text-white rounded-3xl hover:bg-sky-700 shadow-sm transition-colors font-medium text-sm"
                             >
                                 <MdCheckCircle className="w-5 h-5 mr-2" />
                                 Mark All Present
                             </button>
-                            <button className="p-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm transition-colors">
+                            <button className="p-2 rounded-3xl bg-white border border-sky-100 text-slate-700 hover:bg-sky-50/45 shadow-sm transition-colors">
                                 <MdFilterList className="w-5 h-5" />
                             </button>
-                            <button className="p-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm transition-colors">
+                            <button className="p-2 rounded-3xl bg-white border border-sky-100 text-slate-700 hover:bg-sky-50/45 shadow-sm transition-colors">
                                 <MdDownload className="w-5 h-5" />
                             </button>
                         </div>
@@ -493,7 +509,7 @@ const Attendance = () => {
                 {/* Loading State */}
                 {loading && (
                     <div className="p-12 text-center">
-                        <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                        <div className="inline-block w-8 h-8 border-4 border-sky-100 border-t-sky-600 rounded-3xl animate-spin mb-4"></div>
                         <p className="text-slate-500 text-sm">Loading students...</p>
                     </div>
                 )}
@@ -509,7 +525,7 @@ const Attendance = () => {
                 {!loading && students.length > 0 && (
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                            <thead className="bg-slate-50 border-b border-slate-200">
+                            <thead className="bg-sky-50/45 border-b border-sky-100">
                                 <tr>
                                     <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                                         STUDENT DETAILS
@@ -524,12 +540,12 @@ const Attendance = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {filteredStudents.map((student) => (
-                                    <tr key={student.id} className="hover:bg-slate-50 transition-colors">
+                                    <tr key={student.id} className="hover:bg-sky-50/45 transition-colors">
                                         {/* Student Details */}
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0">
-                                                    <span className="text-blue-700 font-bold text-sm">{student.initials}</span>
+                                                <div className="w-10 h-10 rounded-3xl bg-sky-50 border border-blue-100 flex items-center justify-center flex-shrink-0">
+                                                    <span className="text-sky-700 font-bold text-sm">{student.initials}</span>
                                                 </div>
                                                 <div>
                                                     <p className="font-semibold text-slate-800 text-sm">{student.name}</p>
@@ -559,7 +575,7 @@ const Attendance = () => {
                                                 placeholder="Add note..."
                                                 value={student.remarks}
                                                 onChange={(e) => updateRemarks(student.id, e.target.value)}
-                                                className="text-sm text-slate-700 border-none bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1 w-full max-w-xs placeholder-slate-400"
+                                                className="text-sm text-slate-700 border-none bg-transparent focus:outline-none focus:ring-1 focus:ring-sky-200 rounded-xl px-2 py-1 w-full max-w-xs placeholder-slate-400"
                                             />
                                         </td>
                                     </tr>
@@ -571,12 +587,12 @@ const Attendance = () => {
 
                 {/* Footer with Pagination and Actions */}
                 {!loading && students.length > 0 && (
-                    <div className="p-6 border-t border-slate-200">
+                    <div className="p-6 border-t border-sky-100">
                         {/* Save Message */}
                         {saveMessage && (
-                            <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${saveMessage.type === 'success'
-                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                    : 'bg-red-50 text-red-700 border border-red-200'
+                            <div className={`mb-4 px-4 py-3 rounded-3xl text-sm font-medium ${saveMessage.type === 'success'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                    : 'bg-red-50 text-red-700 border border-red-100'
                                 }`}>
                                 {saveMessage.text}
                             </div>
@@ -588,16 +604,16 @@ const Attendance = () => {
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={handleCancel}
-                                    className="px-6 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 shadow-sm transition-colors font-medium text-sm"
+                                    className="px-6 py-2 bg-white border border-sky-100 text-slate-700 rounded-3xl hover:bg-sky-50/45 shadow-sm transition-colors font-medium text-sm"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleSaveAttendance}
                                     disabled={saving}
-                                    className={`flex items-center px-6 py-2 rounded-lg shadow-sm transition-colors font-medium text-sm ${saving
+                                    className={`flex items-center px-6 py-2 rounded-3xl shadow-sm transition-colors font-medium text-sm ${saving
                                             ? 'bg-blue-400 text-white cursor-not-allowed'
-                                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                                            : 'bg-sky-600 text-white hover:bg-sky-700'
                                         }`}
                                 >
                                     <MdSave className="w-5 h-5 mr-2" />
@@ -610,7 +626,7 @@ const Attendance = () => {
             </div>
 
             {/* Attendance History Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div ref={historyRef} className="scroll-mt-28 bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-6">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                     <div className="flex-1">
                         <h2 className="text-xl font-bold text-slate-800 mb-2">Attendance History</h2>
@@ -621,7 +637,7 @@ const Attendance = () => {
                     <div className="flex flex-col sm:flex-row gap-3">
                         <Link
                             to={courseAssignmentId ? `/faculty-mycourses/${courseAssignmentId}/attendance/monthly-report` : '/faculty-attendance/monthly-report'}
-                            className="flex items-center justify-center px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 shadow-sm transition-colors font-medium text-sm"
+                            className="flex items-center justify-center px-5 py-2.5 bg-white border border-sky-100 text-slate-700 rounded-3xl hover:bg-sky-50/45 shadow-sm transition-colors font-medium text-sm"
                         >
                             <MdGridOn className="w-5 h-5 mr-2" />
                             View Monthly Report
@@ -629,7 +645,7 @@ const Attendance = () => {
                         <button
                             onClick={handleExportCSV}
                             disabled={exporting}
-                            className="flex items-center justify-center px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 shadow-sm transition-colors font-medium text-sm"
+                            className="flex items-center justify-center px-5 py-2.5 bg-white border border-sky-100 text-slate-700 rounded-3xl hover:bg-sky-50/45 shadow-sm transition-colors font-medium text-sm"
                         >
                             <MdDownload className="w-5 h-5 mr-2" />
                             {exporting ? 'Exporting...' : 'Export CSV'}

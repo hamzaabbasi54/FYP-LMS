@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MdPerson, MdEdit, MdDelete, MdAdd, MdSearch, MdFilterList, MdCheckCircle, MdCancel } from 'react-icons/md';
+import {
+    PiCheckCircle,
+    PiFunnelSimple,
+    PiMagnifyingGlass,
+    PiPencilSimple,
+    PiPlus,
+    PiTrash,
+    PiUserCircle,
+    PiUsersThree,
+    PiXCircle
+} from 'react-icons/pi';
 import { authApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -28,11 +38,6 @@ const ManageUsers = () => {
         faculty: 'Faculty'
     };
 
-    const roleColors = {
-        deptadmin: 'from-purple-500 to-violet-600',
-        faculty: 'from-pink-500 to-rose-600'
-    };
-
     const deleteMutation = useMutation({
         mutationFn: (userId) => authApi.deleteUser(userId),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
@@ -58,95 +63,130 @@ const ManageUsers = () => {
 
 
     return (
-        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-hidden flex flex-col">
-            <div className="max-w-7xl mx-auto w-full h-full flex flex-col">
-                {/* Header */}
-                <div className="mb-8">
-                    <div className="flex items-center justify-between">
+        <div className="min-h-[calc(100vh-116px)]">
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+                <section className="relative overflow-hidden rounded-3xl border border-white/70 bg-white/82 p-6 shadow-[0_24px_80px_rgba(14,116,144,0.12)] backdrop-blur-2xl lg:p-7">
+                    <div className="absolute -right-20 -top-24 h-56 w-56 rounded-full bg-sky-200/45 blur-3xl" />
+                    <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                         <div>
-                            <h1 className="text-2xl font-bold text-slate-800">
+                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-sky-700">Campus Flow</p>
+                            <h1 className="mt-3 text-3xl font-bold text-slate-950">
                                 User Management
                             </h1>
-                            <p className="text-sm text-slate-500 mt-1">
-                                Manage all system users and their roles
+                            <p className="mt-2 text-sm leading-6 text-slate-600">
+                                Manage department admins, faculty accounts, status, and contact details in one place.
                             </p>
                         </div>
                         <Link
                             to="/admin-createaccount"
-                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 font-medium shadow-sm transition-colors"
+                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-sky-700 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-sky-100"
                         >
-                            <MdAdd className="w-5 h-5" />
+                            <PiPlus className="h-5 w-5" />
                             Create Account
                         </Link>
                     </div>
-                </div>
+                </section>
 
 
-                {/* Filters */}
-                <div className="mb-6 flex flex-col md:flex-row gap-4">
-                    <div className="flex-1 relative">
-                        <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                        <input
-                            type="text"
-                            placeholder="Search by name or email..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm outline-none"
-                        />
+                <section className="rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-sm backdrop-blur">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex items-center gap-3 text-slate-600">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-sky-700">
+                                <PiUsersThree className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-slate-900">{loading ? 'Loading' : users.length} users shown</p>
+                                <p className="text-xs text-slate-500">Search and filter existing accounts</p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                            <div className="relative min-w-0 md:w-80">
+                                <PiMagnifyingGlass className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search by name or email..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="h-11 w-full rounded-xl border border-sky-100 bg-white pl-10 pr-4 text-sm text-slate-700 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                                />
+                            </div>
+
+                            <div className="relative md:w-56">
+                                <PiFunnelSimple className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                                <select
+                                    value={filterRole}
+                                    onChange={(e) => setFilterRole(e.target.value)}
+                                    className="h-11 w-full appearance-none rounded-xl border border-sky-100 bg-white pl-10 pr-9 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                                >
+                                    <option value="all">All roles</option>
+                                    <option value="deptadmin">Department Admin</option>
+                                    <option value="faculty">Faculty</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </section>
 
-                {/* Users Table */}
-                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex-1 flex flex-col min-h-0">
-                    <div className="overflow-auto flex-1">
-                        <table className="w-full">
-                            <thead className="bg-slate-50 border-b border-slate-200">
+                <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm">
+                    <div className="overflow-auto">
+                        <table className="w-full min-w-[920px]">
+                            <thead className="sticky top-0 z-10 border-b border-sky-100 bg-sky-50/80 backdrop-blur">
                                 <tr>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">User</th>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Role</th>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Department</th>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Contact</th>
+                                    <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-[0.12em] text-slate-500">User</th>
+                                    <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Role</th>
+                                    <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Department</th>
+                                    <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Contact</th>
 
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Actions</th>
+                                    <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Status</th>
+                                    <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
-                                            Loading users...
+                                        <td colSpan="6" className="px-6 py-16 text-center">
+                                            <div className="mx-auto flex max-w-sm flex-col items-center">
+                                                <div className="mb-3 h-10 w-10 animate-pulse rounded-2xl bg-sky-100" />
+                                                <p className="text-sm font-medium text-slate-700">Loading users...</p>
+                                            </div>
                                         </td>
                                     </tr>
                                 ) : users.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
-                                            No users found
+                                        <td colSpan="6" className="px-6 py-16 text-center">
+                                            <div className="mx-auto flex max-w-sm flex-col items-center">
+                                                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-100 bg-sky-50 text-sky-700">
+                                                    <PiUserCircle className="h-7 w-7" />
+                                                </div>
+                                                <p className="text-sm font-semibold text-slate-900">No users found</p>
+                                                <p className="mt-1 text-sm text-slate-500">Try changing the search or role filter.</p>
+                                            </div>
                                         </td>
                                     </tr>
                                 ) : (
                                     users.map((user) => (
-                                        <tr key={user.id} className="hover:bg-slate-50 transition-colors border-t border-slate-100">
+                                        <tr key={user.id} className="border-t border-slate-100 transition-colors hover:bg-sky-50/45">
                                             <td className="px-5 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center">
-                                                        <span className="font-bold text-xs">
-                                                            {(user.full_name || user.fullName || '').split(' ').map(n => n[0]).join('').toUpperCase()}
+                                                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-sky-100 bg-sky-50 text-sky-700">
+                                                        <span className="text-xs font-bold">
+                                                            {(user.full_name || user.fullName || '').split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
                                                         </span>
                                                     </div>
-                                                    <div>
-                                                        <p className="text-sm font-medium text-slate-800">{user.full_name || user.fullName}</p>
-                                                        <p className="text-xs text-slate-500">{user.email}</p>
+                                                    <div className="min-w-0">
+                                                        <p className="truncate text-sm font-semibold text-slate-900">{user.full_name || user.fullName}</p>
+                                                        <p className="truncate text-xs text-slate-500">{user.email}</p>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-5 py-4">
-                                                <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
+                                                <span className="inline-flex rounded-full border border-sky-100 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700">
                                                     {roleLabels[user.role] || user.role}
                                                 </span>
                                             </td>
                                             <td className="px-5 py-4">
-                                                <p className="text-sm text-slate-800">{user.department_name || 'N/A'}</p>
+                                                <p className="text-sm font-medium text-slate-800">{user.department_name || 'N/A'}</p>
                                                 <p className="text-xs text-slate-500">{user.faculty_name || 'N/A'}</p>
                                             </td>
                                             <td className="px-5 py-4">
@@ -157,19 +197,19 @@ const ManageUsers = () => {
                                                 <button
                                                     onClick={() => handleToggleActive(user.id)}
                                                     disabled={toggleMutation.isPending && toggleMutation.variables === user.id}
-                                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold transition-colors disabled:opacity-50 ${user.is_active
-                                                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                                                        : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors disabled:opacity-50 ${user.is_active
+                                                        ? 'border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                                        : 'border-red-100 bg-red-50 text-red-700 hover:bg-red-100'
                                                         }`}
                                                 >
                                                     {user.is_active ? (
                                                         <>
-                                                            <MdCheckCircle className="w-3 h-3" />
+                                                            <PiCheckCircle className="h-4 w-4" />
                                                             Active
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <MdCancel className="w-3 h-3" />
+                                                            <PiXCircle className="h-4 w-4" />
                                                             Inactive
                                                         </>
                                                     )}
@@ -178,18 +218,18 @@ const ManageUsers = () => {
                                             <td className="px-5 py-4">
                                                 <div className="flex items-center gap-2">
                                                     <button
-                                                        className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors"
+                                                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
                                                         title="Edit user"
                                                     >
-                                                        <MdEdit className="w-4 h-4" />
+                                                        <PiPencilSimple className="h-4 w-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => handleDelete(user.id)}
                                                         disabled={deleteMutation.isPending && deleteMutation.variables === user.id}
-                                                        className="p-1.5 text-slate-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                                                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:border-red-100 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                                                         title="Delete user"
                                                     >
-                                                        <MdDelete className="w-4 h-4" />
+                                                        <PiTrash className="h-4 w-4" />
                                                     </button>
                                                 </div>
                                             </td>
@@ -199,7 +239,7 @@ const ManageUsers = () => {
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </section>
             </div>
         </div>
     );

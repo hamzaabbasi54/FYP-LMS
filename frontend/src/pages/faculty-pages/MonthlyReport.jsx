@@ -1,6 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { MdSearch, MdCheckCircle, MdClose, MdAccessTime, MdRadioButtonUnchecked, MdChevronLeft, MdChevronRight, MdDownload, MdSave, MdArrowBack } from 'react-icons/md';
+import {
+    PiArrowLeft as MdArrowBack,
+    PiCaretLeft as MdChevronLeft,
+    PiCaretRight as MdChevronRight,
+    PiCheckCircle as MdCheckCircle,
+    PiClock as MdAccessTime,
+    PiDownloadSimple as MdDownload,
+    PiFloppyDisk as MdSave,
+    PiMagnifyingGlass as MdSearch,
+    PiCircle as MdRadioButtonUnchecked,
+    PiX as MdClose
+} from 'react-icons/pi';
 import { useCourse } from '../../context/CourseContext';
 import { studentApi, attendanceApi } from '../../services/api';
 
@@ -19,19 +30,22 @@ const MonthlyReport = () => {
     const [saveMessage, setSaveMessage] = useState(null);
     const [exporting, setExporting] = useState(false);
     const [pendingChanges, setPendingChanges] = useState({}); // { `${studentId}-${day}`: newStatus }
+    const headerScrollRef = useRef(null);
+    const bodyScrollRef = useRef(null);
+    const syncLock = useRef(false);
 
     // Avatar color options
     const avatarColors = [
-        "bg-purple-100 text-purple-700",
-        "bg-pink-100 text-pink-700",
+        "bg-sky-50 text-sky-700",
+        "bg-sky-50 text-sky-700",
         "bg-emerald-100 text-emerald-700",
-        "bg-amber-100 text-amber-700",
-        "bg-indigo-100 text-indigo-700",
-        "bg-blue-100 text-blue-700",
-        "bg-red-100 text-red-700",
-        "bg-orange-100 text-orange-700",
-        "bg-teal-100 text-teal-700",
-        "bg-cyan-100 text-cyan-700"
+        "bg-amber-50 text-amber-700",
+        "bg-sky-50 text-sky-700",
+        "bg-blue-100 text-sky-700",
+        "bg-red-50 text-red-700",
+        "bg-amber-50 text-amber-700",
+        "bg-sky-50 text-sky-700",
+        "bg-sky-50 text-sky-700"
     ];
 
     const getAvatarColor = (name) => {
@@ -268,12 +282,28 @@ const MonthlyReport = () => {
         student.studentId.includes(searchQuery)
     );
 
+    const syncHorizontalScroll = (source) => {
+        if (syncLock.current) return;
+        syncLock.current = true;
+
+        const sourceEl = source === 'header' ? headerScrollRef.current : bodyScrollRef.current;
+        const targetEl = source === 'header' ? bodyScrollRef.current : headerScrollRef.current;
+
+        if (sourceEl && targetEl) {
+            targetEl.scrollLeft = sourceEl.scrollLeft;
+        }
+
+        requestAnimationFrame(() => {
+            syncLock.current = false;
+        });
+    };
+
     const backUrl = courseAssignmentId
         ? `/faculty-mycourses/${courseAssignmentId}/attendance`
         : '/faculty-attendance';
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="min-h-[calc(100vh-140px)] space-y-6">
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                 <div>
@@ -283,7 +313,7 @@ const MonthlyReport = () => {
                 </div>
                 <Link
                     to={backUrl}
-                    className="flex items-center text-blue-600 hover:text-blue-700 font-medium text-sm whitespace-nowrap"
+                    className="flex items-center text-sky-700 hover:text-sky-700 font-medium text-sm whitespace-nowrap"
                 >
                     <MdArrowBack className="w-5 h-5 mr-1" />
                     Back to Daily View
@@ -291,7 +321,7 @@ const MonthlyReport = () => {
             </div>
 
             {/* Controls Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-6">
                 <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
                     {/* Left Side - Date Selector and Search */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-1">
@@ -299,18 +329,18 @@ const MonthlyReport = () => {
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handlePreviousMonth}
-                                className="p-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-600 hover:text-slate-800 transition-colors"
+                                className="p-2 rounded-3xl border border-sky-100 hover:bg-sky-50/45 text-slate-600 hover:text-slate-800 transition-colors"
                             >
                                 <MdChevronLeft className="w-5 h-5" />
                             </button>
-                            <div className="px-4 py-2 border border-slate-300 rounded-lg bg-white min-w-[180px] text-center shadow-sm">
+                            <div className="px-4 py-2 border border-sky-100 rounded-3xl bg-white min-w-[180px] text-center shadow-sm">
                                 <span className="text-sm font-semibold text-slate-700">
                                     {monthNames[currentMonth.month - 1]} {currentMonth.year}
                                 </span>
                             </div>
                             <button
                                 onClick={handleNextMonth}
-                                className="p-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-600 hover:text-slate-800 transition-colors"
+                                className="p-2 rounded-3xl border border-sky-100 hover:bg-sky-50/45 text-slate-600 hover:text-slate-800 transition-colors"
                             >
                                 <MdChevronRight className="w-5 h-5" />
                             </button>
@@ -324,7 +354,7 @@ const MonthlyReport = () => {
                                 placeholder="Search student..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium text-slate-800 placeholder-slate-400"
+                                className="w-full pl-10 pr-4 py-2 border border-sky-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent font-medium text-slate-800 placeholder-slate-400"
                             />
                         </div>
                     </div>
@@ -355,7 +385,7 @@ const MonthlyReport = () => {
                         <button
                             onClick={handleExportCSV}
                             disabled={exporting}
-                            className="flex items-center px-4 py-2 bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm transition-colors font-semibold text-sm whitespace-nowrap"
+                            className="flex items-center px-4 py-2 bg-white text-slate-700 border border-sky-100 rounded-3xl hover:bg-sky-50/45 shadow-sm transition-colors font-semibold text-sm whitespace-nowrap"
                         >
                             <MdDownload className="w-5 h-5 mr-2" />
                             {exporting ? 'Exporting...' : 'Export CSV'}
@@ -365,11 +395,11 @@ const MonthlyReport = () => {
             </div>
 
             {/* Attendance Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 overflow-hidden">
                 {/* Loading State */}
                 {loading && (
                     <div className="p-12 text-center">
-                        <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                        <div className="inline-block w-8 h-8 border-4 border-sky-100 border-t-sky-600 rounded-3xl animate-spin mb-4"></div>
                         <p className="text-slate-500 text-sm">Loading attendance data...</p>
                     </div>
                 )}
@@ -384,91 +414,105 @@ const MonthlyReport = () => {
                 {/* Table */}
                 {!loading && students.length > 0 && (
                     <>
-                        <div className="overflow-auto max-h-[600px]">
-                            <table className="w-full min-w-[800px] border-collapse">
-                                <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-20">
-                                    <tr>
-                                        <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-30 border-r border-slate-200 shadow-sm">
-                                            STUDENT DETAILS
-                                        </th>
-                                        {weekdays.map((day) => (
-                                            <th
-                                                key={day.day}
-                                                className={`px-3 py-4 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider min-w-[80px] ${day.isWeekend ? 'bg-slate-100' : 'bg-slate-50'
-                                                    }`}
-                                            >
-                                                <div className="flex flex-col">
-                                                    <span>{day.dayName}</span>
-                                                    <span className="font-semibold">{day.day.toString().padStart(2, '0')}</span>
-                                                </div>
-                                            </th>
-                                        ))}
-                                        <th className="px-6 py-4 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50">
-                                            STATS
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
+                        <div className="monthly-report-grid">
+                            <div className="monthly-report-fixed-head">
+                                STUDENT DETAILS
+                            </div>
+
+                            <div
+                                ref={headerScrollRef}
+                                className="monthly-report-header-scroll"
+                                onScroll={() => syncHorizontalScroll('header')}
+                            >
+                                <div className="monthly-report-date-row">
+                                    {weekdays.map((day) => (
+                                        <div
+                                            key={day.day}
+                                            className="monthly-report-date-cell"
+                                        >
+                                            <span>{day.dayName}</span>
+                                            <span className="font-semibold">{day.day.toString().padStart(2, '0')}</span>
+                                        </div>
+                                    ))}
+                                    <div className="monthly-report-stat-head">
+                                        STATS
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="monthly-report-body-scroll">
+                                <div className="monthly-report-fixed-students">
                                     {filteredStudents.map((student, rowIndex) => {
                                         const isEvenRow = rowIndex % 2 === 0;
                                         return (
-                                            <tr key={student.id} className={`hover:bg-slate-50 transition-colors ${isEvenRow ? 'bg-white' : 'bg-slate-50'}`}>
-                                                {/* Student Details */}
-                                                <td className={`px-6 py-4 sticky left-0 z-10 border-r border-slate-200 shadow-sm ${isEvenRow ? 'bg-white' : 'bg-slate-50'
-                                                    }`}>
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-10 h-10 rounded-full ${student.avatarColor} flex items-center justify-center flex-shrink-0`}>
-                                                            <span className="font-bold text-sm">{student.initials}</span>
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-semibold text-slate-800 text-sm">{student.name}</p>
-                                                            <p className="text-slate-500 text-xs font-medium">ID: {student.studentId}</p>
-                                                        </div>
+                                            <div
+                                                key={student.id}
+                                                className={`monthly-report-student-row ${isEvenRow ? 'bg-white' : 'bg-sky-50'}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-10 h-10 rounded-3xl ${student.avatarColor} flex items-center justify-center flex-shrink-0`}>
+                                                        <span className="font-bold text-sm">{student.initials}</span>
                                                     </div>
-                                                </td>
+                                                    <div className="min-w-0">
+                                                        <p className="font-semibold text-slate-800 text-sm leading-snug">{student.name}</p>
+                                                        <p className="text-slate-500 text-xs font-medium">ID: {student.studentId}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
 
-                                                {/* Attendance Days */}
+                                <div
+                                    ref={bodyScrollRef}
+                                    className="monthly-report-attendance-scroll"
+                                    onScroll={() => syncHorizontalScroll('body')}
+                                >
+                                    {filteredStudents.map((student, rowIndex) => {
+                                        const isEvenRow = rowIndex % 2 === 0;
+                                        return (
+                                            <div
+                                                key={student.id}
+                                                className={`monthly-report-attendance-row ${isEvenRow ? 'bg-white' : 'bg-sky-50/45'}`}
+                                            >
                                                 {weekdays.map((day) => (
-                                                    <td
+                                                    <button
+                                                        type="button"
                                                         key={day.day}
-                                                        className={`px-3 py-4 text-center ${day.isWeekend
-                                                                ? 'bg-slate-100'
-                                                                : `cursor-pointer hover:bg-blue-50 ${isEvenRow ? 'bg-white' : 'bg-slate-50'}`
+                                                        className={`monthly-report-attendance-cell ${day.isWeekend
+                                                                ? 'bg-sky-50 cursor-default'
+                                                                : 'hover:bg-sky-50 cursor-pointer'
                                                             }`}
                                                         onClick={() => !day.isWeekend && toggleAttendance(student.id, day.day)}
+                                                        disabled={day.isWeekend}
                                                     >
                                                         {day.isWeekend ? (
                                                             <span className="text-slate-300 text-xs">•</span>
                                                         ) : (
-                                                            <div className="flex justify-center">
-                                                                {getStatusIcon(student.attendance[day.day] || 'na')}
-                                                            </div>
+                                                            getStatusIcon(student.attendance[day.day] || 'na')
                                                         )}
-                                                    </td>
+                                                    </button>
                                                 ))}
-
-                                                {/* Stats */}
-                                                <td className={`px-6 py-4 text-center ${isEvenRow ? 'bg-white' : 'bg-slate-50'}`}>
+                                                <div className="monthly-report-stat-cell">
                                                     <span className="text-sm font-bold text-slate-800">
                                                         {calculateStats(student)}%
                                                     </span>
-                                                </td>
-                                            </tr>
+                                                </div>
+                                            </div>
                                         );
                                     })}
-                                </tbody>
-                            </table>
+                                </div>
+                            </div>
                         </div>
-
                         {/* Footer */}
-                        <div className="p-6 border-t border-slate-200">
+                        <div className="p-6 border-t border-sky-100">
                             {/* Save Message */}
                             {saveMessage && (
-                                <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${saveMessage.type === 'success'
-                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                <div className={`mb-4 px-4 py-3 rounded-3xl text-sm font-medium ${saveMessage.type === 'success'
+                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                                         : saveMessage.type === 'info'
-                                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                            : 'bg-red-50 text-red-700 border border-red-200'
+                                            ? 'bg-sky-50 text-sky-700 border border-sky-100'
+                                            : 'bg-red-50 text-red-700 border border-red-100'
                                     }`}>
                                     {saveMessage.text}
                                 </div>
@@ -477,7 +521,7 @@ const MonthlyReport = () => {
                                 <p className="text-xs text-slate-500 font-medium">
                                     Click on any cell to toggle attendance status.
                                     {Object.keys(pendingChanges).length > 0 && (
-                                        <span className="ml-2 text-blue-600 font-bold">
+                                        <span className="ml-2 text-sky-700 font-bold">
                                             ({Object.keys(pendingChanges).length} unsaved change{Object.keys(pendingChanges).length !== 1 ? 's' : ''})
                                         </span>
                                     )}
@@ -485,16 +529,16 @@ const MonthlyReport = () => {
                                 <div className="flex items-center gap-3">
                                     <button
                                         onClick={() => navigate(backUrl)}
-                                        className="px-6 py-2 bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm transition-colors font-semibold text-sm"
+                                        className="px-6 py-2 bg-white text-slate-700 border border-sky-100 rounded-3xl hover:bg-sky-50/45 shadow-sm transition-colors font-semibold text-sm"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={handleSaveChanges}
                                         disabled={saving || Object.keys(pendingChanges).length === 0}
-                                        className={`flex items-center px-6 py-2 rounded-lg shadow-sm transition-colors font-medium text-sm ${saving || Object.keys(pendingChanges).length === 0
+                                        className={`flex items-center px-6 py-2 rounded-3xl shadow-sm transition-colors font-medium text-sm ${saving || Object.keys(pendingChanges).length === 0
                                                 ? 'bg-blue-400 text-white cursor-not-allowed'
-                                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                                                : 'bg-sky-600 text-white hover:bg-sky-700'
                                             }`}
                                     >
                                         <MdSave className="w-5 h-5 mr-2" />

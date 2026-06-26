@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MdAdd, MdSave, MdRefresh, MdArrowBack, MdClose, MdFileUpload, MdFileDownload, MdSearch } from 'react-icons/md';
+import {
+    PiArrowLeft,
+    PiDownloadSimple,
+    PiFloppyDisk,
+    PiMagnifyingGlass,
+    PiPlus,
+    PiUploadSimple,
+    PiX,
+    PiArrowClockwise
+} from 'react-icons/pi';
 import { Link } from 'react-router-dom';
 import { courseApi, authApi } from '../../services/api';
 import { toast } from 'react-toastify';
@@ -198,51 +207,52 @@ const AddCourse = () => {
     const handleExport = () => { courseApi.export(); };
 
     return (
-        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col">
+        <div className="min-h-[calc(100vh-116px)]">
             <OverlayLoader isLoading={isImporting} text="Importing courses..." />
-            <div className="max-w-7xl mx-auto w-full flex flex-col">
-                <div className="mb-6">
-                    <Link to="/admin-managecourses" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm">
-                        <MdArrowBack className="w-4 h-4" /> Back to Courses
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+                <div>
+                    <Link to="/admin-managecourses" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition-colors hover:text-sky-700">
+                        <PiArrowLeft className="w-4 h-4" /> Back to Courses
                     </Link>
                 </div>
 
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 rounded-3xl border border-white/70 bg-white/85 p-6 shadow-[0_24px_80px_rgba(14,116,144,0.10)] backdrop-blur-2xl">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-800">Add New Course</h1>
-                        <p className="text-sm text-slate-500 mt-1">Create a new course or import bulk courses from Excel.</p>
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-sky-700">Campus Flow</p>
+                        <h1 className="mt-3 text-3xl font-bold text-slate-950">Add New Course</h1>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">Create a new course or import bulk courses from Excel.</p>
                     </div>
                     <div className="flex gap-3">
                         <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
                         <button type="button" onClick={handleExport}
-                            className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors shadow-sm text-sm">
-                            <MdFileDownload className="w-4 h-4 text-slate-500" /> Export Courses
+                            className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-sky-100 text-slate-700 font-semibold rounded-xl hover:bg-sky-50 transition-colors shadow-sm text-sm">
+                            <PiDownloadSimple className="w-4 h-4 text-sky-700" /> Export Courses
                         </button>
                         <button type="button" onClick={handleImportClick} disabled={loading}
-                            className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm text-sm disabled:opacity-70">
-                            <MdFileUpload className="w-4 h-4" /> Import from Excel
+                            className="flex items-center justify-center gap-2 px-4 py-2 bg-sky-600 text-white font-semibold rounded-xl hover:bg-sky-700 transition-colors shadow-sm text-sm disabled:opacity-70">
+                            <PiUploadSimple className="w-4 h-4" /> Import from Excel
                         </button>
                     </div>
-                </div>
+                </section>
 
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                         <div className="col-span-1 md:col-span-2">
                             <label className="block text-sm font-medium text-slate-700 mb-1">Course Title <span className="text-red-500">*</span></label>
                             <input type="text" name="title" value={courseData.title} onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
+                                className="h-11 w-full rounded-xl border border-sky-100 bg-white px-3 text-sm outline-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                                 placeholder="e.g. Introduction to Computer Science" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Course Code <span className="text-red-500">*</span></label>
                             <input type="text" name="code" value={courseData.code} onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all" placeholder="e.g. CS-101" />
+                                className="h-11 w-full rounded-xl border border-sky-100 bg-white px-3 text-sm outline-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100" placeholder="e.g. CS-101" />
                         </div>
                         {isDeptAdmin ? (
                             /* Dept admin: show department as read-only info */
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Department</label>
-                                <div className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-600 text-sm">
+                                <div className="h-11 w-full rounded-xl border border-sky-100 bg-sky-50/60 px-3 py-2.5 text-sm text-slate-600">
                                     {user.department || 'Your Department'}
                                 </div>
                                 <p className="text-xs text-slate-400 mt-1">Course will be added to your department automatically</p>
@@ -253,7 +263,7 @@ const AddCourse = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Faculty <span className="text-red-500">*</span></label>
                                     <select value={selectedFaculty} onChange={(e) => { setSelectedFaculty(e.target.value); setCourseData({...courseData, department_id: ''}); }}
-                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all appearance-none bg-white">
+                                        className="h-11 w-full rounded-xl border border-sky-100 bg-white px-3 text-sm outline-none appearance-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100">
                                         <option value="">Select Faculty</option>
                                         {faculties.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
                                     </select>
@@ -261,7 +271,7 @@ const AddCourse = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Department <span className="text-red-500">*</span></label>
                                     <select name="department_id" value={courseData.department_id} onChange={handleInputChange} disabled={!selectedFaculty}
-                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all appearance-none bg-white disabled:bg-slate-50 disabled:cursor-not-allowed">
+                                        className="h-11 w-full rounded-xl border border-sky-100 bg-white px-3 text-sm outline-none appearance-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-50 disabled:cursor-not-allowed">
                                         <option value="">{selectedFaculty ? 'Select Department' : 'Select Faculty first'}</option>
                                         {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                     </select>
@@ -271,7 +281,7 @@ const AddCourse = () => {
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Credit Hours <span className="text-red-500">*</span></label>
                             <input type="number" name="credit_hours" value={courseData.credit_hours} onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all" placeholder="e.g. 3" min="1" max="6" />
+                                className="h-11 w-full rounded-xl border border-sky-100 bg-white px-3 text-sm outline-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100" placeholder="e.g. 3" min="1" max="6" />
                         </div>
 
                         {/* Prerequisites Picker */}
@@ -279,25 +289,25 @@ const AddCourse = () => {
                             <label className="block text-sm font-medium text-slate-700 mb-1">Prerequisites</label>
                             <div className="flex flex-wrap gap-2 mb-2">
                                 {selectedPrereqs.map(p => (
-                                    <span key={p.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-md border border-blue-200">
+                                    <span key={p.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-sky-50 text-sky-700 text-xs font-medium rounded-md border border-sky-100">
                                         {p.code}: {p.title}
-                                        <button type="button" onClick={() => removePrereq(p.id)} className="ml-1 text-blue-400 hover:text-red-500">
-                                            <MdClose className="w-3.5 h-3.5" />
+                                        <button type="button" onClick={() => removePrereq(p.id)} className="ml-1 text-sky-500 hover:text-red-500">
+                                            <PiX className="w-3.5 h-3.5" />
                                         </button>
                                     </span>
                                 ))}
                                 {selectedPrereqs.length === 0 && <span className="text-sm text-slate-400">No prerequisites selected</span>}
                             </div>
                             <button type="button" onClick={handleOpenPrereqModal}
-                                className="py-2 px-4 border border-dashed border-slate-300 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors text-sm flex items-center gap-1">
-                                <MdAdd className="w-4 h-4" /> Add Prerequisites
+                                className="py-2 px-4 border border-dashed border-sky-200 rounded-xl bg-sky-50/50 hover:bg-sky-50 text-sky-700 transition-colors text-sm font-semibold flex items-center gap-1">
+                                <PiPlus className="w-4 h-4" /> Add Prerequisites
                             </button>
                         </div>
 
                         <div className="col-span-1 md:col-span-2 lg:col-span-3">
                             <label className="block text-sm font-medium text-slate-700 mb-1">Course Description</label>
                             <textarea rows="4" name="description" value={courseData.description} onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all resize-none"
+                                className="w-full rounded-xl border border-sky-100 bg-white px-3 py-2.5 text-sm outline-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100 resize-none"
                                 placeholder="Enter a detailed description of the course content..." />
                         </div>
                     </div>
@@ -311,22 +321,22 @@ const AddCourse = () => {
                     {/* Selected CLOs chips */}
                     <div className="space-y-3 mb-4">
                         {selectedClos.length === 0 ? (
-                            <div className="text-center py-6 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                            <div className="text-center py-6 bg-sky-50/40 rounded-2xl border border-dashed border-sky-100">
                                 <p className="text-slate-400 text-sm">No CLOs selected yet. Click the button below to add CLOs.</p>
                             </div>
                         ) : (
                             selectedClos.map(clo => (
-                                <div key={clo.id} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
+                                <div key={clo.id} className="flex items-center justify-between p-3 bg-sky-50 rounded-xl border border-sky-100">
                                     <div className="flex items-center gap-3">
-                                        <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-semibold rounded-md">{clo.title}</span>
+                                        <span className="px-2.5 py-1 bg-white text-sky-700 text-xs font-semibold rounded-md border border-sky-100">{clo.title}</span>
                                         <div>
-                                            <p className="text-sm font-medium text-amber-900 line-clamp-1">{clo.description || 'No description'}</p>
-                                            <p className="text-xs text-amber-700">{clo.cognitive_level || 'No level set'}</p>
+                                            <p className="text-sm font-medium text-slate-800 line-clamp-1">{clo.description || 'No description'}</p>
+                                            <p className="text-xs text-slate-500">{clo.cognitive_level || 'No level set'}</p>
                                         </div>
                                     </div>
                                     <button type="button" onClick={() => removeCloFromCourse(clo.id)}
-                                        className="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-100 rounded-md transition-colors flex-shrink-0">
-                                        <MdClose className="w-4 h-4" />
+                                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-white rounded-md transition-colors flex-shrink-0">
+                                        <PiX className="w-4 h-4" />
                                     </button>
                                 </div>
                             ))
@@ -334,18 +344,18 @@ const AddCourse = () => {
                     </div>
 
                     <button type="button" onClick={handleOpenCloModal}
-                        className="flex items-center gap-1 px-4 py-2 border border-dashed border-amber-300 rounded-lg text-amber-700 font-medium hover:bg-amber-50 transition-colors text-sm">
-                        <MdAdd className="w-4 h-4" /> Add CLOs
+                        className="flex items-center gap-1 px-4 py-2 border border-dashed border-sky-200 rounded-xl text-sky-700 font-semibold hover:bg-sky-50 transition-colors text-sm">
+                        <PiPlus className="w-4 h-4" /> Add CLOs
                     </button>
 
                     <div className="mt-8 flex items-center gap-3 border-t border-slate-100 pt-6">
                         <button onClick={handleSubmit} disabled={loading}
-                            className="flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-colors text-sm disabled:opacity-50">
-                            <MdSave className="w-4 h-4" /> {loading ? 'Saving...' : 'Add Course'}
+                            className="flex items-center justify-center gap-2 px-6 py-2.5 bg-sky-600 text-white font-semibold rounded-xl hover:bg-sky-700 shadow-sm transition-colors text-sm disabled:opacity-50">
+                            <PiFloppyDisk className="w-4 h-4" /> {loading ? 'Saving...' : 'Add Course'}
                         </button>
                         <button onClick={handleReset} type="button"
-                            className="flex items-center justify-center gap-2 px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors text-sm">
-                            <MdRefresh className="w-4 h-4" /> Reset Form
+                            className="flex items-center justify-center gap-2 px-6 py-2.5 bg-white border border-sky-100 text-slate-700 font-semibold rounded-xl hover:bg-sky-50 transition-colors text-sm">
+                            <PiArrowClockwise className="w-4 h-4" /> Reset Form
                         </button>
                     </div>
                 </div>
@@ -353,46 +363,46 @@ const AddCourse = () => {
 
             {/* Prerequisites Picker Modal */}
             {isPrereqModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                            <h2 className="text-xl font-bold text-gray-800">Select Prerequisite Courses</h2>
-                            <button onClick={() => setIsPrereqModalOpen(false)} className="text-gray-500 hover:text-gray-700">
-                                <MdClose className="w-6 h-6" />
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col border border-sky-100">
+                        <div className="flex items-center justify-between p-6 border-b border-sky-100">
+                            <h2 className="text-xl font-bold text-slate-950">Select Prerequisite Courses</h2>
+                            <button onClick={() => setIsPrereqModalOpen(false)} className="text-slate-400 hover:text-slate-700">
+                                <PiX className="w-6 h-6" />
                             </button>
                         </div>
-                        <div className="p-4 border-b border-gray-100 bg-gray-50">
+                        <div className="p-4 border-b border-sky-100 bg-sky-50/40">
                             <div className="relative">
-                                <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <PiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                 <input type="text" placeholder="Search by course title or code..." value={prereqSearch}
                                     onChange={(e) => setPrereqSearch(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm" />
+                                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-sky-100 rounded-xl outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100 text-sm" />
                             </div>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-2">
                             {filteredPrereqCourses.length === 0 ? (
-                                <p className="text-gray-400 text-center py-8">No courses found.</p>
+                                <p className="text-slate-400 text-center py-8">No courses found.</p>
                             ) : (
                                 filteredPrereqCourses.map(course => {
                                     const isSelected = selectedPrereqs.some(p => p.id === course.id);
                                     return (
                                         <div key={course.id} onClick={() => togglePrereq(course)}
-                                            className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}>
+                                            className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${isSelected ? 'border-sky-200 bg-sky-50' : 'border-sky-100 hover:border-sky-200 hover:bg-sky-50/40'}`}>
                                             <div>
-                                                <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-bold mb-1">{course.code}</span>
-                                                <h4 className="font-bold text-gray-800 text-sm">{course.title}</h4>
-                                                <p className="text-xs text-gray-500">{course.credit_hours} Credits • {course.department_name}</p>
+                                                <span className="inline-block px-2 py-0.5 bg-sky-50 text-sky-700 rounded-md border border-sky-100 text-xs font-bold mb-1">{course.code}</span>
+                                                <h4 className="font-bold text-slate-800 text-sm">{course.title}</h4>
+                                                <p className="text-xs text-slate-500">{course.credit_hours} Credits • {course.department_name}</p>
                                             </div>
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-blue-100 hover:text-blue-600'}`}>
-                                                {isSelected ? <MdClose className="w-4 h-4" /> : <MdAdd className="w-5 h-5" />}
+                                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${isSelected ? 'bg-sky-600 text-white' : 'bg-sky-50 text-sky-700 hover:bg-sky-100'}`}>
+                                                {isSelected ? <PiX className="w-4 h-4" /> : <PiPlus className="w-5 h-5" />}
                                             </div>
                                         </div>
                                     );
                                 })
                             )}
                         </div>
-                        <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end">
-                            <button onClick={() => setIsPrereqModalOpen(false)} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">Done</button>
+                        <div className="p-4 border-t border-sky-100 bg-sky-50/40 flex justify-end">
+                            <button onClick={() => setIsPrereqModalOpen(false)} className="px-6 py-2 bg-sky-600 text-white rounded-xl font-semibold hover:bg-sky-700">Done</button>
                         </div>
                     </div>
                 </div>
@@ -400,58 +410,58 @@ const AddCourse = () => {
 
             {/* CLO Picker Modal */}
             {isCloModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col border border-sky-100">
+                        <div className="flex items-center justify-between p-6 border-b border-sky-100">
                             <div>
-                                <h2 className="text-xl font-bold text-gray-800">Select CLOs</h2>
-                                <p className="text-sm text-gray-500 mt-0.5">Click on a CLO to see details. Click + to add it to the course.</p>
+                                <h2 className="text-xl font-bold text-slate-950">Select CLOs</h2>
+                                <p className="text-sm text-slate-500 mt-0.5">Click on a CLO to see details. Click + to add it to the course.</p>
                             </div>
-                            <button onClick={() => setIsCloModalOpen(false)} className="text-gray-500 hover:text-gray-700">
-                                <MdClose className="w-6 h-6" />
+                            <button onClick={() => setIsCloModalOpen(false)} className="text-slate-400 hover:text-slate-700">
+                                <PiX className="w-6 h-6" />
                             </button>
                         </div>
-                        <div className="p-4 border-b border-gray-100 bg-gray-50">
+                        <div className="p-4 border-b border-sky-100 bg-sky-50/40">
                             <div className="relative">
-                                <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <PiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                 <input type="text" placeholder="Search by CLO number (e.g. CLO-1), course code, or description..."
                                     value={cloSearch} onChange={(e) => setCloSearch(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-sm" />
+                                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-sky-100 rounded-xl outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100 text-sm" />
                             </div>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-2">
                             {filteredAllClos.length === 0 ? (
-                                <p className="text-gray-400 text-center py-8">No CLOs found.</p>
+                                <p className="text-slate-400 text-center py-8">No CLOs found.</p>
                             ) : (
                                 filteredAllClos.map(clo => {
                                     const isAdded = selectedClos.some(c => c.id === clo.id);
                                     const isExpanded = expandedCloId === clo.id;
                                     return (
-                                        <div key={clo.id} className="rounded-xl border border-gray-200 overflow-hidden">
-                                            <div className={`flex items-center justify-between p-4 cursor-pointer transition-all ${isAdded ? 'bg-amber-50 border-amber-300' : 'hover:bg-gray-50'}`}
+                                        <div key={clo.id} className="rounded-xl border border-sky-100 overflow-hidden">
+                                            <div className={`flex items-center justify-between p-4 cursor-pointer transition-all ${isAdded ? 'bg-sky-50' : 'hover:bg-sky-50/40'}`}
                                                 onClick={() => setExpandedCloId(isExpanded ? null : clo.id)}>
                                                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                    <span className="px-2.5 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-lg flex-shrink-0">{clo.title}</span>
+                                                    <span className="px-2.5 py-1 bg-sky-50 text-sky-700 border border-sky-100 text-xs font-bold rounded-md flex-shrink-0">{clo.title}</span>
                                                     <div className="min-w-0">
-                                                        <p className="text-sm font-medium text-gray-800 truncate">{clo.description || 'No description'}</p>
-                                                        <p className="text-xs text-gray-400">{clo.cognitive_level || 'No level'}</p>
+                                                        <p className="text-sm font-medium text-slate-800 truncate">{clo.description || 'No description'}</p>
+                                                        <p className="text-xs text-slate-400">{clo.cognitive_level || 'No level'}</p>
                                                     </div>
                                                 </div>
                                                 <button type="button" onClick={(e) => { e.stopPropagation(); isAdded ? removeCloFromCourse(clo.id) : addCloToCourse(clo); }}
-                                                    className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ml-3 transition-colors ${isAdded ? 'bg-red-100 text-red-500 hover:bg-red-200' : 'bg-amber-100 text-amber-600 hover:bg-amber-200'}`}>
-                                                    {isAdded ? <MdClose className="w-4 h-4" /> : <MdAdd className="w-5 h-5" />}
+                                                    className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ml-3 transition-colors ${isAdded ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-sky-50 text-sky-700 hover:bg-sky-100'}`}>
+                                                    {isAdded ? <PiX className="w-4 h-4" /> : <PiPlus className="w-5 h-5" />}
                                                 </button>
                                             </div>
                                             {isExpanded && (
-                                                <div className="px-4 pb-4 pt-2 bg-gray-50 border-t border-gray-100 space-y-2">
-                                                    <p className="text-sm"><strong className="text-gray-700">Description:</strong> <span className="text-gray-600">{clo.description || 'N/A'}</span></p>
-                                                    <p className="text-sm"><strong className="text-gray-700">Cognitive Level:</strong> <span className="text-gray-600">{clo.cognitive_level || 'N/A'}</span></p>
+                                                <div className="px-4 pb-4 pt-2 bg-slate-50 border-t border-sky-100 space-y-2">
+                                                    <p className="text-sm"><strong className="text-slate-700">Description:</strong> <span className="text-slate-600">{clo.description || 'N/A'}</span></p>
+                                                    <p className="text-sm"><strong className="text-slate-700">Cognitive Level:</strong> <span className="text-slate-600">{clo.cognitive_level || 'N/A'}</span></p>
                                                     {clo.mapped_courses && clo.mapped_courses.length > 0 && (
                                                         <div>
-                                                            <strong className="text-sm text-gray-700">Mapped to Courses:</strong>
+                                                            <strong className="text-sm text-slate-700">Mapped to Courses:</strong>
                                                             <div className="flex flex-wrap gap-1 mt-1">
                                                                 {clo.mapped_courses.map(c => (
-                                                                    <span key={c.id} className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-bold rounded border border-blue-200">
+                                                                    <span key={c.id} className="px-2 py-0.5 bg-sky-50 text-sky-700 text-xs font-bold rounded-md border border-sky-100">
                                                                         {c.code}: {c.title}
                                                                     </span>
                                                                 ))}
@@ -460,7 +470,7 @@ const AddCourse = () => {
                                                     )}
                                                     {clo.mapped_plos && clo.mapped_plos.length > 0 && (
                                                         <div>
-                                                            <strong className="text-sm text-gray-700">Mapped PLOs:</strong>
+                                                            <strong className="text-sm text-slate-700">Mapped PLOs:</strong>
                                                             <div className="flex flex-wrap gap-1 mt-1">
                                                                 {clo.mapped_plos.map(p => (
                                                                     <span key={p.id} className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded border border-indigo-200">
@@ -477,9 +487,9 @@ const AddCourse = () => {
                                 })
                             )}
                         </div>
-                        <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-                            <span className="text-sm text-gray-500">{selectedClos.length} CLO(s) selected</span>
-                            <button onClick={() => setIsCloModalOpen(false)} className="px-6 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600">Done</button>
+                        <div className="p-4 border-t border-sky-100 bg-sky-50/40 flex items-center justify-between">
+                            <span className="text-sm text-slate-500">{selectedClos.length} CLO(s) selected</span>
+                            <button onClick={() => setIsCloModalOpen(false)} className="px-6 py-2 bg-sky-600 text-white rounded-xl font-semibold hover:bg-sky-700">Done</button>
                         </div>
                     </div>
                 </div>

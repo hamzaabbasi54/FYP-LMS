@@ -1,27 +1,26 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MdSchool, MdScience, MdSettings, MdArrowForward, MdBook, MdComputer, MdBiotech, MdPeople, MdTrendingUp } from 'react-icons/md';
+import {
+    PiArrowRight,
+    PiBookOpen,
+    PiBooks,
+    PiCalendarCheck,
+    PiChartLineUp,
+    PiCpu,
+    PiFlask,
+    PiGear,
+    PiGraduationCap,
+    PiUsersThree
+} from 'react-icons/pi';
 import { useCourse } from '../../context/CourseContext';
 import { courseApi } from '../../services/api';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 
 // Icons to cycle through
-const ICONS = [MdSchool, MdScience, MdSettings, MdBook, MdComputer, MdBiotech];
+const ICONS = [PiGraduationCap, PiFlask, PiGear, PiBooks, PiCpu, PiBookOpen];
 
-// Gradient color palette for course cards
-const GRADIENT_COLORS = [
-    "from-purple-500 to-purple-600",
-    "from-green-500 to-green-600",
-    "from-blue-500 to-blue-600",
-    "from-orange-500 to-orange-600",
-    "from-pink-500 to-pink-600",
-    "from-teal-500 to-teal-600",
-    "from-indigo-500 to-indigo-600",
-    "from-red-500 to-red-600",
-];
-
-const CourseCard = ({ course, icon: Icon, gradientColor }) => {
+const CourseCard = ({ course, icon }) => {
     const { setCourse } = useCourse();
     const navigate = useNavigate();
 
@@ -31,37 +30,44 @@ const CourseCard = ({ course, icon: Icon, gradientColor }) => {
     };
 
     return (
-        <div
+        <button
+            type="button"
             onClick={handleClick}
-            className="group bg-white border border-slate-100 rounded-xl p-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col h-full"
+            className="group w-full rounded-2xl border border-sky-100 bg-white/92 p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-sky-100"
         >
-            <div className="relative flex-grow flex flex-col">
-                <div className="flex justify-between items-start mb-4">
-                    <div className="text-3xl text-blue-600">
-                        <Icon />
+            <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-sky-100 bg-sky-50 text-sky-700">
+                    {React.createElement(icon, { className: 'w-6 h-6' })}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="truncate text-base font-bold text-slate-950 transition-colors group-hover:text-sky-700">{course.title}</h3>
+                        <span className="rounded-full border border-sky-100 bg-sky-50 px-2 py-0.5 text-[11px] font-bold text-sky-700">
+                            {course.code}
+                        </span>
                     </div>
-                    <div className="text-right">
-                        <p className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{course.code}</p>
-                        <p className="text-xs text-slate-500">{course.credit_hours} Credits</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-slate-500">
+                        <span>{course.batch_name}</span>
+                        <span className="hidden text-slate-300 sm:inline">•</span>
+                        <span>{course.semester_name}</span>
+                        <span className="hidden text-slate-300 sm:inline">•</span>
+                        <span>{course.credit_hours} Credits</span>
                     </div>
                 </div>
 
-                <h3 className="text-lg font-bold text-slate-800 mb-1 leading-tight group-hover:text-blue-600 transition-colors">{course.title}</h3>
-                <p className="text-sm text-slate-600 mb-0.5">{course.batch_name}</p>
-                <p className="text-xs text-slate-400 mb-4 flex-grow">{course.semester_name}</p>
-
-                <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                        <MdPeople className="w-4 h-4 text-slate-400" />
-                        <p className="text-xs font-semibold text-slate-600">{course.student_count} Students</p>
+                <div className="hidden items-center gap-5 sm:flex">
+                    <div className="text-right">
+                        <p className="text-xl font-bold leading-none text-slate-950">{course.student_count}</p>
+                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Students</p>
                     </div>
-                    <span className="inline-flex items-center text-blue-600 font-semibold text-xs">
+                    <span className="inline-flex items-center rounded-full border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700">
                         Manage
-                        <MdArrowForward className="ml-1 w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                        <PiArrowRight className="ml-1.5 h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                     </span>
                 </div>
             </div>
-        </div>
+        </button>
     );
 };
 
@@ -94,71 +100,94 @@ const Dashboard = () => {
         {
             label: 'Assigned Courses',
             value: loading ? '...' : totalCourses,
-            icon: MdBook,
+            icon: PiBooks,
             trend: 'Current semester',
-            color: 'from-blue-500 to-indigo-600'
+            tone: 'bg-sky-50 text-sky-700'
         },
         {
             label: 'Total Students',
             value: loading ? '...' : totalStudents,
-            icon: MdPeople,
+            icon: PiUsersThree,
             trend: 'Across all courses',
-            color: 'from-emerald-500 to-teal-600'
+            tone: 'bg-cyan-50 text-cyan-700'
+        },
+        {
+            label: 'Today',
+            value: new Date().toLocaleDateString('en-US', { weekday: 'short' }),
+            icon: PiCalendarCheck,
+            trend: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            tone: 'bg-indigo-50 text-indigo-700'
         }
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-            <div className="p-8 max-w-7xl mx-auto">
+        <div className="h-[calc(100vh-154px)] overflow-hidden">
+            <div className="mx-auto flex h-full max-w-7xl flex-col gap-3">
                 {/* Hero Section */}
-                <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-slate-800">
-                        Faculty Dashboard
-                    </h1>
-                    <p className="text-sm text-slate-500 mt-0.5 flex items-center gap-2">
-                        {user?.department || 'Department'} • {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                    </p>
-                </div>
+                <section className="relative min-h-[126px] overflow-hidden rounded-3xl border border-white/70 bg-white/82 p-4 shadow-[0_24px_80px_rgba(14,116,144,0.14)] backdrop-blur-2xl lg:p-5">
+                    <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-sky-200/35 blur-3xl" />
+                    <div className="absolute bottom-0 right-10 hidden h-24 w-64 rounded-full bg-cyan-100/60 blur-2xl md:block" />
+                    <div className="relative grid h-full gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+                        <div className="min-w-0">
+                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-sky-700">Campus Flow</p>
+                            <h1 className="mt-1.5 text-3xl font-bold text-slate-950">
+                                Faculty Dashboard
+                            </h1>
+                            <p className="mt-1.5 max-w-3xl text-sm leading-5 text-slate-600">
+                                Welcome back, {user?.full_name || user?.name || 'Faculty'}. Manage your active courses, attendance, grading, and syllabus from one clean workspace.
+                            </p>
+                        </div>
+                        <div className="w-full rounded-2xl border border-sky-100 bg-sky-50/80 px-4 py-3 text-sm text-slate-600 shadow-sm sm:w-auto sm:min-w-[238px] lg:justify-self-end">
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-700">Department</p>
+                            <p className="mt-1 font-semibold text-slate-900">{user?.department || 'Department'}</p>
+                        </div>
+                    </div>
+                </section>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                     {stats.map((stat, index) => (
                         <div
                             key={index}
-                            className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-2"
+                            className="group relative overflow-hidden rounded-2xl border border-sky-100 bg-white/90 p-3.5 shadow-sm backdrop-blur transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg"
                         >
-                            <div className="bg-blue-50 text-blue-600 p-2 rounded-lg w-fit">
-                                <stat.icon className="w-5 h-5" />
+                            <div className="flex items-start justify-between gap-4">
+                                <div className={`${stat.tone} rounded-xl p-2.5 shadow-sm`}>
+                                    <stat.icon className="h-6 w-6" />
+                                </div>
+                                <PiChartLineUp className="h-5 w-5 text-sky-200 transition-colors group-hover:text-sky-400" />
                             </div>
-                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{stat.label}</p>
-                            <h3 className="text-2xl font-bold text-slate-900">{stat.value}</h3>
-                            <div className="flex items-center gap-1 text-xs text-slate-400">
-                                <MdTrendingUp className="w-3 h-3" />
-                                <span>{stat.trend}</span>
-                            </div>
+                            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{stat.label}</p>
+                            <h3 className="mt-1 text-3xl font-bold leading-none text-slate-950">{stat.value}</h3>
+                            <p className="mt-1 text-xs font-medium text-slate-500">{stat.trend}</p>
                         </div>
                     ))}
                 </div>
 
                 {/* --- Assigned Courses Section --- */}
-                <div className="mb-10 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="px-5 py-4 border-b border-slate-200 bg-slate-50">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                                <MdSchool className="w-4 h-4 text-blue-700" />
+                <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-sky-100 bg-white/90 shadow-sm backdrop-blur">
+                    <div className="border-b border-sky-100 bg-sky-50/70 px-5 py-3.5">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-sky-100 bg-white text-sky-700 shadow-sm">
+                                    <PiGraduationCap className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h2 className="text-sm font-bold text-slate-900">Assigned Courses</h2>
+                                    <p className="text-xs text-slate-500 mt-0.5">Select a course to manage attendance, grades, and syllabus.</p>
+                                </div>
                             </div>
-                            <div>
-                                <h2 className="text-sm font-semibold text-slate-800">My Assigned Courses</h2>
-                                <p className="text-xs text-slate-500 mt-0.5">Select a course to manage attendance, grades, and syllabus.</p>
+                            <div className="hidden rounded-full border border-sky-100 bg-white px-3 py-1.5 text-xs font-bold text-sky-700 shadow-sm sm:block">
+                                {loading ? 'Loading' : `${totalCourses} active`}
                             </div>
                         </div>
                     </div>
 
-                    <div className="p-6 bg-slate-50">
+                    <div className="min-h-0 flex-1 overflow-y-auto bg-sky-50/30 p-4">
                         {/* Loading State */}
                         {loading && (
-                            <div className="flex justify-center items-center py-20">
-                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                            <div className="flex justify-center items-center py-16">
+                                <div className="animate-spin rounded-xl h-10 w-10 border-b-2 border-sky-600"></div>
                                 <span className="ml-3 text-slate-500 font-medium">Loading courses...</span>
                             </div>
                         )}
@@ -172,8 +201,8 @@ const Dashboard = () => {
 
                         {/* Empty State */}
                         {!loading && !error && courses.length === 0 && (
-                            <div className="bg-white border border-slate-200 rounded-lg p-12 text-center shadow-sm">
-                                <MdBook className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                            <div className="bg-white border border-sky-100 rounded-2xl p-8 text-center shadow-sm">
+                                <PiBooks className="w-14 h-14 text-slate-300 mx-auto mb-3" />
                                 <h3 className="text-xl font-bold text-slate-700 mb-2">No Courses Assigned</h3>
                                 <p className="text-slate-500">You don't have any courses assigned yet. Please contact your department admin.</p>
                             </div>
@@ -181,19 +210,18 @@ const Dashboard = () => {
 
                         {/* Course Cards Grid */}
                         {!loading && !error && courses.length > 0 && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                                {courses.map((course, index) => (
-                                    <CourseCard
-                                        key={course.assignment_id}
-                                        course={course}
-                                        icon={ICONS[index % ICONS.length]}
-                                        gradientColor={GRADIENT_COLORS[index % GRADIENT_COLORS.length]}
-                                    />
-                                ))}
-                            </div>
+                                    <div className="space-y-3">
+                                        {courses.map((course, index) => (
+                                            <CourseCard
+                                                key={course.assignment_id}
+                                                course={course}
+                                                icon={ICONS[index % ICONS.length]}
+                                            />
+                                        ))}
+                                    </div>
                         )}
                     </div>
-                </div>
+                </section>
             </div>
         </div>
     );

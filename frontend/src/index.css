@@ -3,9 +3,767 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: light;
+    --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --color-bg: #f4faff;
+    --color-bg-soft: #eaf6ff;
+    --color-surface: rgba(255, 255, 255, 0.88);
+    --color-surface-strong: #ffffff;
+    --color-border: rgba(148, 163, 184, 0.22);
+    --color-border-strong: rgba(14, 116, 144, 0.20);
+    --color-text: #0f172a;
+    --color-muted: #64748b;
+    --color-primary: #0078c5;
+    --color-primary-strong: #05629f;
+    --color-primary-soft: #e0f2fe;
+    --color-success: #0f9f6e;
+    --color-warning: #c77700;
+    --color-danger: #dc2626;
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.25rem;
+    --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
+    --shadow-sm: 0 8px 24px rgba(15, 82, 127, 0.08);
+    --shadow-md: 0 18px 45px rgba(15, 82, 127, 0.10);
+    --shadow-glass: 0 22px 70px rgba(7, 120, 197, 0.16);
+    --focus-ring: 0 0 0 4px rgba(14, 165, 233, 0.18);
+  }
+
   * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+  }
+
+  html {
+    min-width: 320px;
+    background: var(--color-bg);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+    font-family: var(--font-sans);
+    color: var(--color-text);
+    background:
+      radial-gradient(circle at top left, rgba(125, 211, 252, 0.30), transparent 34rem),
+      linear-gradient(135deg, #f7fcff 0%, #eef8ff 45%, #ffffff 100%);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    color: #ffffff;
+    background: var(--color-primary);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
+  }
+}
+
+/* FYP-LMS Design System: premium light-blue academic SaaS shell */
+@layer components {
+  .glass-panel {
+    border: 1px solid rgba(255, 255, 255, 0.68);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.84), rgba(239, 248, 255, 0.68));
+    box-shadow: var(--shadow-glass);
+    backdrop-filter: blur(22px) saturate(140%);
+  }
+
+  .app-card {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-strong);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .app-card-hover {
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  }
+
+  .app-card-hover:hover {
+    border-color: var(--color-border-strong);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+}
+
+/* Global visual normalization for existing Tailwind-heavy pages */
+#root {
+  min-height: 100vh;
+}
+
+.main-layout,
+.faculty-main-layout {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.18), transparent 26rem),
+    linear-gradient(135deg, #f8fcff 0%, #eef8ff 52%, #ffffff 100%) !important;
+}
+
+.main-layout {
+  grid-template-columns: 272px minmax(0, 1fr) !important;
+  grid-template-rows: 76px minmax(0, 1fr) !important;
+}
+
+.faculty-main-layout {
+  grid-template-columns: 272px minmax(0, 1fr) !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+}
+
+.sidebar {
+  z-index: 40;
+}
+
+.sidebar > div {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-right: 1px solid rgba(14, 116, 144, 0.14) !important;
+  box-shadow: 18px 0 55px rgba(15, 82, 127, 0.08) !important;
+  backdrop-filter: blur(24px) saturate(155%);
+}
+
+.sidebar nav a,
+.sidebar nav button {
+  border-radius: 0.75rem !important;
+  min-height: 2.5rem;
+}
+
+.sidebar nav a:hover,
+.sidebar nav button:hover {
+  background: rgba(224, 242, 254, 0.80) !important;
+  color: var(--color-primary-strong) !important;
+}
+
+.sidebar nav a[class*="bg-blue-50"],
+.sidebar nav button[class*="bg-blue-50"] {
+  background: linear-gradient(135deg, rgba(224, 242, 254, 0.94), rgba(255, 255, 255, 0.82)) !important;
+  border-left-color: var(--color-primary) !important;
+  color: var(--color-primary-strong) !important;
+  box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.15);
+}
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 35;
+}
+
+.navbar > div {
+  min-height: 76px;
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-bottom: 1px solid rgba(14, 116, 144, 0.12) !important;
+  box-shadow: 0 12px 35px rgba(15, 82, 127, 0.06);
+  backdrop-filter: blur(22px) saturate(150%);
+}
+
+.main {
+  min-width: 0;
+  padding: clamp(1rem, 2vw, 1.75rem) !important;
+  background: transparent !important;
+}
+
+.page-container {
+  width: 100%;
+  min-width: 0 !important;
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+.footer {
+  background: rgba(255, 255, 255, 0.72) !important;
+  border-top: 1px solid rgba(14, 116, 144, 0.12) !important;
+  backdrop-filter: blur(18px);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+[role="button"],
+a[class*="bg-blue"],
+a[class*="bg-green"],
+a[class*="bg-purple"],
+a[class*="bg-red"] {
+  transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+button:not(:disabled):active,
+[role="button"]:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+}
+
+.monthly-report-table-wrap {
+  position: relative;
+  overflow: auto;
+  height: min(560px, calc(100vh - 360px));
+  min-height: 360px;
+  border-radius: 0 0 1.5rem 1.5rem;
+}
+
+.monthly-report-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.monthly-report-table .sticky-student-head,
+.monthly-report-table .sticky-student-cell {
+  position: sticky !important;
+  left: 0 !important;
+  min-width: 260px !important;
+  width: 260px !important;
+  max-width: 260px !important;
+  background-clip: padding-box !important;
+  box-shadow: 8px 0 18px rgba(15, 23, 42, 0.08) !important;
+}
+
+.monthly-report-table .sticky-student-head {
+  top: 0 !important;
+  z-index: 60 !important;
+  background: #eff8ff !important;
+}
+
+.monthly-report-table .sticky-student-cell {
+  z-index: 45 !important;
+}
+
+.monthly-report-table .sticky-date-head {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 50 !important;
+  background: #eff8ff !important;
+}
+
+.monthly-report-split {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  height: min(560px, calc(100vh - 360px));
+  min-height: 360px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 0 0 1.5rem 1.5rem;
+  background: #ffffff;
+}
+
+.monthly-report-fixed-students {
+  position: sticky;
+  left: 0;
+  z-index: 30;
+  background: #ffffff;
+  border-right: 1px solid rgba(186, 230, 253, 0.9);
+  box-shadow: 10px 0 22px rgba(15, 23, 42, 0.08);
+}
+
+.monthly-report-fixed-head,
+.monthly-report-date-row {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: 72px;
+  background: #eff8ff;
+  border-bottom: 1px solid rgba(186, 230, 253, 0.9);
+}
+
+.monthly-report-fixed-head {
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.monthly-report-student-row,
+.monthly-report-attendance-row {
+  height: 96px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+}
+
+.monthly-report-student-row {
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+}
+
+.monthly-report-attendance-scroll {
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.monthly-report-date-row,
+.monthly-report-attendance-row {
+  display: flex;
+  min-width: max-content;
+}
+
+.monthly-report-date-cell,
+.monthly-report-attendance-cell {
+  width: 86px;
+  min-width: 86px;
+  max-width: 86px;
+  border-right: 1px solid rgba(226, 232, 240, 0.65);
+}
+
+.monthly-report-date-cell,
+.monthly-report-stat-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.monthly-report-attendance-cell,
+.monthly-report-stat-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.monthly-report-stat-head,
+.monthly-report-stat-cell {
+  width: 100px;
+  min-width: 100px;
+  max-width: 100px;
+}
+
+.monthly-report-attendance-cell:disabled {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .monthly-report-split {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+}
+
+.monthly-report-grid {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-rows: 72px minmax(0, 1fr);
+  height: min(560px, calc(100vh - 360px));
+  min-height: 360px;
+  overflow: hidden;
+  border-radius: 0 0 1.5rem 1.5rem;
+  background: #ffffff;
+}
+
+.monthly-report-grid .monthly-report-fixed-head {
+  position: relative !important;
+  top: auto !important;
+  z-index: 60;
+  grid-column: 1;
+  grid-row: 1;
+  height: 72px;
+  background: #eff8ff;
+  border-right: 1px solid rgba(186, 230, 253, 0.9);
+  border-bottom: 1px solid rgba(186, 230, 253, 0.9);
+  box-shadow: 10px 0 22px rgba(15, 23, 42, 0.08);
+}
+
+.monthly-report-header-scroll {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #eff8ff;
+  border-bottom: 1px solid rgba(186, 230, 253, 0.9);
+  scrollbar-width: none;
+}
+
+.monthly-report-header-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.monthly-report-grid .monthly-report-date-row {
+  position: relative !important;
+  top: auto !important;
+  z-index: 1;
+  height: 72px;
+  background: #eff8ff;
+}
+
+.monthly-report-body-scroll {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.monthly-report-body-scroll .monthly-report-fixed-students {
+  position: relative !important;
+  left: auto !important;
+  z-index: 30;
+  grid-column: 1;
+  background: #ffffff;
+}
+
+.monthly-report-body-scroll .monthly-report-attendance-scroll {
+  grid-column: 2;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+@media (max-width: 768px) {
+  .monthly-report-grid,
+  .monthly-report-body-scroll {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  min-height: 2.75rem;
+  border-color: rgba(148, 163, 184, 0.34) !important;
+  border-radius: 0.75rem !important;
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  color: var(--color-text) !important;
+  box-shadow: var(--shadow-xs);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(0, 120, 197, 0.62) !important;
+  box-shadow: var(--focus-ring), var(--shadow-xs) !important;
+  outline: none !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--color-primary);
+}
+
+label {
+  color: #334155;
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+}
+
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+thead tr,
+th {
+  background: #f3faff !important;
+}
+
+th {
+  color: #475569 !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
+
+td,
+th {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18) !important;
+}
+
+tbody tr {
+  transition: background-color 160ms ease;
+}
+
+tbody tr:hover {
+  background: rgba(239, 248, 255, 0.72) !important;
+}
+
+.Toastify__toast {
+  border: 1px solid rgba(14, 116, 144, 0.16);
+  border-radius: 0.9rem;
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-sans);
+}
+
+.Toastify__progress-bar--success {
+  background: var(--color-success);
+}
+
+.Toastify__progress-bar--error {
+  background: var(--color-danger);
+}
+
+[class*="rounded-3xl"] {
+  border-radius: var(--radius-xl) !important;
+}
+
+[class*="rounded-2xl"] {
+  border-radius: var(--radius-lg) !important;
+}
+
+[class*="shadow-xl"],
+[class*="shadow-2xl"] {
+  box-shadow: var(--shadow-md) !important;
+}
+
+[class*="bg-gradient-to-br"][class*="from-slate"],
+[class*="bg-gradient-to-br"][class*="from-gray"] {
+  background: linear-gradient(135deg, #f8fcff 0%, #eef8ff 54%, #ffffff 100%) !important;
+}
+
+[class*="bg-gradient-to-r"][class*="from-purple"],
+[class*="bg-gradient-to-r"][class*="from-green"],
+[class*="bg-gradient-to-r"][class*="from-blue"] {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong)) !important;
+}
+
+[class*="bg-purple-"],
+[class*="bg-green-800"] {
+  background-color: var(--color-primary) !important;
+}
+
+[class*="text-purple-"],
+[class*="text-green-800"] {
+  color: var(--color-primary-strong) !important;
+}
+
+/* Cards, dashboard widgets, tables, modals and information panels */
+.page-container > div,
+.main form,
+.main table,
+.main [class*="rounded-xl"][class*="border"],
+.main [class*="rounded-2xl"][class*="border"],
+.main [class*="shadow-sm"][class*="bg-white"],
+.main [class*="shadow-md"][class*="bg-white"],
+.main [class*="shadow-lg"][class*="bg-white"] {
+  border-color: var(--color-border) !important;
+}
+
+.main [class*="bg-white"][class*="border"],
+.main [class*="rounded-xl"][class*="bg-white"],
+.main [class*="rounded-2xl"][class*="bg-white"] {
+  box-shadow: var(--shadow-xs);
+}
+
+.main [class*="rounded-xl"][class*="bg-white"]:hover,
+.main [class*="rounded-2xl"][class*="bg-white"]:hover {
+  border-color: var(--color-border-strong) !important;
+}
+
+/* Authentication pages: selective glassmorphism */
+.campus-login-shell {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(255, 255, 255, 0.72), transparent 18rem),
+    linear-gradient(135deg, #eaf8ff 0%, #f9fdff 38%, #cfefff 72%, #f4fbff 100%);
+}
+
+.campus-login-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 78%, transparent 100%);
+  animation: campusGridDrift 22s linear infinite;
+}
+
+.campus-login-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 18% 20%, rgba(56, 189, 248, 0.14), transparent 30%),
+    radial-gradient(ellipse at 82% 70%, rgba(125, 211, 252, 0.16), transparent 32%),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.62), transparent 18rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0));
+}
+
+.campus-flow-line {
+  position: absolute;
+  z-index: 1;
+  width: 34rem;
+  height: 34rem;
+  border: 1px solid rgba(56, 189, 248, 0.13);
+  border-radius: 999px;
+  opacity: 0.72;
+  filter: drop-shadow(0 18px 50px rgba(56, 189, 248, 0.07));
+  animation: campusOrbit 24s linear infinite;
+}
+
+.campus-flow-line::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -0.35rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  background: #38bdf8;
+  box-shadow: 0 0 0 8px rgba(186, 230, 253, 0.22), 0 0 28px rgba(56, 189, 248, 0.36);
+}
+
+.campus-flow-line-one {
+  top: -12rem;
+  left: -10rem;
+}
+
+.campus-flow-line-two {
+  right: -12rem;
+  bottom: -10rem;
+  width: 38rem;
+  height: 38rem;
+  animation-direction: reverse;
+  animation-duration: 30s;
+}
+
+.campus-flow-line-three {
+  left: 50%;
+  top: 50%;
+  width: 49rem;
+  height: 49rem;
+  opacity: 0.26;
+  translate: -50% -50%;
+  animation-duration: 42s;
+}
+
+body:has(input[name="password"]) .max-w-md > .bg-white,
+body:has(input[name="password"]) .max-w-md > div[class*="backdrop-blur"] {
+  border: 1px solid rgba(2, 132, 199, 0.22) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(239, 248, 255, 0.62)) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.62),
+    var(--shadow-glass) !important;
+  backdrop-filter: blur(24px) saturate(150%);
+}
+
+body:has(input[name="password"]) h1,
+body:has(input[name="password"]) h2,
+body:has(input[name="password"]) label,
+body:has(input[name="password"]) p,
+body:has(input[name="password"]) span {
+  text-shadow: none !important;
+}
+
+@keyframes campusGridDrift {
+  to {
+    background-position: 56px 56px;
+  }
+}
+
+@keyframes campusOrbit {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .campus-login-shell,
+  .campus-flow-line,
+  .campus-flow-line::after {
+    animation: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .main-layout,
+  .faculty-main-layout {
+    display: block !important;
+  }
+
+  .sidebar {
+    position: relative !important;
+    height: auto !important;
+  }
+
+  .sidebar > div {
+    min-height: auto !important;
+    max-height: none !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid rgba(14, 116, 144, 0.12) !important;
+  }
+
+  .sidebar nav {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 0.35rem;
+  }
+
+  .sidebar nav p,
+  .sidebar nav div[class*="border-l"] {
+    grid-column: 1 / -1;
+  }
+
+  .navbar {
+    position: sticky !important;
+    top: 0;
+  }
+
+  .navbar > div {
+    min-height: auto;
+    padding: 1rem !important;
+  }
+
+  .main {
+    padding: 1rem !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding: 0.75rem !important;
+  }
+
+  .navbar input {
+    width: 100% !important;
+  }
+
+  .main [class*="grid-cols-2"],
+  .main [class*="grid-cols-3"],
+  .main [class*="grid-cols-4"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .main table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
   }
 }

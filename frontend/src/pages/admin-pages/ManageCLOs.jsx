@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { MdArrowBack, MdSearch, MdAdd, MdFileUpload, MdFileDownload, MdClose, MdExpandMore, MdExpandLess, MdDelete } from 'react-icons/md';
+import { PiArrowLeft, PiCaretDown, PiCaretUp, PiDownloadSimple, PiMagnifyingGlass, PiPlus, PiTrash, PiUploadSimple, PiX } from 'react-icons/pi';
 import { courseApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import OverlayLoader from '../../components/common/OverlayLoader';
@@ -146,7 +146,7 @@ const ManageCLOs = () => {
                     onClick={() => setExpandedCloId(isExpanded ? null : clo.id)}
                 >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <span className="bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0">
+                        <span className="bg-sky-50 text-sky-700 text-xs font-semibold px-2.5 py-1 rounded-md flex-shrink-0 border border-sky-100">
                             {clo.title}
                         </span>
                         <div className="min-w-0 flex-1">
@@ -160,7 +160,7 @@ const ManageCLOs = () => {
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                         {clo.cognitive_level && (
-                            <span className={`px-2 py-0.5 text-xs font-bold rounded border ${getCognitiveColor(clo.cognitive_level)}`}>
+                            <span className={`px-2.5 py-1 text-xs font-bold rounded-md border ${getCognitiveColor(clo.cognitive_level)}`}>
                                 {clo.cognitive_level}
                             </span>
                         )}
@@ -170,14 +170,14 @@ const ManageCLOs = () => {
                             className="p-1.5 text-slate-300 hover:text-slate-600 transition-colors disabled:opacity-50"
                             title={`Delete ${clo.title}`}
                         >
-                            <MdDelete className="w-5 h-5" />
+                            <PiTrash className="w-5 h-5" />
                         </button>
-                        {isExpanded ? <MdExpandLess className="w-5 h-5 text-slate-300 hover:text-slate-600 transition-colors" /> : <MdExpandMore className="w-5 h-5 text-slate-300 hover:text-slate-600 transition-colors" />}
+                        {isExpanded ? <PiCaretUp className="w-5 h-5 text-slate-300 hover:text-slate-600 transition-colors" /> : <PiCaretDown className="w-5 h-5 text-slate-300 hover:text-slate-600 transition-colors" />}
                     </div>
                 </div>
 
                 {isExpanded && (
-                    <div className="border-t border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200">
+                    <div className="border-t border-sky-100 bg-sky-50/50">
                         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Left column */}
                             <div className="space-y-4">
@@ -206,8 +206,8 @@ const ManageCLOs = () => {
                                     {clo.mapped_courses && clo.mapped_courses.length > 0 ? (
                                         <div className="space-y-2">
                                             {clo.mapped_courses.map(c => (
-                                                <div key={c.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border-2 border-slate-300 shadow-sm">
-                                                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                                <div key={c.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-sky-100 shadow-sm">
+                                                    <div className="w-10 h-10 bg-sky-50 border border-sky-100 rounded-lg flex items-center justify-center text-sky-700 text-xs font-bold flex-shrink-0">
                                                         {c.code?.substring(0, 3)}
                                                     </div>
                                                     <div>
@@ -249,19 +249,19 @@ const ManageCLOs = () => {
     };
 
     return (
-        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-4 md:p-6 shadow-md border border-slate-300/60 overflow-y-auto flex flex-col">
+        <div className="min-h-[calc(100vh-116px)]">
             <OverlayLoader isLoading={isImporting} text="Importing CLOs..." />
             <div className="max-w-6xl mx-auto w-full flex flex-col">
                 {/* Breadcrumb */}
                 <Link to="/admin-managecourses" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm mb-4">
-                    <MdArrowBack className="w-4 h-4" /> Back to Courses
+                    <PiArrowLeft className="w-4 h-4" /> Back to Courses
                 </Link>
 
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-5 gap-4">
                     <div>
                         <div className="flex items-center gap-3 mb-1">
-                            <div className="w-2 h-8 bg-gradient-to-b from-amber-400 to-orange-500 rounded-full"></div>
+                            <div className="h-8 w-8 rounded-lg border border-sky-100 bg-sky-50"></div>
                             <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
                                 CLO Management
                             </h1>
@@ -272,50 +272,50 @@ const ManageCLOs = () => {
                     </div>
                     <div className="flex gap-2">
                         <button onClick={handleExport}
-                            className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-xl hover:bg-slate-50 hover:border-slate-400 transition-all shadow-sm">
-                            <MdFileDownload className="w-4 h-4" /> Export
+                            className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-sky-100 text-slate-700 text-sm font-medium rounded-3xl hover:bg-sky-50 hover:border-sky-200 transition-all shadow-sm">
+                            <PiDownloadSimple className="w-4 h-4" /> Export
                         </button>
                         <button onClick={() => setShowImportInfo(true)}
-                            className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-medium rounded-xl hover:shadow-lg transition-all">
-                            <MdFileUpload className="w-4 h-4" /> Import
+                            className="flex items-center gap-1.5 px-4 py-2.5 bg-sky-600 text-white text-sm font-medium rounded-3xl hover:shadow-lg transition-all">
+                            <PiUploadSimple className="w-4 h-4" /> Import
                         </button>
                         <button onClick={handleOpenAddModal}
-                            className="flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white text-sm font-medium rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all">
-                            <MdAdd className="w-4 h-4" /> Add CLO
+                            className="flex items-center gap-1.5 px-5 py-2.5 bg-sky-600 text-white text-sm font-medium rounded-3xl hover:bg-sky-700 hover:shadow-lg transition-all">
+                            <PiPlus className="w-4 h-4" /> Add CLO
                         </button>
                     </div>
                 </div>
 
                 {/* Search */}
-                <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-200 p-3 mb-5">
+                <div className="bg-white rounded-3xl shadow-sm border border-sky-100 p-3 mb-5">
                     <div className="relative">
-                        <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <PiMagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input type="text" placeholder="Search CLOs by number (e.g. CLO-1), course code, title, or description..."
                             value={cloSearch} onChange={(e) => setCloSearch(e.target.value)}
-                            className="w-full pl-12 pr-4 py-2.5 bg-white border-2 border-slate-300 rounded-xl shadow-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:bg-white transition-all" />
+                            className="w-full pl-12 pr-4 py-2.5 bg-white border border-sky-100 rounded-3xl shadow-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100 focus:bg-white transition-all" />
                     </div>
                 </div>
 
                 {/* Stats bar */}
                 {!loading && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
-                        <div className="bg-white rounded-xl border border-slate-200 p-3 text-center shadow-sm">
+                        <div className="bg-white rounded-3xl border border-slate-200 p-3 text-center shadow-sm">
                             <p className="text-2xl font-bold text-slate-900">{allCLOs.length}</p>
                             <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mt-1">Total CLOs</p>
                         </div>
-                        <div className="bg-white rounded-xl border border-slate-200 p-3 text-center shadow-sm">
+                        <div className="bg-white rounded-3xl border border-slate-200 p-3 text-center shadow-sm">
                             <p className="text-2xl font-bold text-slate-900">
                                 {allCLOs.filter(c => c.mapped_courses && c.mapped_courses.length > 0).length}
                             </p>
                             <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mt-1">Course Mapped</p>
                         </div>
-                        <div className="bg-white rounded-xl border border-slate-200 p-3 text-center shadow-sm">
+                        <div className="bg-white rounded-3xl border border-slate-200 p-3 text-center shadow-sm">
                             <p className="text-2xl font-bold text-slate-900">
                                 {allCLOs.filter(c => c.mapped_plos && c.mapped_plos.length > 0).length}
                             </p>
                             <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mt-1">PLO Mapped</p>
                         </div>
-                        <div className="bg-white rounded-xl border border-slate-200 p-3 text-center shadow-sm">
+                        <div className="bg-white rounded-3xl border border-slate-200 p-3 text-center shadow-sm">
                             <p className="text-2xl font-bold text-slate-900">
                                 {allCLOs.filter(c => !c.mapped_plos || c.mapped_plos.length === 0).length}
                             </p>
@@ -328,7 +328,7 @@ const ManageCLOs = () => {
                 {loading ? (
                     <div className="space-y-3">
                         {[1, 2, 3, 4, 5].map(i => (
-                            <div key={i} className="bg-white rounded-xl p-4 animate-pulse border-2 border-slate-200">
+                            <div key={i} className="bg-white rounded-3xl p-4 animate-pulse border border-sky-100">
                                 <div className="flex items-center gap-3">
                                     <div className="h-7 w-16 bg-slate-200 rounded-lg"></div>
                                     <div className="flex-1"><div className="h-4 bg-slate-200 rounded w-2/3"></div></div>
@@ -337,9 +337,9 @@ const ManageCLOs = () => {
                         ))}
                     </div>
                 ) : filteredCLOs.length === 0 ? (
-                    <div className="text-center py-10 bg-white rounded-2xl border-2 border-slate-200 shadow-sm">
-                        <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                            <MdSearch className="w-8 h-8 text-amber-400" />
+                    <div className="text-center py-10 bg-white rounded-3xl border border-sky-100 shadow-sm">
+                        <div className="w-16 h-16 bg-sky-50 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                            <PiMagnifyingGlass className="w-8 h-8 text-sky-400" />
                         </div>
                         <h3 className="text-lg font-semibold text-slate-600 mb-2">
                             {cloSearch ? 'No CLOs match your search' : 'No CLOs found'}
@@ -357,18 +357,18 @@ const ManageCLOs = () => {
 
             {/* Add CLO Modal */}
             {showAddModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
                         <div className="flex items-center justify-between p-6 border-b border-gray-200">
                             <h2 className="text-lg font-bold text-gray-800">Add New CLO</h2>
-                            <button onClick={() => setShowAddModal(false)} className="text-gray-500 hover:text-gray-700"><MdClose className="w-6 h-6" /></button>
+                            <button onClick={() => setShowAddModal(false)} className="text-gray-500 hover:text-gray-700"><PiX className="w-6 h-6" /></button>
                         </div>
                         <div className="p-6 space-y-4">
                             <p className="text-xs text-gray-500">CLO title must be in <strong>CLO-X</strong> format (e.g. CLO-1, CLO-2). Auto-capitalized.</p>
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">CLO Title *</label>
                                 <input type="text" value={newClo.title} onChange={(e) => setNewClo({ ...newClo, title: e.target.value.toUpperCase() })}
-                                    className={`w-full p-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-amber-500/20 ${newClo.title && !/^CLO-\d+$/.test(newClo.title) ? 'border-red-400' : 'border-gray-300'}`}
+                                    className={`w-full p-2.5 border rounded-xl outline-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100 ${newClo.title && !/^CLO-\d+$/.test(newClo.title) ? 'border-red-400' : 'border-sky-100'}`}
                                     placeholder="CLO-1" />
                                 {newClo.title && !/^CLO-\d+$/.test(newClo.title) && (
                                     <span className="text-xs text-red-500">Format must be CLO-X (e.g. CLO-1)</span>
@@ -377,12 +377,12 @@ const ManageCLOs = () => {
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">Description</label>
                                 <textarea rows="3" value={newClo.description} onChange={(e) => setNewClo({ ...newClo, description: e.target.value })}
-                                    className="w-full p-2.5 border border-gray-300 rounded-lg outline-none resize-none focus:ring-2 focus:ring-amber-500/20" placeholder="Describe this learning outcome..." />
+                                    className="w-full p-2.5 border border-sky-100 rounded-xl outline-none resize-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100" placeholder="Describe this learning outcome..." />
                             </div>
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">Cognitive Level</label>
                                 <select value={newClo.cognitive_level} onChange={(e) => setNewClo({ ...newClo, cognitive_level: e.target.value })}
-                                    className="w-full p-2.5 border border-gray-300 rounded-lg bg-white outline-none focus:ring-2 focus:ring-amber-500/20">
+                                    className="w-full p-2.5 border border-sky-100 rounded-xl bg-white outline-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100">
                                     <option value="">Select</option>
                                     <option value="C1">C1 - Remember</option><option value="C2">C2 - Understand</option>
                                     <option value="C3">C3 - Apply</option><option value="C4">C4 - Analyze</option>
@@ -392,7 +392,7 @@ const ManageCLOs = () => {
                         </div>
                         <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
                             <button onClick={() => setShowAddModal(false)} disabled={addCloMutation.isPending} className="px-5 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50">Cancel</button>
-                            <button onClick={handleAddSubmit} disabled={addCloMutation.isPending} className="px-5 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 disabled:opacity-50">
+                            <button onClick={handleAddSubmit} disabled={addCloMutation.isPending} className="px-5 py-2 bg-sky-600 text-white rounded-xl font-semibold hover:bg-sky-700 disabled:opacity-50">
                                 {addCloMutation.isPending ? 'Adding...' : 'Add CLO'}
                             </button>
                         </div>
@@ -402,11 +402,11 @@ const ManageCLOs = () => {
 
             {/* Import Info Modal */}
             {showImportInfo && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
                         <div className="flex items-center justify-between p-6 border-b border-gray-200">
                             <h2 className="text-lg font-bold text-gray-800">Import CLOs from Excel</h2>
-                            <button onClick={() => setShowImportInfo(false)} className="text-gray-500 hover:text-gray-700"><MdClose className="w-6 h-6" /></button>
+                            <button onClick={() => setShowImportInfo(false)} className="text-gray-500 hover:text-gray-700"><PiX className="w-6 h-6" /></button>
                         </div>
                         <div className="p-6">
                             <p className="text-sm text-gray-600 mb-4">Your Excel file must have the following columns:</p>
@@ -428,8 +428,8 @@ const ManageCLOs = () => {
                             <p className="text-xs text-gray-500 mb-4">CLOs imported here are global and can be mapped to any course later.</p>
                             <input type="file" accept=".xlsx,.xls" className="hidden" ref={cloFileRef} onChange={handleImportFile} />
                             <button onClick={() => cloFileRef.current.click()}
-                                className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-medium rounded-xl hover:shadow-lg transition-all">
-                                <MdFileUpload className="w-5 h-5" /> Choose Excel File
+                                className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-sky-600 text-white font-medium rounded-3xl hover:shadow-lg transition-all">
+                                <PiUploadSimple className="w-5 h-5" /> Choose Excel File
                             </button>
                         </div>
                     </div>

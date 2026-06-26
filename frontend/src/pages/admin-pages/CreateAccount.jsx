@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { MdPerson, MdEmail, MdBusiness, MdPhone, MdSave, MdCancel, MdCheckCircle, MdArrowDropDown } from 'react-icons/md';
+import {
+    PiBuildings,
+    PiCaretDown,
+    PiCheckCircle,
+    PiEnvelopeSimple,
+    PiFloppyDisk,
+    PiPhone,
+    PiUser,
+    PiX
+} from 'react-icons/pi';
 import { authApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -99,25 +108,37 @@ const CreateAccount = () => {
     };
     
     const loading = createAccountMutation.isPending;
+    const selectedRoleLabel = roles.find(role => role.value === formData.role)?.label || 'Select role';
 
     return (
-        <div className="h-[calc(100vh-96px)] bg-gradient-to-br from-slate-200/80 to-slate-300/80 rounded-3xl p-6 shadow-md border border-slate-300/60 overflow-y-auto">
-            <div className="max-w-6xl mx-auto">
+        <div className="min-h-[calc(100vh-116px)]">
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-slate-800">
-                        Create New Account
-                    </h1>
-                    <p className="text-slate-500 ml-5">
-                        Create accounts with custom role and permission assignments
-                    </p>
-                </div>
+                <section className="grid gap-5 rounded-3xl border border-white/70 bg-gradient-to-br from-white via-sky-50/70 to-blue-50 p-6 shadow-[0_24px_80px_rgba(14,116,144,0.12)] backdrop-blur-2xl lg:grid-cols-[1fr_320px] lg:p-7">
+                    <div className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-sky-100 bg-white text-sky-700 shadow-sm">
+                            <PiUser className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-sky-700">Campus Flow</p>
+                            <h1 className="mt-3 text-3xl font-bold text-slate-950">Create New Account</h1>
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Create accounts with role and department assignments.</p>
+                        </div>
+                    </div>
+                    <div className="rounded-2xl border border-sky-100 bg-white/80 p-4 shadow-sm">
+                        <p className="text-xs font-bold uppercase tracking-[0.14em] text-sky-700">Account Type</p>
+                        <p className="mt-2 text-lg font-bold text-slate-950">{selectedRoleLabel}</p>
+                        <p className="mt-1 text-xs leading-5 text-slate-500">
+                            {isSuperAdmin ? 'Super Admin creates department admin accounts.' : 'Department admin creates faculty accounts.'}
+                        </p>
+                    </div>
+                </section>
 
                 {/* Success Message */}
                 {success && (
-                    <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-4 animate-fade-in">
-                        <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <MdCheckCircle className="w-5 h-5 text-emerald-600" />
+                    <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center gap-4 animate-fade-in">
+                        <div className="w-10 h-10 bg-white border border-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <PiCheckCircle className="w-5 h-5 text-emerald-600" />
                         </div>
                         <div>
                             <h3 className="font-semibold text-emerald-800 text-sm">Account Created Successfully!</h3>
@@ -128,29 +149,32 @@ const CreateAccount = () => {
 
                 {/* Error Message */}
                 {error && (
-                    <div className="mb-6 bg-red-50 border-2 border-red-200 rounded-2xl p-4 text-red-600">
+                    <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-sm font-medium text-red-700">
                         <strong>Error:</strong> {error}
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Personal Information */}
-                    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-                        <h2 className="text-lg font-semibold text-slate-800 mb-4">Personal Information</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="overflow-hidden rounded-3xl border border-sky-100 bg-white/94 shadow-sm">
+                        <div className="border-b border-sky-100 bg-sky-50/55 px-6 py-4">
+                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-sky-700">Step 01</p>
+                            <h2 className="mt-1 text-lg font-bold text-slate-950">Personal Information</h2>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-2">
                                     Full Name *
                                 </label>
                                 <div className="relative">
-                                    <MdPerson className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                    <PiUser className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                     <input
                                         type="text"
                                         name="fullName"
                                         value={formData.fullName}
                                         onChange={handleChange}
                                         required
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
+                                        className="h-11 w-full rounded-xl border border-sky-100 bg-white pl-10 pr-4 text-sm outline-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                                         placeholder="John Doe"
                                     />
                                 </div>
@@ -161,14 +185,14 @@ const CreateAccount = () => {
                                     Email Address *
                                 </label>
                                 <div className="relative">
-                                    <MdEmail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                    <PiEnvelopeSimple className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                     <input
                                         type="email"
                                         name="email"
                                         value={formData.email}
                                         onChange={handleChange}
                                         required
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
+                                        className="h-11 w-full rounded-xl border border-sky-100 bg-white pl-10 pr-4 text-sm outline-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                                         placeholder="john.doe@university.edu"
                                     />
                                 </div>
@@ -179,13 +203,13 @@ const CreateAccount = () => {
                                     Phone Number
                                 </label>
                                 <div className="relative">
-                                    <MdPhone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                    <PiPhone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                     <input
                                         type="tel"
                                         name="phoneNumber"
                                         value={formData.phoneNumber}
                                         onChange={handleChange}
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none transition-all"
+                                        className="h-11 w-full rounded-xl border border-sky-100 bg-white pl-10 pr-4 text-sm outline-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                                         placeholder="+1 (555) 000-0000"
                                     />
                                 </div>
@@ -196,21 +220,24 @@ const CreateAccount = () => {
                     </div>
 
                     {/* Role & Department */}
-                    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-                        <h2 className="text-lg font-semibold text-slate-800 mb-4">Role & Department Assignment</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="overflow-hidden rounded-3xl border border-sky-100 bg-white/94 shadow-sm">
+                        <div className="border-b border-sky-100 bg-sky-50/55 px-6 py-4">
+                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-sky-700">Step 02</p>
+                            <h2 className="mt-1 text-lg font-bold text-slate-950">Role & Department Assignment</h2>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-3">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-2">
                                     Select Role *
                                 </label>
                                 <div className="relative">
-                                    <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                                    <PiCaretDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                                     <select
                                         name="role"
                                         value={formData.role}
                                         onChange={handleChange}
                                         required
-                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all"
+                                        className="h-11 w-full rounded-xl border border-sky-100 bg-white px-4 pr-10 text-sm outline-none appearance-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                                     >
                                         <option value="">-- Select Role --</option>
                                         {roles.map((role) => (
@@ -230,14 +257,14 @@ const CreateAccount = () => {
                                             Faculty *
                                         </label>
                                         <div className="relative">
-                                            <MdBusiness className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                            <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                                            <PiBuildings className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                            <PiCaretDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                                             <select
                                                 name="faculty"
                                                 value={formData.faculty}
                                                 onChange={handleChange}
                                                 required
-                                                className="w-full pl-10 pr-10 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all"
+                                                className="h-11 w-full rounded-xl border border-sky-100 bg-white pl-10 pr-10 text-sm outline-none appearance-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                                             >
                                                 <option value="">Select Faculty</option>
                                                 {faculties.map((fac) => (
@@ -252,15 +279,15 @@ const CreateAccount = () => {
                                             Department *
                                         </label>
                                         <div className="relative">
-                                            <MdBusiness className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                            <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                                            <PiBuildings className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                            <PiCaretDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                                             <select
                                                 name="department"
                                                 value={formData.department}
                                                 onChange={handleChange}
                                                 required
                                                 disabled={!formData.faculty}
-                                                className="w-full pl-10 pr-10 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white disabled:bg-slate-50 disabled:cursor-not-allowed transition-all"
+                                                className="h-11 w-full rounded-xl border border-sky-100 bg-white pl-10 pr-10 text-sm outline-none appearance-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-50 disabled:cursor-not-allowed"
                                             >
                                                 <option value="">
                                                     {formData.faculty ? 'Select Department' : 'Select Faculty First'}
@@ -281,14 +308,14 @@ const CreateAccount = () => {
                                         Employment Type *
                                     </label>
                                     <div className="relative">
-                                        <MdPerson className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                        <MdArrowDropDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                                        <PiUser className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                        <PiCaretDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                                         <select
                                             name="employment_type"
                                             value={formData.employment_type}
                                             onChange={handleChange}
                                             required
-                                            className="w-full pl-10 pr-10 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm outline-none appearance-none bg-white transition-all"
+                                            className="h-11 w-full rounded-xl border border-sky-100 bg-white pl-10 pr-10 text-sm outline-none appearance-none transition-all focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                                         >
                                             <option value="permanent">Permanent</option>
                                             <option value="visiting">Visiting</option>
@@ -301,13 +328,13 @@ const CreateAccount = () => {
 
 
                     {/* Action Buttons */}
-                    <div className="flex gap-4 mt-6">
+                    <div className="flex flex-col gap-3 rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-sm sm:flex-row">
                         <button
                             type="submit"
                             disabled={loading || !formData.role}
-                            className="flex-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <MdSave className="w-4 h-4" />
+                            <PiFloppyDisk className="w-4 h-4" />
                             {loading ? 'Creating Account...' : 'Create Account'}
                         </button>
                         <button
@@ -324,9 +351,9 @@ const CreateAccount = () => {
                                 });
                                 setError('');
                             }}
-                            className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 text-sm"
+                            className="px-6 py-2.5 bg-white border border-sky-100 text-slate-700 font-semibold rounded-xl hover:bg-sky-50 transition-colors flex items-center justify-center gap-2 text-sm"
                         >
-                            <MdCancel className="w-4 h-4" />
+                            <PiX className="w-4 h-4" />
                             Reset
                         </button>
                     </div>
