@@ -73,11 +73,15 @@ const BatchDetails = () => {
         try {
             await batchApi.update(id, { curriculum_id: val || null });
             toast.success(val ? 'Curriculum assigned — courses copied to batch' : 'Curriculum removed');
-            await queryClient.invalidateQueries(['batch', id]);
-            if (val) await queryClient.invalidateQueries(['batchCourses', id]);
+            await queryClient.invalidateQueries({ queryKey: ['batch', id] });
+            if (val) await queryClient.invalidateQueries({ queryKey: ['batchCourses', id] });
             setActiveSemester(1);
             setShowCurriculumModal(false);
-        } catch (e) { toast.error('Failed to update curriculum'); }
+        } catch (e) {
+            console.error('Curriculum update error:', e.response?.data || e.message || e);
+            const detail = e.response?.data?.detail || e.response?.data?.message || 'Failed to update curriculum';
+            toast.error(detail);
+        }
         finally { setAssigningCurriculum(false); }
     };
 
@@ -150,7 +154,7 @@ const BatchDetails = () => {
             const res = await batchApi.updateAllPLOs(id, selectedPloIds);
             if (res.success) {
                 toast.success('Batch PLOs updated successfully');
-                queryClient.invalidateQueries(['batch', id]);
+                queryClient.invalidateQueries({ queryKey: ['batch', id] });
             }
         } catch(e) {
             console.error(e);

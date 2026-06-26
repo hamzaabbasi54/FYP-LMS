@@ -54,6 +54,42 @@ router.use(verifyToken);
 
 // ===================== BATCHES =====================
 
+// Helper: ensure semesters table has rows for all semester_numbers in a curriculum,
+// then copy curriculum courses into batch_semester_courses.
+async function copyCurriculumToBatch(conn, batchId, curriculumId) {
+    // 1. Find all distinct semester numbers in the curriculum
+    const [semRows] = await conn.query(
+        `SELECT DISTINCT cs.semester_number
+         FROM curriculum_semesters cs
+         WHERE cs.curriculum_id = ?`,
+        [curriculumId]
+    );
+
+    // 2. Ensure each semester_number exists in the semesters table for this batch
+    for (const row of semRows) {
+        const [existing] = await conn.query(
+            'SELECT id FROM semesters WHERE batch_id = ? AND semester_number = ?',
+            [batchId, row.semester_number]
+        );
+        if (existing.length === 0) {
+            await conn.query(
+                'INSERT INTO semesters (batch_id, name, semester_number) VALUES (?, ?, ?)',
+                [batchId, `Semester ${row.semester_number}`, row.semester_number]
+            );
+        }
+    }
+
+    // 3. Copy curriculum courses into batch_semester_courses
+    await conn.query(
+        `INSERT INTO batch_semester_courses (batch_id, semester_number, course_id, type)
+         SELECT ?, cs.semester_number, csc.course_id, csc.type
+         FROM curriculum_semester_courses csc
+         JOIN curriculum_semesters cs ON csc.curriculum_semester_id = cs.id
+         WHERE cs.curriculum_id = ?`,
+        [batchId, curriculumId]
+    );
+}
+
 // GET all batches (paginated, with stats)
 router.get('/', async (req, res) => {
     try {
@@ -191,14 +227,7 @@ router.post('/', isAdmin, async (req, res) => {
         }
 
         if (curriculum_id) {
-            await conn.query(
-                `INSERT INTO batch_semester_courses (batch_id, semester_number, course_id, type)
-                 SELECT ?, cs.semester_number, csc.course_id, csc.type
-                 FROM curriculum_semester_courses csc
-                 JOIN curriculum_semesters cs ON csc.curriculum_semester_id = cs.id
-                 WHERE cs.curriculum_id = ?`,
-                [batchId, curriculum_id]
-            );
+            await copyCurriculumToBatch(conn, batchId, curriculum_id);
         }
 
         await conn.commit();
@@ -259,14 +288,7 @@ router.put('/:id', isAdmin, scopeBatch, async (req, res) => {
             await conn.query('DELETE FROM batch_semester_courses WHERE batch_id = ?', [req.params.id]);
 
             if (curriculum_id) {
-                await conn.query(
-                    `INSERT INTO batch_semester_courses (batch_id, semester_number, course_id, type)
-                     SELECT ?, cs.semester_number, csc.course_id, csc.type
-                     FROM curriculum_semester_courses csc
-                     JOIN curriculum_semesters cs ON csc.curriculum_semester_id = cs.id
-                     WHERE cs.curriculum_id = ?`,
-                    [req.params.id, curriculum_id]
-                );
+                await copyCurriculumToBatch(conn, req.params.id, curriculum_id);
             }
         }
 
@@ -297,8 +319,8 @@ router.put('/:id', isAdmin, scopeBatch, async (req, res) => {
         await cacheDel(`scope:batches:${req.params.id}`);
     } catch (error) {
         await conn.rollback();
-        console.error('Update batch error:', error);
-        res.status(500).json({ success: false, message: 'Error updating batch' });
+        console.error('Update batch error:', error.code, error.sqlMessage || error.message, error.sql || '');
+        res.status(500).json({ success: false, message: 'Error updating batch', detail: error.sqlMessage || error.message });
     } finally {
         conn.release();
     }
@@ -477,14 +499,7 @@ router.delete('/:id/semesters/:semNum/courses/:courseId', isAdmin, async (req, r
         if (existing[0].cnt === 0) {
             const [batch] = await conn.query('SELECT curriculum_id FROM batches WHERE id = ?', [batchId]);
             if (batch.length > 0 && batch[0].curriculum_id) {
-                await conn.query(
-                    `INSERT INTO batch_semester_courses (batch_id, semester_number, course_id, type)
-                     SELECT ?, cs.semester_number, csc.course_id, csc.type
-                     FROM curriculum_semester_courses csc
-                     JOIN curriculum_semesters cs ON csc.curriculum_semester_id = cs.id
-                     WHERE cs.curriculum_id = ?`,
-                    [batchId, batch[0].curriculum_id]
-                );
+                await copyCurriculumToBatch(conn, batchId, batch[0].curriculum_id);
             }
         }
 

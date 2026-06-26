@@ -174,7 +174,7 @@ function App() {
 
             </Routes>
                     </SocketProvider>
-                    <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
+                    <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} style={{ zIndex: 99999 }} />
                     <UndoToast />
                 </AuthProvider>
                 <ReactQueryDevtools initialIsOpen={false} />
