@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PiCaretDown, PiCaretUp, PiChartPieSlice, PiCheckCircle, PiDownloadSimple, PiGraph, PiInfo, PiListChecks, PiStack, PiTarget, PiTrendUp, PiWarningCircle } from 'react-icons/pi';
 import { obeApi } from '../../services/api';
 import { toast } from 'react-toastify';
@@ -8,16 +8,21 @@ const OBEReports = () => {
     const [expandedBatch, setExpandedBatch] = useState(null);
     const [expandedSemester, setExpandedSemester] = useState(null);
 
-    const { data: batches = [], isLoading: loading } = useQuery({
+    const { data: batches = [], isLoading: loading, isError } = useQuery({
         queryKey: ['obeReports'],
         queryFn: async () => {
             const res = await obeApi.getReports();
             if (res.success) return res.data || [];
             throw new Error('Failed to fetch OBE reports');
         },
-        staleTime: 5 * 60 * 1000, // Cache for 5 minutes (this is an expensive query)
-        onError: () => toast.error('Failed to fetch OBE reports')
+        staleTime: 1000 * 60 * 10, // 10 minutes - OBE data changes infrequently but should eventually refresh
     });
+
+    useEffect(() => {
+        if (isError) {
+            toast.error('Failed to fetch OBE reports');
+        }
+    }, [isError]);
 
     const getAchievementColor = (percentage) => {
         if (percentage >= 70) return 'text-emerald-700 bg-emerald-100';

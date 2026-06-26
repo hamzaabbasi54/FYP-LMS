@@ -27,7 +27,8 @@ const ManagePLOs = () => {
             const res = await departmentApi.getAllPLOs();
             if (res.success) return res.data || [];
             throw new Error('Failed to load PLOs');
-        }
+        },
+        staleTime: Infinity
     });
 
     const filteredPLOs = allPLOs.filter(p =>

@@ -19,6 +19,8 @@ export const deleteGuard = (entityType, options = {}) => {
     return async (req, res, next) => {
         // If the request already includes confirmation, skip the guard
         const confirmed = req.body?.confirm === true || req.query?.confirm === 'true';
+        const isDryRun = req.body?.dryRun === true || req.query?.dryRun === 'true';
+        
         if (confirmed) {
             return next();
         }
@@ -118,6 +120,9 @@ export const deleteGuard = (entityType, options = {}) => {
                 }
 
                 default:
+                    if (isDryRun) {
+                        return res.status(200).json({ success: true, requiresConfirmation: false, hasActiveData: false });
+                    }
                     return next();
             }
 
@@ -139,6 +144,9 @@ export const deleteGuard = (entityType, options = {}) => {
 
         } catch (error) {
             console.error(`[deleteGuard] Error checking impact for ${entityType}:`, error);
+            if (isDryRun) {
+                return res.status(500).json({ success: false, message: 'Pre-flight check failed due to server error' });
+            }
             // On error, let the delete proceed rather than blocking
             return next();
         }

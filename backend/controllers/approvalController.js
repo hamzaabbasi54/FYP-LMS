@@ -4,6 +4,7 @@
 // ============================================
 
 import pool from '../config/db.js';
+import { cacheGet, cacheSet, cacheDelPattern } from '../config/redis.js';
 
 // Get pending faculty users (admin only)
 export const getPendingUsers = async (req, res) => {
@@ -77,6 +78,9 @@ export const approveUser = async (req, res) => {
         const [users] = await pool.query('SELECT id, full_name, email, role FROM users WHERE id = ?', [userId]);
         const user = users[0];
 
+        await cacheDelPattern(`facultyUsers:${approver.department_id}`);
+        await cacheDelPattern('dashboard:stats:*');
+
         res.status(200).json({
             success: true,
             message: `${user.full_name} has been approved`,
@@ -123,6 +127,9 @@ export const rejectUser = async (req, res) => {
         const [users] = await pool.query('SELECT id, full_name, email, role FROM users WHERE id = ?', [userId]);
         const user = users[0];
 
+        await cacheDelPattern(`facultyUsers:${approver.department_id}`);
+        await cacheDelPattern('dashboard:stats:*');
+
         res.status(200).json({
             success: true,
             message: `${user.full_name} has been rejected`,
@@ -159,6 +166,10 @@ export const getUsersByRole = async (req, res) => {
             return res.status(403).json({ success: false, message: 'You can only view faculty members' });
         }
 
+        const cacheKey = `facultyUsers:${approver.department_id}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json(cached);
+
         const [users] = await pool.query(
             `SELECT u.id, u.full_name, u.email, u.role, u.phone_number, u.status,
                     u.is_active, u.created_at, d.name as department_name
@@ -169,11 +180,13 @@ export const getUsersByRole = async (req, res) => {
             [approver.department_id]
         );
 
-        res.status(200).json({
+        const payload = {
             success: true,
             count: users.length,
             data: users
-        });
+        };
+        await cacheSet(cacheKey, payload, 2592000);
+        res.status(200).json(payload);
     } catch (error) {
         console.error('Get users error:', error);
         res.status(500).json({ success: false, message: 'Error fetching users' });
@@ -202,6 +215,8 @@ export const deleteUser = async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'User not found or access denied' });
         }
+
+        await cacheDelPattern(`facultyUsers:${approver.department_id}`);
 
         res.status(200).json({
             success: true,

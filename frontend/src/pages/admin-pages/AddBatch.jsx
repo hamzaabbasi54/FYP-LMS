@@ -200,17 +200,13 @@ const AddBatch = () => {
 
                             {/* Selected PLOs */}
                             {selectedPLOs.length > 0 && (
-                                <div className="space-y-2 mb-4">
+                                <div className="flex flex-wrap gap-2 mb-4 max-h-[120px] overflow-y-auto p-1 custom-scrollbar">
                                     {selectedPLOs.map(plo => (
-                                        <div key={plo.id} className="flex justify-between items-start bg-sky-50 p-3 rounded-xl border border-sky-100">
-                                            <div className="flex gap-2.5">
-                                                <span className="flex-shrink-0 bg-white text-sky-700 border border-sky-100 rounded-md px-2 py-1 text-xs font-bold">
-                                                    {plo.plo_number}
-                                                </span>
-                                                <p className="text-sm text-slate-700 pt-0.5 font-medium">{plo.description}</p>
-                                            </div>
-                                            <button type="button" onClick={() => togglePLO(plo.id)} className="p-1 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors">
-                                                <PiX className="w-4 h-4" />
+                                        <div key={plo.id} className="flex items-center gap-1.5 bg-sky-50 pl-2.5 pr-1 py-1 rounded-lg border border-sky-200 shadow-sm transition-all hover:bg-sky-100">
+                                            <span className="font-bold text-xs text-sky-800">PLO-{plo.plo_number}</span>
+                                            <span className="text-xs text-slate-600 max-w-[180px] truncate" title={plo.description}>{plo.description}</span>
+                                            <button type="button" onClick={() => togglePLO(plo.id)} className="ml-0.5 rounded-md p-1 text-sky-400 hover:bg-white hover:text-red-500 transition-colors">
+                                                <PiX className="h-3.5 w-3.5" />
                                             </button>
                                         </div>
                                     ))}

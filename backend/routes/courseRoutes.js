@@ -9,7 +9,7 @@ import pool from '../config/db.js';
 import { verifyToken, isAdmin, isAuthenticated } from '../middleware/auth.js';
 import { scopeToDepartment } from '../middleware/deptScope.js';
 import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
-import { cacheDel } from '../config/redis.js';
+import { cacheDel, cacheGet, cacheSet, cacheDelPattern } from '../config/redis.js';
 import { deleteGuard } from '../middleware/deleteGuard.js';
 
 const scopeCourse = scopeToDepartment('courses');
@@ -81,35 +81,69 @@ router.get('/all-list', async (req, res) => {
 // GET all CLOs (standalone, with mapped courses and PLOs)
 router.get('/clos/all', async (req, res) => {
     try {
+        const department_id = (req.user.role === 'deptadmin') ? req.user.department_id : req.query.department_id;
+        const cacheKey = department_id ? `cache:clos:all:${department_id}` : 'cache:clos:all';
+        const cachedCLOs = await cacheGet(cacheKey);
+        if (cachedCLOs) {
+            return res.json({ success: true, data: cachedCLOs });
+        }
+        
+        let whereClause = '';
+        const params = [];
+        if (department_id) {
+            whereClause = 'WHERE cl.course_id IS NULL OR cl.course_id IN (SELECT id FROM courses WHERE department_id = ?)';
+            params.push(department_id);
+        }
+
         const [clos] = await pool.query(
             `SELECT cl.id, cl.clo_number, cl.title, cl.description, cl.cognitive_level
-             FROM clos cl ORDER BY cl.title, cl.clo_number`
+             FROM clos cl ${whereClause} ORDER BY cl.title, cl.clo_number`,
+            params
         );
-        for (const clo of clos) {
-            // Get mapped courses from both junction table and direct course_id
-            const [courses] = await pool.query(
-                `SELECT c.id, c.title, c.code 
-                 FROM courses c
-                 LEFT JOIN course_clo_mapping ccm ON c.id = ccm.course_id AND ccm.clo_id = ?
-                 LEFT JOIN clos cl ON c.id = cl.course_id AND cl.id = ?
-                 WHERE ccm.clo_id IS NOT NULL OR cl.course_id IS NOT NULL
-                 GROUP BY c.id, c.title, c.code`, 
-                 [clo.id, clo.id]
-            );
-            clo.mapped_courses = courses;
-            
-            // Get mapped PLOs from both global mappings and batch-specific mappings
-            const [plos] = await pool.query(
-                `SELECT p.id, p.plo_number, p.description
-                 FROM plos p
-                 LEFT JOIN clo_plo_mapping cpm ON p.id = cpm.plo_id AND cpm.clo_id = ?
-                 LEFT JOIN batch_clo_plo_mapping bcpm ON p.id = bcpm.plo_id AND bcpm.clo_id = ?
-                 WHERE cpm.clo_id IS NOT NULL OR bcpm.clo_id IS NOT NULL
-                 GROUP BY p.id, p.plo_number, p.description`, 
-                 [clo.id, clo.id]
-            );
-            clo.mapped_plos = plos;
-        }
+
+        // Fetch all course mappings in one query
+        const [courseMappings] = await pool.query(`
+            SELECT ccm.clo_id, c.id, c.title, c.code
+            FROM course_clo_mapping ccm
+            JOIN courses c ON ccm.course_id = c.id
+            UNION
+            SELECT cl.id as clo_id, c.id, c.title, c.code
+            FROM clos cl
+            JOIN courses c ON cl.course_id = c.id
+        `);
+
+        // Fetch all PLO mappings in one query
+        const [ploMappings] = await pool.query(`
+            SELECT DISTINCT cpm.clo_id, p.id, p.plo_number, p.description
+            FROM clo_plo_mapping cpm
+            JOIN plos p ON cpm.plo_id = p.id
+            UNION
+            SELECT DISTINCT bcpm.clo_id, p.id, p.plo_number, p.description
+            FROM batch_clo_plo_mapping bcpm
+            JOIN plos p ON bcpm.plo_id = p.id
+        `);
+
+        // Map them efficiently
+        const courseMap = {};
+        const ploMap = {};
+
+        courseMappings.forEach(row => {
+            if (!courseMap[row.clo_id]) courseMap[row.clo_id] = [];
+            courseMap[row.clo_id].push({ id: row.id, title: row.title, code: row.code });
+        });
+
+        ploMappings.forEach(row => {
+            if (!ploMap[row.clo_id]) ploMap[row.clo_id] = [];
+            ploMap[row.clo_id].push({ id: row.id, plo_number: row.plo_number, description: row.description });
+        });
+
+        clos.forEach(clo => {
+            clo.mapped_courses = courseMap[clo.id] || [];
+            clo.mapped_plos = ploMap[clo.id] || [];
+        });
+        
+        await cacheSet(cacheKey, clos, 2592000); // Cache for 30 days
+        
         res.json({ success: true, data: clos });
     } catch (error) {
         console.error('Get all CLOs error:', error);
@@ -147,6 +181,9 @@ router.post('/clos/add', isAdmin, async (req, res) => {
             [cloNumber, title, description || null, cognitive_level || null]
         );
         await conn.commit();
+        await cacheDelPattern('cache:clos:all*');
+        await cacheDelPattern('course:*');
+        await cacheDelPattern('dashboard:stats:*');
         res.status(201).json({ success: true, message: 'CLO added', data: { id: result.insertId } });
     } catch (error) {
         await conn.rollback();
@@ -171,6 +208,9 @@ router.put('/clos/:id', isAdmin, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'CLO not found' });
         }
+        await cacheDelPattern('cache:clos:all*');
+        await cacheDelPattern('course:*');
+        await cacheDelPattern('dashboard:stats:*');
         res.json({ success: true, message: 'CLO updated successfully' });
     } catch (error) {
         console.error('Update CLO error:', error);
@@ -236,6 +276,8 @@ router.post('/clos/import', upload.single('file'), validateMagicBytes, async (re
             }
         }
         await conn.commit();
+        await cacheDelPattern('cache:clos:all*'); // Invalidate cache
+        await cacheDelPattern('obe:*');
         res.json({ success: true, message: `CLO import: ${imported} saved, ${skipped} skipped`, data: { imported, skipped, errors: errors.slice(0, 20) } });
     } catch (error) {
         await conn.rollback();
@@ -274,6 +316,10 @@ router.delete('/clos/:cloId', isAdmin, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'CLO not found' });
         }
+        await cacheDelPattern('cache:clos:all*'); // Invalidate cache
+        await cacheDelPattern('obe:*');
+        await cacheDelPattern('course:*');
+        await cacheDelPattern('dashboard:stats:*');
         res.json({ success: true, message: 'CLO deleted successfully' });
     } catch (error) {
         console.error('Delete CLO error:', error);
@@ -506,24 +552,54 @@ router.get('/:id/clos-for-assessment', async (req, res) => {
 router.get('/:id', async (req, res) => {
 
     try {
-        const [courses] = await pool.query(
-            `SELECT c.*, d.name as department_name
-             FROM courses c
-             JOIN departments d ON c.department_id = d.id
-             WHERE c.id = ?`,
-            [req.params.id]
-        );
+        // Parallelize database queries to significantly reduce loading time
+        const [
+            [courses],
+            [closFromDirect],
+            [closFromMapping],
+            [syllabi],
+            [prereqs]
+        ] = await Promise.all([
+            pool.query(
+                `SELECT c.*, d.name as department_name
+                 FROM courses c
+                 JOIN departments d ON c.department_id = d.id
+                 WHERE c.id = ?`,
+                [req.params.id]
+            ),
+            // Get CLOs created directly for this course
+            pool.query(
+                `SELECT c.*, 
+                        COALESCE((SELECT JSON_ARRAYAGG(plo_id) FROM clo_plo_mapping WHERE clo_id = c.id), '[]') as mapped_plos
+                 FROM clos c WHERE c.course_id = ? ORDER BY c.clo_number`, 
+                [req.params.id]
+            ),
+            // Get global CLOs mapped to this course via junction table
+            pool.query(
+                `SELECT c.*, 
+                        COALESCE((SELECT JSON_ARRAYAGG(plo_id) FROM clo_plo_mapping WHERE clo_id = c.id), '[]') as mapped_plos
+                 FROM course_clo_mapping ccm 
+                 JOIN clos c ON ccm.clo_id = c.id
+                 WHERE ccm.course_id = ? AND c.course_id IS NULL ORDER BY c.clo_number`, 
+                [req.params.id]
+            ),
+            pool.query('SELECT * FROM syllabi WHERE course_id = ?', [req.params.id]),
+            pool.query(
+                `SELECT c.id, c.title, c.code FROM course_prerequisites cp
+                 JOIN courses c ON cp.prerequisite_course_id = c.id
+                 WHERE cp.course_id = ?`, 
+                [req.params.id]
+            )
+        ]);
+
         if (courses.length === 0) {
             return res.status(404).json({ success: false, message: 'Course not found' });
         }
 
-        const [clos] = await pool.query(
-            `SELECT c.*, 
-                    COALESCE((SELECT JSON_ARRAYAGG(plo_id) FROM clo_plo_mapping WHERE clo_id = c.id), '[]') as mapped_plos
-             FROM clos c WHERE c.course_id = ? ORDER BY c.clo_number`, [req.params.id]
-        );
-
-        clos.forEach(clo => {
+        // Combine and parse CLOs
+        const allClos = [...closFromDirect, ...closFromMapping].sort((a, b) => a.clo_number - b.clo_number);
+        
+        allClos.forEach(clo => {
             if (typeof clo.mapped_plos === 'string') {
                 try {
                     clo.mapped_plos = JSON.parse(clo.mapped_plos);
@@ -532,22 +608,12 @@ router.get('/:id', async (req, res) => {
                 }
             }
         });
-        const [syllabi] = await pool.query(
-            'SELECT * FROM syllabi WHERE course_id = ?', [req.params.id]
-        );
-
-        // Fetch prerequisite courses
-        const [prereqs] = await pool.query(
-            `SELECT c.id, c.title, c.code FROM course_prerequisites cp
-             JOIN courses c ON cp.prerequisite_course_id = c.id
-             WHERE cp.course_id = ?`, [req.params.id]
-        );
 
         res.json({
             success: true,
             data: {
                 ...courses[0],
-                clos,
+                clos: allClos,
                 syllabus: syllabi.length > 0 ? syllabi[0] : null,
                 prerequisite_courses: prereqs
             }
@@ -612,6 +678,7 @@ router.post('/', isAdmin, async (req, res) => {
         }
 
         await conn.commit();
+        await cacheDelPattern('cache:clos:all*'); // Invalidate cache
 
         // Emit real-time event to department
         emitToDepartment(department_id, 'course_created', {
@@ -674,6 +741,8 @@ router.put('/:id', isAdmin, scopeCourse, async (req, res) => {
 
         // Invalidate scope cache (department_id may have changed)
         await cacheDel(`scope:courses:${req.params.id}`);
+        await cacheDelPattern('course:*');
+        await cacheDelPattern('dashboard:stats:*');
     } catch (error) {
         console.error('Update course error:', error);
         res.status(500).json({ success: false, message: 'Error updating course' });
@@ -702,6 +771,7 @@ router.delete('/:id', isAdmin, scopeCourse, deleteGuard('course'), async (req, r
 
         res.json({ success: true, message: 'Course deleted' });
 
+        await cacheDelPattern('cache:clos:all*'); // Invalidate cache
         // Invalidate scope cache for deleted resource
         await cacheDel(`scope:courses:${req.params.id}`);
     } catch (error) {
@@ -741,6 +811,7 @@ router.put('/:id/clos', isAdmin, async (req, res) => {
             }
         }
         await conn.commit();
+        await cacheDelPattern('cache:clos:all*'); // Invalidate cache
         res.json({ success: true, message: 'CLOs updated' });
     } catch (error) {
         await conn.rollback();
@@ -760,14 +831,28 @@ router.post('/:id/clos/single', isAdmin, async (req, res) => {
         const courseId = req.params.id;
 
         if (!title) {
+            await conn.rollback();
             return res.status(400).json({ success: false, message: 'CLO title is required' });
         }
 
         const cloPattern = /^CLO-\d+$/;
         if (!cloPattern.test(title)) {
+            await conn.rollback();
             return res.status(400).json({ success: false, message: 'CLO title must be in CLO-X format (e.g. CLO-1, CLO-2)' });
         }
         const cloNumber = parseInt(title.split('-')[1]);
+
+        // Check if CLO with this title already exists for this course
+        const [[existing]] = await conn.query(`
+            SELECT 1 FROM clos cl
+            LEFT JOIN course_clo_mapping ccm ON cl.id = ccm.clo_id AND ccm.course_id = ?
+            WHERE cl.title = ? AND (cl.course_id = ? OR ccm.clo_id IS NOT NULL)
+        `, [courseId, title, courseId]);
+
+        if (existing) {
+            await conn.rollback();
+            return res.status(400).json({ success: false, message: 'A CLO with this title is already mapped to this course' });
+        }
 
         // Insert directly mapping to course
         const [result] = await conn.query(
@@ -782,6 +867,7 @@ router.post('/:id/clos/single', isAdmin, async (req, res) => {
         );
 
         await conn.commit();
+        await cacheDelPattern('cache:clos:all*'); // Invalidate cache
         res.status(201).json({ success: true, message: 'CLO added to course', data: { id: result.insertId } });
     } catch (error) {
         await conn.rollback();
@@ -809,11 +895,40 @@ router.post('/:id/clos/map', isAdmin, async (req, res) => {
         await conn.query('INSERT IGNORE INTO course_clo_mapping (course_id, clo_id) VALUES ?', [cloValues]);
 
         await conn.commit();
+        await cacheDelPattern('cache:clos:all*'); // Invalidate cache
         res.status(200).json({ success: true, message: 'CLOs mapped to course successfully' });
     } catch (error) {
         await conn.rollback();
         console.error('Map CLOs error:', error);
         res.status(500).json({ success: false, message: 'Error mapping CLOs to course' });
+    } finally {
+        conn.release();
+    }
+});
+
+// DELETE remove a CLO from a course
+router.delete('/:id/clos/:cloId', isAdmin, async (req, res) => {
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+        const courseId = req.params.id;
+        const cloId = req.params.cloId;
+
+        // 1. Remove from global mapping if it was mapped from the global catalog
+        await conn.query('DELETE FROM course_clo_mapping WHERE course_id = ? AND clo_id = ?', [courseId, cloId]);
+
+        // 2. If it was a course-specific CLO directly created for this course, detach it.
+        // We set course_id = NULL instead of deleting it to ensure that historical batches 
+        // that have already instantiated/used this CLO are NOT affected.
+        await conn.query('UPDATE clos SET course_id = NULL WHERE id = ? AND course_id = ?', [cloId, courseId]);
+
+        await conn.commit();
+        await cacheDelPattern('cache:clos:all*'); // Invalidate cache
+        res.status(200).json({ success: true, message: 'CLO removed from course successfully' });
+    } catch (error) {
+        await conn.rollback();
+        console.error('Remove CLO error:', error);
+        res.status(500).json({ success: false, message: 'Error removing CLO from course' });
     } finally {
         conn.release();
     }

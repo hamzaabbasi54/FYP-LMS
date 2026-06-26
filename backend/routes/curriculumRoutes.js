@@ -7,6 +7,7 @@ import express from 'express';
 import pool from '../config/db.js';
 import { verifyToken, isAdmin } from '../middleware/auth.js';
 import { scopeToDepartment } from '../middleware/deptScope.js';
+import { cacheGet, cacheSet, cacheDelPattern } from '../config/redis.js';
 
 const scopeCurriculum = scopeToDepartment('curricula');
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
@@ -24,6 +25,10 @@ router.get('/', async (req, res) => {
 
         // Force department scope for dept admins
         const department_id = (req.user.role === 'deptadmin') ? req.user.department_id : queryDeptId;
+
+        const cacheKey = `curricula:dept_${department_id || 'all'}:page_${page}:limit_${limit}:search_${search || 'none'}:status_${status || 'all'}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json(cached);
 
         let whereClause = 'WHERE 1=1';
         const params = [];
@@ -55,8 +60,9 @@ router.get('/', async (req, res) => {
              LIMIT ? OFFSET ?`,
             [...params, limit, offset]
         );
-
-        res.json(paginatedResponse(curricula, total, page, limit));
+        const payload = paginatedResponse(curricula, total, page, limit);
+        await cacheSet(cacheKey, payload, 2592000); // 30 days
+        res.json(payload);
     } catch (error) {
         console.error('Get curricula error:', error);
         res.status(500).json({ success: false, message: 'Error fetching curricula' });
@@ -66,6 +72,10 @@ router.get('/', async (req, res) => {
 // GET single curriculum with all semesters and their courses
 router.get('/:id', async (req, res) => {
     try {
+        const cacheKey = `curriculum:${req.params.id}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json({ success: true, data: cached });
+
         const [curricula] = await pool.query(
             `SELECT c.*, d.name as department_name, f.name as faculty_name
              FROM curricula c
@@ -108,9 +118,12 @@ router.get('/:id', async (req, res) => {
             [req.params.id]
         );
 
+        const result = { ...curricula[0], semesters, assigned_batches: batches };
+        await cacheSet(cacheKey, result, 2592000); // 30 days
+
         res.json({
             success: true,
-            data: { ...curricula[0], semesters, assigned_batches: batches }
+            data: result
         });
     } catch (error) {
         console.error('Get curriculum error:', error);
@@ -151,6 +164,7 @@ router.post('/', isAdmin, async (req, res) => {
         }
 
         await conn.commit();
+        await cacheDelPattern('curricula:*');
         res.status(201).json({
             success: true,
             message: `Curriculum created with ${semCount} semesters`,
@@ -183,6 +197,8 @@ router.put('/:id', isAdmin, scopeCurriculum, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Curriculum not found' });
         }
+        await cacheDelPattern('curricula:*');
+        await cacheDelPattern('curriculum:*');
         res.json({ success: true, message: 'Curriculum updated' });
     } catch (error) {
         console.error('Update curriculum error:', error);
@@ -197,6 +213,8 @@ router.delete('/:id', isAdmin, scopeCurriculum, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Curriculum not found' });
         }
+        await cacheDelPattern('curricula:*');
+        await cacheDelPattern('curriculum:*');
         res.json({ success: true, message: 'Curriculum deleted' });
     } catch (error) {
         console.error('Delete curriculum error:', error);
@@ -260,6 +278,8 @@ router.post('/:id/semesters/:semNum/courses', isAdmin, scopeCurriculum, async (r
         }
 
         await conn.commit();
+        await cacheDelPattern('curricula:*');
+        await cacheDelPattern('curriculum:*');
 
         // AUTO-SYNC: Copy newly added courses to all batches that use this curriculum
         // Batches maintain independent copies, so we only ADD — never delete from batches
@@ -332,6 +352,8 @@ router.delete('/:id/semesters/:semNum/courses/:courseId', isAdmin, scopeCurricul
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Course not in this semester' });
         }
+        await cacheDelPattern('curricula:*');
+        await cacheDelPattern('curriculum:*');
         res.json({ success: true, message: 'Course removed from semester' });
     } catch (error) {
         console.error('Remove course error:', error);

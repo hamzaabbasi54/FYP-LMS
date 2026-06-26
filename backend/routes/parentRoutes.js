@@ -2,6 +2,7 @@ import express from 'express';
 import pool from '../config/db.js';
 import { verifyToken, isAdmin } from '../middleware/auth.js';
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
+import { cacheGet, cacheSet, cacheDelPattern } from '../config/redis.js';
 
 const router = express.Router();
 router.use(verifyToken);
@@ -15,16 +16,33 @@ router.get('/', isAdmin, async (req, res) => {
         let whereClause = 'WHERE 1=1';
         const params = [];
         
+        // Filter by department if user is a deptadmin
+        if (req.user.role === 'deptadmin' && !req.user.department_id) {
+            return res.status(403).json({ success: false, message: 'Access denied: Department admin has no department assigned.' });
+        }
+
+        const department_id = (req.user.role === 'deptadmin') ? req.user.department_id : req.query.department_id;
+        if (department_id) {
+            whereClause += ' AND b.department_id = ?';
+            params.push(department_id);
+        }
+
         if (search) {
             whereClause += ' AND (p.name LIKE ? OR p.email LIKE ? OR s.first_name LIKE ? OR s.last_name LIKE ? OR s.student_id_number LIKE ?)';
             const term = `%${search}%`;
             params.push(term, term, term, term, term);
         }
 
+        // Try cache
+        const cacheKey = `parents:dept:${department_id}:page:${page}:limit:${limit}:search:${search || ''}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json(cached);
+
         // Count total
         const [[{ total }]] = await pool.query(
             `SELECT COUNT(*) as total FROM parents p
              JOIN students s ON p.student_id = s.id
+             JOIN batches b ON s.batch_id = b.id
              ${whereClause}`, params
         );
 
@@ -35,13 +53,17 @@ router.get('/', isAdmin, async (req, res) => {
                     CONCAT(s.first_name, ' ', s.last_name) as studentName
              FROM parents p
              JOIN students s ON p.student_id = s.id
+             JOIN batches b ON s.batch_id = b.id
              ${whereClause}
              ORDER BY p.name ASC
              LIMIT ? OFFSET ?`,
             [...params, limit, offset]
         );
 
-        res.json(paginatedResponse(parents, total, page, limit));
+        const responseData = paginatedResponse(parents, total, page, limit);
+        await cacheSet(cacheKey, responseData, 2592000); // Cache for 30 days
+
+        res.json(responseData);
     } catch (error) {
         console.error('Get parents error:', error);
         res.status(500).json({ success: false, message: 'Error fetching parents' });
