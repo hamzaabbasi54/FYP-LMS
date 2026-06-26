@@ -2,6 +2,7 @@ import express from 'express';
 import pool from '../config/db.js';
 import { verifyToken, isAdmin } from '../middleware/auth.js';
 import { generateExcel } from '../utils/excel.js';
+import { cacheGet, cacheSet } from '../config/redis.js';
 
 const router = express.Router();
 
@@ -12,6 +13,10 @@ router.use(isAdmin); // Currently only admin views OBE reports globally
 router.get('/reports', async (req, res) => {
     try {
         const deptId = (req.user.role === 'deptadmin') ? req.user.department_id : null;
+        const cacheKey = `obe:reports:${deptId || 'all'}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json({ success: true, data: cached });
+
         const deptFilter = deptId ? ' AND b.department_id = ?' : '';
         const deptParams = deptId ? [deptId] : [];
 
@@ -253,6 +258,7 @@ router.get('/reports', async (req, res) => {
             };
         });
 
+        await cacheSet(cacheKey, formattedBatches, 86400); // cache for 1 day
         res.json({ success: true, data: formattedBatches });
     } catch (error) {
         console.error('Get OBE Reports Error:', error.message);

@@ -81,14 +81,24 @@ router.get('/all-list', async (req, res) => {
 // GET all CLOs (standalone, with mapped courses and PLOs)
 router.get('/clos/all', async (req, res) => {
     try {
-        const cacheKey = 'cache:clos:all';
+        const department_id = (req.user.role === 'deptadmin') ? req.user.department_id : req.query.department_id;
+        const cacheKey = department_id ? `cache:clos:all:${department_id}` : 'cache:clos:all';
         const cachedCLOs = await cacheGet(cacheKey);
         if (cachedCLOs) {
             return res.json({ success: true, data: cachedCLOs });
         }
+        
+        let whereClause = '';
+        const params = [];
+        if (department_id) {
+            whereClause = 'WHERE cl.course_id IS NULL OR cl.course_id IN (SELECT id FROM courses WHERE department_id = ?)';
+            params.push(department_id);
+        }
+
         const [clos] = await pool.query(
             `SELECT cl.id, cl.clo_number, cl.title, cl.description, cl.cognitive_level
-             FROM clos cl ORDER BY cl.title, cl.clo_number`
+             FROM clos cl ${whereClause} ORDER BY cl.title, cl.clo_number`,
+            params
         );
 
         // Fetch all course mappings in one query
@@ -132,7 +142,7 @@ router.get('/clos/all', async (req, res) => {
             clo.mapped_plos = ploMap[clo.id] || [];
         });
         
-        await cacheSet(cacheKey, clos, 3600); // Cache for 1 hour
+        await cacheSet(cacheKey, clos, 2592000); // Cache for 30 days
         
         res.json({ success: true, data: clos });
     } catch (error) {
@@ -171,7 +181,9 @@ router.post('/clos/add', isAdmin, async (req, res) => {
             [cloNumber, title, description || null, cognitive_level || null]
         );
         await conn.commit();
-        await cacheDel('cache:clos:all'); // Invalidate cache
+        await cacheDel('cache:clos:all');
+        await cacheDelPattern('course:*');
+        await cacheDelPattern('dashboard:stats:*');
         res.status(201).json({ success: true, message: 'CLO added', data: { id: result.insertId } });
     } catch (error) {
         await conn.rollback();
@@ -196,7 +208,9 @@ router.put('/clos/:id', isAdmin, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'CLO not found' });
         }
-        await cacheDel('cache:clos:all'); // Invalidate cache
+        await cacheDel('cache:clos:all');
+        await cacheDelPattern('course:*');
+        await cacheDelPattern('dashboard:stats:*');
         res.json({ success: true, message: 'CLO updated successfully' });
     } catch (error) {
         console.error('Update CLO error:', error);
@@ -263,6 +277,7 @@ router.post('/clos/import', upload.single('file'), validateMagicBytes, async (re
         }
         await conn.commit();
         await cacheDel('cache:clos:all'); // Invalidate cache
+        await cacheDelPattern('obe:*');
         res.json({ success: true, message: `CLO import: ${imported} saved, ${skipped} skipped`, data: { imported, skipped, errors: errors.slice(0, 20) } });
     } catch (error) {
         await conn.rollback();
@@ -302,6 +317,9 @@ router.delete('/clos/:cloId', isAdmin, async (req, res) => {
             return res.status(404).json({ success: false, message: 'CLO not found' });
         }
         await cacheDel('cache:clos:all'); // Invalidate cache
+        await cacheDelPattern('obe:*');
+        await cacheDelPattern('course:*');
+        await cacheDelPattern('dashboard:stats:*');
         res.json({ success: true, message: 'CLO deleted successfully' });
     } catch (error) {
         console.error('Delete CLO error:', error);
@@ -723,6 +741,8 @@ router.put('/:id', isAdmin, scopeCourse, async (req, res) => {
 
         // Invalidate scope cache (department_id may have changed)
         await cacheDel(`scope:courses:${req.params.id}`);
+        await cacheDelPattern('course:*');
+        await cacheDelPattern('dashboard:stats:*');
     } catch (error) {
         console.error('Update course error:', error);
         res.status(500).json({ success: false, message: 'Error updating course' });

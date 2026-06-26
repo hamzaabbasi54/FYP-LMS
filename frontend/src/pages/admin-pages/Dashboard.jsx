@@ -29,7 +29,8 @@ const Dashboard = () => {
             const response = await dashboardApi.getStats();
             if (response.success) return response.data || {};
             throw new Error('Failed to load stats');
-        }
+        },
+        staleTime: Infinity,
     });
 
     const stats = [

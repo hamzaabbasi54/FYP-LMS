@@ -15,6 +15,13 @@ router.get('/', isAdmin, async (req, res) => {
         let whereClause = 'WHERE 1=1';
         const params = [];
         
+        // Filter by department if user is a deptadmin
+        const department_id = (req.user.role === 'deptadmin') ? req.user.department_id : req.query.department_id;
+        if (department_id) {
+            whereClause += ' AND b.department_id = ?';
+            params.push(department_id);
+        }
+
         if (search) {
             whereClause += ' AND (p.name LIKE ? OR p.email LIKE ? OR s.first_name LIKE ? OR s.last_name LIKE ? OR s.student_id_number LIKE ?)';
             const term = `%${search}%`;
@@ -25,6 +32,7 @@ router.get('/', isAdmin, async (req, res) => {
         const [[{ total }]] = await pool.query(
             `SELECT COUNT(*) as total FROM parents p
              JOIN students s ON p.student_id = s.id
+             JOIN batches b ON s.batch_id = b.id
              ${whereClause}`, params
         );
 
@@ -35,6 +43,7 @@ router.get('/', isAdmin, async (req, res) => {
                     CONCAT(s.first_name, ' ', s.last_name) as studentName
              FROM parents p
              JOIN students s ON p.student_id = s.id
+             JOIN batches b ON s.batch_id = b.id
              ${whereClause}
              ORDER BY p.name ASC
              LIMIT ? OFFSET ?`,

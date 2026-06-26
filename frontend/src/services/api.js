@@ -521,6 +521,10 @@ export const studentApi = {
         const response = await api.get(`/students/by-batch/${batchId}`, { params: { search } });
         return response.data;
     },
+    getAllIds: async (batchId) => {
+        const response = await api.get(`/students/by-batch/${batchId}/ids`);
+        return response.data;
+    },
     downloadImportTemplate: async () => {
         const response = await api.get('/students/import/template', { responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([response.data]));

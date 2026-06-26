@@ -15,7 +15,7 @@ const OBEReports = () => {
             if (res.success) return res.data || [];
             throw new Error('Failed to fetch OBE reports');
         },
-        staleTime: 5 * 60 * 1000, // Cache for 5 minutes (this is an expensive query)
+        staleTime: Infinity, // Cache indefinitely, backend will invalidate cache on changes
         onError: () => toast.error('Failed to fetch OBE reports')
     });
 

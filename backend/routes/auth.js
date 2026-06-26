@@ -10,7 +10,7 @@ import { signup, login, getProfile, updateProfile, changePassword } from '../con
 import { verifyToken, isAdmin } from '../middleware/auth.js';
 import pool from '../config/db.js';
 import { sendInviteEmail, sendPasswordResetEmail } from '../utils/email.js';
-import { cacheDel } from '../config/redis.js';
+import { cacheDel, cacheDelPattern } from '../config/redis.js';
 
 const router = express.Router();
 
@@ -238,6 +238,11 @@ router.post('/create-account', verifyToken, isAdmin, async (req, res) => {
 
         await conn.commit();
 
+        if (role === 'faculty' && departmentId) {
+            await cacheDelPattern(`facultyUsers:${departmentId}`);
+        }
+        await cacheDelPattern('dashboard:stats:*');
+
         // Fire-and-forget email
         sendInviteEmail({
             fullName: fullName.trim(),
@@ -378,6 +383,14 @@ router.put('/users/:id', verifyToken, isAdmin, async (req, res) => {
             await cacheDel(`session:user:${id}`);
         }
 
+        if (existing[0].role === 'faculty' || role === 'faculty') {
+            await cacheDelPattern(`facultyUsers:${existing[0].department_id}`);
+            if (department_id) {
+                await cacheDelPattern(`facultyUsers:${department_id}`);
+            }
+        }
+        await cacheDelPattern('dashboard:stats:*');
+
         res.status(200).json({
             success: true,
             message: 'User updated successfully'
@@ -410,6 +423,10 @@ router.delete('/users/:id', verifyToken, isAdmin, async (req, res) => {
 
         await pool.query('DELETE FROM users WHERE id = ?', [id]);
 
+        if (users[0].role === 'faculty') {
+            await cacheDelPattern(`facultyUsers:${users[0].department_id}`);
+        }
+
         res.status(200).json({
             success: true,
             message: `${users[0].full_name} has been deleted`
@@ -425,7 +442,7 @@ router.patch('/users/:id/status', verifyToken, isAdmin, async (req, res) => {
     try {
         const { id } = req.params;
 
-        const [users] = await pool.query('SELECT id, full_name, is_active FROM users WHERE id = ?', [id]);
+        const [users] = await pool.query('SELECT id, full_name, is_active, role, department_id FROM users WHERE id = ?', [id]);
         if (users.length === 0) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
@@ -450,6 +467,10 @@ router.patch('/users/:id/status', verifyToken, isAdmin, async (req, res) => {
 
         // Invalidate Redis session cache so auth middleware reads fresh data
         await cacheDel(`session:user:${id}`);
+
+        if (users[0].role === 'faculty') {
+            await cacheDelPattern(`facultyUsers:${users[0].department_id}`);
+        }
 
         res.status(200).json({
             success: true,

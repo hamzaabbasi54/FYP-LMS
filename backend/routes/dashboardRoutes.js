@@ -7,6 +7,7 @@
 import express from 'express';
 import pool from '../config/db.js';
 import { verifyToken, isAdmin } from '../middleware/auth.js';
+import { cacheGet, cacheSet, cacheDelPattern } from '../config/redis.js';
 
 const router = express.Router();
 router.use(verifyToken, isAdmin);
@@ -20,6 +21,9 @@ function getDeptId(req) {
 router.get('/stats', async (req, res) => {
     try {
         const deptId = getDeptId(req);
+        const cacheKey = `dashboard:stats:${deptId || 'all'}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json({ success: true, data: cached });
 
         let studentQ, batchQ, courseQ, facultyQ, pendingQ;
 
@@ -42,16 +46,19 @@ router.get('/stats', async (req, res) => {
             [[{ count: pendingQ }]] = await pool.query("SELECT COUNT(*) as count FROM users WHERE status = 'pending'");
         }
 
-        res.json({
-            success: true,
-            data: {
+        const statsData = {
                 total_students: studentQ,
                 total_users: facultyQ,
                 active_batches: batchQ,
                 total_courses: courseQ,
                 total_departments: 1,
                 pending_approvals: pendingQ
-            }
+            };
+        await cacheSet(cacheKey, statsData, 2592000); // Cache for 30 days
+
+        res.json({
+            success: true,
+            data: statsData
         });
     } catch (error) {
         console.error('Get stats error:', error);

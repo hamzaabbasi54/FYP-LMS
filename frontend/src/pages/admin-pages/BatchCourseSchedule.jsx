@@ -67,7 +67,8 @@ const BatchCourseSchedule = () => {
         queryFn: async () => {
             const res = await courseApi.getAllClos();
             return res.success ? (res.data || []) : [];
-        }
+        },
+        staleTime: Infinity
     });
 
     const { data: facultyList = [] } = useQuery({
@@ -75,7 +76,8 @@ const BatchCourseSchedule = () => {
         queryFn: async () => {
             const res = await approvalApi.getUsersByRole('faculty');
             return res.success ? (res.data || []) : [];
-        }
+        },
+        staleTime: Infinity
     });
 
     const { data: batchPlos = [] } = useQuery({
@@ -83,7 +85,8 @@ const BatchCourseSchedule = () => {
         queryFn: async () => {
             const res = await batchApi.getPLOs(batchId);
             return res.success ? (res.data || []) : [];
-        }
+        },
+        staleTime: Infinity
     });
 
     const { data: courseDataDetails, isLoading: loading } = useQuery({
@@ -100,7 +103,8 @@ const BatchCourseSchedule = () => {
             if (scheduleRes.success) scheduleData = scheduleRes.data;
             
             return { details, scheduleData };
-        }
+        },
+        staleTime: Infinity
     });
 
     useEffect(() => {

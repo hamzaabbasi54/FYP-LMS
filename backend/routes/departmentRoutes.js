@@ -10,6 +10,7 @@ import { verifyToken, isAdmin } from '../middleware/auth.js';
 import { scopeToDepartment } from '../middleware/deptScope.js';
 import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
 import { deleteGuard } from '../middleware/deleteGuard.js';
+import { cacheGet, cacheSet, cacheDelPattern } from '../config/redis.js';
 
 const scopeDept = scopeToDepartment('departments');
 const scopePLO = scopeToDepartment('plos', 'ploId', { deptColumn: 'department_id' });
@@ -235,13 +236,15 @@ router.delete('/:id', isAdmin, scopeDept, deleteGuard('department'), async (req,
 router.get('/plos/all', async (req, res) => {
     try {
         const department_id = (req.user.role === 'deptadmin') ? req.user.department_id : req.query.department_id;
-        if (!department_id) {
-            return res.status(400).json({ success: false, message: 'department_id is required' });
-        }
+        const cacheKey = `plos:${department_id}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json({ success: true, data: cached });
+
         const [plos] = await pool.query(
             'SELECT * FROM plos WHERE department_id = ? ORDER BY plo_number',
             [department_id]
         );
+        await cacheSet(cacheKey, plos, 2592000); // 30 days
         res.json({ success: true, data: plos });
     } catch (error) {
         console.error('Get all PLOs error:', error);
@@ -261,6 +264,7 @@ router.post('/plos/add', isAdmin, async (req, res) => {
             'INSERT INTO plos (department_id, plo_number, description) VALUES (?, ?, ?)',
             [department_id, plo_number, description]
         );
+        await cacheDelPattern('plos:*');
         res.status(201).json({ success: true, message: 'PLO added', data: { id: result.insertId } });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') {
@@ -278,6 +282,7 @@ router.delete('/plos/:ploId', isAdmin, scopePLO, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'PLO not found' });
         }
+        await cacheDelPattern('plos:*');
         res.json({ success: true, message: 'PLO deleted' });
     } catch (error) {
         console.error('Delete PLO error:', error);
@@ -324,6 +329,7 @@ router.post('/plos/import', isAdmin, upload.single('file'), validateMagicBytes, 
             }
         }
         await conn.commit();
+        await cacheDelPattern('plos:*');
         res.json({ success: true, message: `PLO import: ${imported} saved, ${skipped} skipped`, data: { imported, skipped, errors: errors.slice(0, 20) } });
     } catch (error) {
         await conn.rollback();
@@ -361,10 +367,15 @@ router.get('/plos/export', async (req, res) => {
 // GET PLOs for a department (legacy route)
 router.get('/:id/plos', async (req, res) => {
     try {
+        const cacheKey = `plos:${req.params.id}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json({ success: true, data: cached });
+
         const [plos] = await pool.query(
             'SELECT * FROM plos WHERE department_id = ? ORDER BY plo_number',
             [req.params.id]
         );
+        await cacheSet(cacheKey, plos, 2592000);
         res.json({ success: true, data: plos });
     } catch (error) {
         console.error('Get PLOs error:', error);
@@ -389,6 +400,7 @@ router.put('/:id/plos', isAdmin, async (req, res) => {
         }
 
         await conn.commit();
+        await cacheDelPattern('plos:*');
         res.json({ success: true, message: 'PLOs updated' });
     } catch (error) {
         await conn.rollback();

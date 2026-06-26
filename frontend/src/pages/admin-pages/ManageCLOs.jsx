@@ -27,7 +27,8 @@ const ManageCLOs = () => {
             const res = await courseApi.getAllCLOs();
             if (res.success) return res.data || [];
             throw new Error('Failed to load CLOs');
-        }
+        },
+        staleTime: Infinity
     });
 
     const filteredCLOs = allCLOs.filter(c =>
