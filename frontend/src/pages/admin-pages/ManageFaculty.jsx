@@ -83,7 +83,7 @@ const ManageFaculty = () => {
                             </p>
                         </div>
                         <Link
-                            to="/admin-managefaculty/addfaculty"
+                            to="/admin-createaccount"
                             className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-sky-700 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-sky-100"
                         >
                             <PiPlus className="h-5 w-5" />
