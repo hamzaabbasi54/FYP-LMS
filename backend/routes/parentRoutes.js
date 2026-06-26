@@ -2,6 +2,7 @@ import express from 'express';
 import pool from '../config/db.js';
 import { verifyToken, isAdmin } from '../middleware/auth.js';
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
+import { cacheGet, cacheSet, cacheDelPattern } from '../config/redis.js';
 
 const router = express.Router();
 router.use(verifyToken);
@@ -28,6 +29,11 @@ router.get('/', isAdmin, async (req, res) => {
             params.push(term, term, term, term, term);
         }
 
+        // Try cache
+        const cacheKey = `parents:dept:${department_id}:page:${page}:limit:${limit}:search:${search || ''}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json(cached);
+
         // Count total
         const [[{ total }]] = await pool.query(
             `SELECT COUNT(*) as total FROM parents p
@@ -50,7 +56,10 @@ router.get('/', isAdmin, async (req, res) => {
             [...params, limit, offset]
         );
 
-        res.json(paginatedResponse(parents, total, page, limit));
+        const responseData = paginatedResponse(parents, total, page, limit);
+        await cacheSet(cacheKey, responseData, 2592000); // Cache for 30 days
+
+        res.json(responseData);
     } catch (error) {
         console.error('Get parents error:', error);
         res.status(500).json({ success: false, message: 'Error fetching parents' });

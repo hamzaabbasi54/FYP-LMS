@@ -181,7 +181,7 @@ router.post('/clos/add', isAdmin, async (req, res) => {
             [cloNumber, title, description || null, cognitive_level || null]
         );
         await conn.commit();
-        await cacheDel('cache:clos:all');
+        await cacheDelPattern('cache:clos:all*');
         await cacheDelPattern('course:*');
         await cacheDelPattern('dashboard:stats:*');
         res.status(201).json({ success: true, message: 'CLO added', data: { id: result.insertId } });
@@ -208,7 +208,7 @@ router.put('/clos/:id', isAdmin, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'CLO not found' });
         }
-        await cacheDel('cache:clos:all');
+        await cacheDelPattern('cache:clos:all*');
         await cacheDelPattern('course:*');
         await cacheDelPattern('dashboard:stats:*');
         res.json({ success: true, message: 'CLO updated successfully' });
@@ -276,7 +276,7 @@ router.post('/clos/import', upload.single('file'), validateMagicBytes, async (re
             }
         }
         await conn.commit();
-        await cacheDel('cache:clos:all'); // Invalidate cache
+        await cacheDelPattern('cache:clos:all*'); // Invalidate cache
         await cacheDelPattern('obe:*');
         res.json({ success: true, message: `CLO import: ${imported} saved, ${skipped} skipped`, data: { imported, skipped, errors: errors.slice(0, 20) } });
     } catch (error) {
@@ -316,7 +316,7 @@ router.delete('/clos/:cloId', isAdmin, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'CLO not found' });
         }
-        await cacheDel('cache:clos:all'); // Invalidate cache
+        await cacheDelPattern('cache:clos:all*'); // Invalidate cache
         await cacheDelPattern('obe:*');
         await cacheDelPattern('course:*');
         await cacheDelPattern('dashboard:stats:*');
@@ -678,7 +678,7 @@ router.post('/', isAdmin, async (req, res) => {
         }
 
         await conn.commit();
-        await cacheDel('cache:clos:all'); // Invalidate cache
+        await cacheDelPattern('cache:clos:all*'); // Invalidate cache
 
         // Emit real-time event to department
         emitToDepartment(department_id, 'course_created', {
@@ -771,7 +771,7 @@ router.delete('/:id', isAdmin, scopeCourse, deleteGuard('course'), async (req, r
 
         res.json({ success: true, message: 'Course deleted' });
 
-        await cacheDel('cache:clos:all'); // Invalidate cache
+        await cacheDelPattern('cache:clos:all*'); // Invalidate cache
         // Invalidate scope cache for deleted resource
         await cacheDel(`scope:courses:${req.params.id}`);
     } catch (error) {
@@ -811,7 +811,7 @@ router.put('/:id/clos', isAdmin, async (req, res) => {
             }
         }
         await conn.commit();
-        await cacheDel('cache:clos:all'); // Invalidate cache
+        await cacheDelPattern('cache:clos:all*'); // Invalidate cache
         res.json({ success: true, message: 'CLOs updated' });
     } catch (error) {
         await conn.rollback();
@@ -864,7 +864,7 @@ router.post('/:id/clos/single', isAdmin, async (req, res) => {
         );
 
         await conn.commit();
-        await cacheDel('cache:clos:all'); // Invalidate cache
+        await cacheDelPattern('cache:clos:all*'); // Invalidate cache
         res.status(201).json({ success: true, message: 'CLO added to course', data: { id: result.insertId } });
     } catch (error) {
         await conn.rollback();
@@ -892,7 +892,7 @@ router.post('/:id/clos/map', isAdmin, async (req, res) => {
         await conn.query('INSERT IGNORE INTO course_clo_mapping (course_id, clo_id) VALUES ?', [cloValues]);
 
         await conn.commit();
-        await cacheDel('cache:clos:all'); // Invalidate cache
+        await cacheDelPattern('cache:clos:all*'); // Invalidate cache
         res.status(200).json({ success: true, message: 'CLOs mapped to course successfully' });
     } catch (error) {
         await conn.rollback();
@@ -920,7 +920,7 @@ router.delete('/:id/clos/:cloId', isAdmin, async (req, res) => {
         await conn.query('UPDATE clos SET course_id = NULL WHERE id = ? AND course_id = ?', [cloId, courseId]);
 
         await conn.commit();
-        await cacheDel('cache:clos:all'); // Invalidate cache
+        await cacheDelPattern('cache:clos:all*'); // Invalidate cache
         res.status(200).json({ success: true, message: 'CLO removed from course successfully' });
     } catch (error) {
         await conn.rollback();

@@ -179,6 +179,7 @@ router.post('/', isAdmin, async (req, res) => {
 
         await conn.commit();
         await cacheDelPattern('students:*');
+        await cacheDelPattern('parents:*');
         await cacheDelPattern('dashboard:*');
         res.status(201).json({
             success: true,
@@ -224,6 +225,7 @@ router.put('/:id', isAdmin, scopeStudent, async (req, res) => {
             return res.status(404).json({ success: false, message: 'Student not found' });
         }
         await cacheDelPattern('students:*');
+        await cacheDelPattern('parents:*');
         await cacheDelPattern('dashboard:*');
         res.json({ success: true, message: 'Student updated' });
     } catch (error) {
@@ -240,6 +242,7 @@ router.delete('/:id', isAdmin, scopeStudent, async (req, res) => {
             return res.status(404).json({ success: false, message: 'Student not found' });
         }
         await cacheDelPattern('students:*');
+        await cacheDelPattern('parents:*');
         await cacheDelPattern('dashboard:*');
         res.json({ success: true, message: 'Student deleted' });
     } catch (error) {
@@ -274,6 +277,7 @@ router.post('/bulk-delete', isAdmin, deleteGuard('students_bulk'), async (req, r
         const [result] = await pool.query(`DELETE FROM students WHERE id IN (${placeholders})`, student_ids);
 
         await cacheDelPattern('students:*');
+        await cacheDelPattern('parents:*');
         await cacheDelPattern('dashboard:*');
         res.json({ success: true, message: `${result.affectedRows} students deleted successfully` });
     } catch (error) {
@@ -946,6 +950,7 @@ router.put('/:studentId/parent', isAdmin, async (req, res) => {
              ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email), phone = VALUES(phone)`,
             [req.params.studentId, name, email || null, phone || null]
         );
+        await cacheDelPattern('parents:*');
         res.json({ success: true, message: 'Parent info saved' });
     } catch (error) {
         console.error('Save parent error:', error);

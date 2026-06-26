@@ -2,16 +2,28 @@ import React from 'react';
 import { Routes, Route } from "react-router-dom";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import { get, set, del } from 'idb-keyval';
 
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            staleTime: 0,                // data is immediately stale, ensuring fresh fetches
-            refetchOnMount: true,         // refetch when component mounts (e.g. navigating back)
-            refetchOnWindowFocus: true,   // refetch when browser tab regains focus
+            staleTime: 0,
+            refetchOnMount: true,
+            refetchOnWindowFocus: true,
+            gcTime: 1000 * 60 * 60 * 24, // 24 hours
         },
+    },
+});
+
+const asyncStoragePersister = createAsyncStoragePersister({
+    storage: {
+        getItem: async (key) => await get(key),
+        setItem: async (key, value) => await set(key, value),
+        removeItem: async (key) => await del(key),
     },
 });
 
@@ -85,7 +97,7 @@ import UndoToast from "./components/common/UndoToast.jsx";
 
 function App() {
     return (
-        <QueryClientProvider client={queryClient}>
+        <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: asyncStoragePersister }}>
             <AuthProvider>
                 <SocketProvider>
                     <Routes>
@@ -178,7 +190,7 @@ function App() {
                     <UndoToast />
                 </AuthProvider>
                 <ReactQueryDevtools initialIsOpen={false} />
-            </QueryClientProvider>
+        </PersistQueryClientProvider>
     );
 }
 
