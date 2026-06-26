@@ -131,7 +131,7 @@ const UndoToast = () => {
         <div
             style={{
                 position: 'fixed',
-                bottom: '24px',
+                top: '80px',
                 right: '24px',
                 zIndex: 99999,
                 display: 'flex',

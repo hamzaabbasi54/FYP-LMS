@@ -587,7 +587,7 @@ const StudentList = () => {
 
                                 {/* Download Template Button */}
                                 <button onClick={handleDownloadTemplate} type="button"
-                                    className="w-full mb-6 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 text-blue-700 rounded-xl hover:from-blue-100 hover:to-indigo-100 font-semibold text-sm transition-all flex items-center justify-center gap-2">
+                                    className="w-full mb-6 px-4 py-2.5 bg-sky-50 border border-sky-200 text-sky-700 rounded-xl hover:bg-sky-100 font-semibold text-sm transition-all flex items-center justify-center gap-2">
                                     <MdFileDownload className="w-5 h-5" /> Download Excel Template
                                 </button>
 

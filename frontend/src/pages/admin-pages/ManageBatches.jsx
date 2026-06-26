@@ -16,6 +16,7 @@ import useUndoStore from '../../stores/useUndoStore';
 
 const ManageBatches = () => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [deletingId, setDeletingId] = useState(null);
     const queryClient = useQueryClient();
 
     const { data: batches = [], isLoading: loading } = useQuery({
@@ -37,18 +38,25 @@ const ManageBatches = () => {
         e.stopPropagation();
 
         const undoId = `batch-${batch.id}`;
-        if (isPending(undoId)) return;
+        if (isPending(undoId) || deletingId === batch.id) return;
+
+        setDeletingId(batch.id);
 
         // Pre-flight: check for active data via deleteGuard
         try {
             const guardRes = await batchApi.delete(batch.id);
             if (guardRes.requiresConfirmation && guardRes.hasActiveData) {
                 const confirmed = window.confirm(guardRes.message);
-                if (!confirmed) return;
+                if (!confirmed) {
+                    setDeletingId(null);
+                    return;
+                }
             }
         } catch {
             // Guard failed — proceed with undo queue anyway
         }
+
+        setDeletingId(null);
 
         // Optimistically remove from cache
         queryClient.setQueryData(['batches'], (old) =>
@@ -190,10 +198,15 @@ const ManageBatches = () => {
                                     </div>
                                     <button
                                         onClick={(e) => handleDelete(batch, e)}
-                                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 transition-colors hover:border-red-100 hover:bg-red-50 hover:text-red-600"
+                                        disabled={deletingId === batch.id}
+                                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 transition-colors hover:border-red-100 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                                         title="Delete batch"
                                     >
-                                        <PiTrash className="h-4 w-4" />
+                                        {deletingId === batch.id ? (
+                                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-red-500" />
+                                        ) : (
+                                            <PiTrash className="h-4 w-4" />
+                                        )}
                                     </button>
                                 </div>
 

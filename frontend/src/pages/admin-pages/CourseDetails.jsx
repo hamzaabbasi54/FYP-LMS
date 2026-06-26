@@ -1,12 +1,55 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MdArrowBack, MdAccessTime, MdInfoOutline, MdAccountBalance } from 'react-icons/md';
+import { MdArrowBack, MdAccessTime, MdInfoOutline, MdAccountBalance, MdAdd, MdDelete } from 'react-icons/md';
 import { courseApi } from '../../services/api';
+import MapCourseCLOModal from './MapCourseCLOModal';
+import OverlayLoader from '../../components/common/OverlayLoader';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-toastify';
+import useUndoStore from '../../stores/useUndoStore';
 
 const CourseDetails = () => {
     const { id } = useParams();
+    const [showCLOModal, setShowCLOModal] = useState(false);
+    const [cloToDelete, setCloToDelete] = useState(null);
+    const queryClient = useQueryClient();
+    
+    const enqueueUndo = useUndoStore(s => s.enqueue);
+    const pendingDeletions = useUndoStore(s => s.pendingDeletions);
+    
+    // Check if any CLO from this course is currently waiting in the undo queue
+    const isDeletingCLO = pendingDeletions.some(p => p.id.startsWith(`delete-clo-${id}-`));
+
+    const confirmDelete = () => {
+        if (!cloToDelete) return;
+        const cloId = cloToDelete.id;
+        const cloTitle = cloToDelete.title || `CLO-${cloToDelete.clo_number}`;
+        setCloToDelete(null);
+
+        // Optimistically remove from UI
+        const previousData = queryClient.getQueryData(['course', String(id)]);
+        queryClient.setQueryData(['course', String(id)], old => {
+            if (!old) return old;
+            return {
+                ...old,
+                clos: old.clos.filter(c => c.id !== cloId)
+            };
+        });
+
+        enqueueUndo({
+            id: `delete-clo-${id}-${cloId}`,
+            type: 'Course CLO',
+            label: cloTitle,
+            apiCall: async () => {
+                await courseApi.deleteCLO(id, cloId);
+                queryClient.invalidateQueries({ queryKey: ['course', String(id)] });
+            },
+            onUndo: () => {
+                queryClient.setQueryData(['course', String(id)], previousData);
+            }
+        });
+    };
 
     const { data: course, isLoading: loading } = useQuery({
         queryKey: ['course', id],
@@ -98,53 +141,128 @@ const CourseDetails = () => {
 
                 {/* CLO Section */}
                 <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-8">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md">
-                            <MdAccountBalance className="w-5 h-5" />
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md">
+                                <MdAccountBalance className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-900">Course Learning Outcomes (CLOs)</h2>
+                                <p className="text-sm text-slate-500">Skills and knowledge students will acquire</p>
+                            </div>
                         </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-slate-900">Course Learning Outcomes (CLOs)</h2>
-                            <p className="text-sm text-slate-500">Skills and knowledge students will acquire</p>
-                        </div>
+                        {clos.length > 0 && (
+                            <button 
+                                onClick={() => setShowCLOModal(true)}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 rounded-xl font-semibold text-sm transition-colors border border-indigo-200"
+                            >
+                                <MdAdd className="w-4 h-4" /> Manage CLOs
+                            </button>
+                        )}
                     </div>
 
                     {clos.length === 0 ? (
-                        <div className="text-center py-10 bg-white border-2 border-slate-300 rounded-xl shadow-sm border-2 border-slate-200 border-dashed">
-                            <p className="text-slate-500">No CLOs have been defined for this course.</p>
+                        <div className="text-center py-12 bg-slate-50 border-2 border-slate-200 border-dashed rounded-2xl shadow-sm">
+                            <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4">
+                                <MdAccountBalance className="w-8 h-8 text-indigo-300" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-700 mb-2">No CLOs Defined</h3>
+                            <p className="text-slate-500 mb-6 max-w-md mx-auto">
+                                This course doesn't have any global Learning Outcomes. Add them here to serve as the blueprint for all future semesters.
+                            </p>
+                            <button 
+                                onClick={() => setShowCLOModal(true)}
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 hover:shadow-lg transition-all"
+                            >
+                                <MdAdd className="w-5 h-5" /> Add CLOs to Course
+                            </button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="flex flex-col gap-3">
                             {clos.map((clo, index) => (
-                                <div key={clo.id || index} className="group relative bg-white border-2 border-slate-300 shadow-sm rounded-xl p-5 hover:border-indigo-300 hover:shadow-md transition-all">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div className="flex items-center gap-2">
-                                            <span className="flex-shrink-0 w-8 h-8 bg-indigo-50 text-indigo-700 rounded-lg flex items-center justify-center text-xs font-bold border border-indigo-100">
-                                                CLO {clo.clo_number}
+                                <div key={clo.id || index} className="flex flex-col md:flex-row md:items-center justify-between bg-white border border-slate-200 rounded-xl p-3.5 hover:border-indigo-300 hover:shadow-sm transition-all gap-4">
+                                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold border border-indigo-100">
+                                                {clo.title || `CLO-${clo.clo_number}`}
                                             </span>
-                                            <h3 className="font-bold text-slate-800">{clo.title}</h3>
+                                            {clo.cognitive_level && (
+                                                <span className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded text-[10px] font-bold">
+                                                    {clo.cognitive_level}
+                                                </span>
+                                            )}
                                         </div>
+                                        <div className="w-px h-6 bg-slate-200 hidden md:block"></div>
+                                        <p className="text-sm text-slate-600 truncate flex-1" title={clo.description}>
+                                            {clo.description || 'No description provided.'}
+                                        </p>
                                     </div>
-                                    <p className="text-sm text-slate-600 mb-4 h-10 overflow-hidden line-clamp-2" title={clo.description}>
-                                        {clo.description || 'No description provided.'}
-                                    </p>
-                                    <div className="flex items-center gap-3 mt-auto pt-4 border-t border-slate-100">
-                                        {clo.cognitive_level && (
-                                            <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded text-xs font-semibold">
-                                                {clo.cognitive_level}
+                                    {(clo.plo_mapping || (clo.mapped_plos && clo.mapped_plos.length > 0)) && (
+                                        <div className="shrink-0 flex items-center gap-1.5">
+                                            <span className="text-xs text-slate-400 font-medium">PLOs:</span>
+                                            <span className="px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-xs font-semibold mr-2">
+                                                {clo.plo_mapping || clo.mapped_plos?.length || 0}
                                             </span>
-                                        )}
-                                        {clo.plo_mapping && (
-                                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-xs font-semibold">
-                                                Mapped to: {clo.plo_mapping}
-                                            </span>
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
+                                    <button
+                                        onClick={() => setCloToDelete(clo)}
+                                        className="shrink-0 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                        title="Remove CLO from course"
+                                    >
+                                        <MdDelete className="w-5 h-5" />
+                                    </button>
                                 </div>
                             ))}
                         </div>
                     )}
                 </div>
             </div>
+
+            <OverlayLoader isLoading={isDeletingCLO} text="Removing CLO from course..." />
+
+            {/* Custom Confirmation Modal */}
+            {cloToDelete && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="p-6">
+                            <div className="flex items-center gap-4 mb-4 text-red-600">
+                                <div className="p-3 bg-red-100 rounded-full">
+                                    <MdDelete className="w-6 h-6" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-800">Remove CLO</h3>
+                            </div>
+                            <p className="text-slate-600 mb-2">
+                                Are you sure you want to remove <strong>{cloToDelete.title || `CLO-${cloToDelete.clo_number}`}</strong> from this course?
+                            </p>
+                            <p className="text-sm text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                This action only detaches it from the global catalog blueprint. Previous semesters using this CLO will remain unaffected.
+                            </p>
+                        </div>
+                        <div className="flex justify-end gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
+                            <button
+                                onClick={() => setCloToDelete(null)}
+                                className="px-5 py-2.5 text-slate-600 font-medium rounded-xl hover:bg-slate-200 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="px-5 py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors shadow-sm"
+                            >
+                                Yes, Remove It
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <MapCourseCLOModal 
+                isOpen={showCLOModal}
+                onClose={() => setShowCLOModal(false)}
+                courseId={course.id}
+                existingClos={clos}
+            />
         </div>
     );
 };
