@@ -12,6 +12,7 @@ import { verifyToken, isAdmin, isAuthenticated } from '../middleware/auth.js';
 import { scopeToDepartment } from '../middleware/deptScope.js';
 import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
 import { deleteGuard } from '../middleware/deleteGuard.js';
+import { scopeFaculty } from '../middleware/facultyScope.js';
 
 // Students don't have a direct department_id — resolve via batch → department
 const scopeStudent = scopeToDepartment('students', 'id', {
@@ -908,7 +909,7 @@ router.post('/course/:assignmentId/register', isAuthenticated, async (req, res) 
 
 // DELETE unenroll student from a course (Faculty-scoped)
 // Only removes the enrollment record — student data remains in the system
-router.delete('/course/:assignmentId/unenroll/:studentId', isAuthenticated, async (req, res) => {
+router.delete('/course/:assignmentId/unenroll/:studentId', isAuthenticated, scopeFaculty('course_assignment', 'params', 'assignmentId'), async (req, res) => {
     try {
         const { assignmentId, studentId } = req.params;
         const [result] = await pool.query(
