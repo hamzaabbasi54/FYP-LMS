@@ -61,10 +61,15 @@ const ManageStudents = () => {
             label: fullName,
             highRisk: true,
             apiCall: async () => {
-                await studentApi.facultyUnenrollStudent(courseAssignmentId, student.id);
-                queryClient.invalidateQueries({ queryKey: ['enrolledStudents', String(courseAssignmentId)] });
-                queryClient.invalidateQueries({ queryKey: ['facultyDashboardCourses'] });
-                toast.success(`${fullName} removed from course`);
+                try {
+                    await studentApi.facultyUnenrollStudent(courseAssignmentId, student.id);
+                    queryClient.invalidateQueries({ queryKey: ['enrolledStudents', String(courseAssignmentId)] });
+                    queryClient.invalidateQueries({ queryKey: ['facultyDashboardCourses'] });
+                    toast.success(`${fullName} removed from course`);
+                } catch (error) {
+                    queryClient.invalidateQueries({ queryKey: ['enrolledStudents', String(courseAssignmentId)] });
+                    toast.error(`Failed to remove ${fullName}`);
+                }
             },
             onUndo: () => {
                 queryClient.invalidateQueries({ queryKey: ['enrolledStudents', String(courseAssignmentId)] });
