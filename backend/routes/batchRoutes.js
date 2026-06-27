@@ -333,6 +333,7 @@ router.put('/:id', isAdmin, scopeBatch, async (req, res) => {
         // Invalidate scope cache for this batch
         await cacheDel(`scope:batches:${req.params.id}`);
         await cacheDel(`batch:${req.params.id}`);
+        await cacheDelPattern('dashboard:stats:*');
     } catch (error) {
         await conn.rollback();
         console.error('Update batch error:', error.code, error.sqlMessage || error.message, error.sql || '');
