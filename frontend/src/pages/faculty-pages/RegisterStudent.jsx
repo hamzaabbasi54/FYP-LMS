@@ -239,7 +239,9 @@ const RegisterStudent = () => {
                     Courses
                 </Link>
                 <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
-                <span className="text-slate-400">{selectedCourse?.code || 'Course'}</span>
+                <span className="text-slate-400">
+                    {String(selectedCourse?.assignment_id) === String(assignmentId) ? selectedCourse?.code : 'Course'}
+                </span>
                 <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
                 <span className="text-slate-800 font-semibold">Add Student</span>
             </div>
