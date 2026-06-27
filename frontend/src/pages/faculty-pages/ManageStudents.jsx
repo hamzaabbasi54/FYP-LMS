@@ -44,7 +44,7 @@ const ManageStudents = () => {
     }, []);
 
     const handleUnenroll = (student) => {
-        const undoId = `unenroll-${student.id}`;
+        const undoId = `unenroll-${courseAssignmentId}-${student.id}`;
         if (isPending(undoId)) return;
         setOpenDropdown(null);
 
