@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
     PiArrowRight as MdChevronRight,
@@ -7,11 +7,14 @@ import {
     PiMagnifyingGlass as MdSearch,
     PiPhone as MdPhone,
     PiPlus as MdAdd,
-    PiUsersThree as MdPeople
+    PiUsersThree as MdPeople,
+    PiUserMinus
 } from 'react-icons/pi';
+import { toast } from 'react-toastify';
 import { useCourse } from '../../context/CourseContext';
 import { studentApi } from '../../services/api';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import useUndoStore from '../../stores/useUndoStore';
 
 const ManageStudents = () => {
     const { selectedCourse } = useCourse();
@@ -20,6 +23,53 @@ const ManageStudents = () => {
     const [page, setPage] = useState(1);
     const limit = 10;
     const courseAssignmentId = selectedCourse?.assignment_id || assignmentId;
+    const queryClient = useQueryClient();
+    const enqueueUndo = useUndoStore(s => s.enqueue);
+    const isPending = useUndoStore(s => s.isPending);
+    const [openDropdown, setOpenDropdown] = useState(null);
+    const [confirmStudent, setConfirmStudent] = useState(null);
+    const dropdownRef = useRef(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setOpenDropdown(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleUnenroll = (student) => {
+        const undoId = `unenroll-${student.id}`;
+        if (isPending(undoId)) return;
+        setOpenDropdown(null);
+
+        const fullName = `${student.first_name} ${student.last_name}`;
+
+        // Optimistically remove from cache
+        queryClient.setQueryData(['enrolledStudents', String(courseAssignmentId)], (old) =>
+            (old || []).filter(s => s.id !== student.id)
+        );
+
+        enqueueUndo({
+            id: undoId,
+            type: 'Student',
+            label: fullName,
+            highRisk: true,
+            apiCall: async () => {
+                await studentApi.facultyUnenrollStudent(courseAssignmentId, student.id);
+                queryClient.invalidateQueries({ queryKey: ['enrolledStudents', String(courseAssignmentId)] });
+                queryClient.invalidateQueries({ queryKey: ['facultyDashboardCourses'] });
+                toast.success(`${fullName} removed from course`);
+            },
+            onUndo: () => {
+                queryClient.invalidateQueries({ queryKey: ['enrolledStudents', String(courseAssignmentId)] });
+                toast.info(`Removal of "${fullName}" undone`);
+            }
+        });
+    };
 
     useEffect(() => {
         setPage(1);
@@ -83,8 +133,9 @@ const ManageStudents = () => {
 
 
     return (
-        <div className="min-h-[calc(100vh-140px)] space-y-6">
-            {/* Breadcrumbs */}
+        <>
+            <div className="min-h-[calc(100vh-140px)] space-y-6">
+                {/* Breadcrumbs */}
             <div className="flex items-center text-sm text-slate-500 font-medium">
                 <Link to={selectedCourse ? `/faculty-mycourses/${courseAssignmentId}` : '/faculty-dashboard'} className="hover:text-sky-700 transition-colors">
                     My Courses
@@ -288,10 +339,27 @@ const ManageStudents = () => {
                                             </td>
 
                                             {/* Actions */}
-                                            <td className="px-6 py-4 text-right">
-                                                <button className="p-2 text-slate-400 hover:text-sky-700 hover:bg-sky-50 rounded-3xl transition-colors">
+                                            <td className="px-6 py-4 text-right relative" ref={openDropdown === student.id ? dropdownRef : null}>
+                                                <button
+                                                    onClick={() => setOpenDropdown(openDropdown === student.id ? null : student.id)}
+                                                    className="p-2 text-slate-400 hover:text-sky-700 hover:bg-sky-50 rounded-3xl transition-colors"
+                                                >
                                                     <MdMoreVert className="w-5 h-5" />
                                                 </button>
+                                                {openDropdown === student.id && (
+                                                    <div className="absolute right-6 top-12 z-50 w-52 bg-white rounded-xl shadow-lg border border-sky-100 py-1.5 animate-in fade-in slide-in-from-top-1">
+                                                        <button
+                                                            onClick={() => {
+                                                                setOpenDropdown(null);
+                                                                setConfirmStudent(student);
+                                                            }}
+                                                            className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2.5"
+                                                        >
+                                                            <PiUserMinus className="w-4 h-4" />
+                                                            Remove from Course
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </td>
                                         </tr>
                                     );
@@ -340,6 +408,42 @@ const ManageStudents = () => {
                 )}
             </div>
         </div>
+
+            {/* Confirmation Modal */}
+            {confirmStudent && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl border border-sky-100 w-full max-w-md mx-4 p-6 animate-in fade-in zoom-in-95">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                                <PiUserMinus className="w-5 h-5 text-red-600" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-800">Remove Student</h3>
+                        </div>
+                        <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+                            Are you sure you want to remove <span className="font-bold text-slate-800">{confirmStudent.first_name} {confirmStudent.last_name}</span> from this course? 
+                            This will only unenroll them — their record will remain in the system.
+                        </p>
+                        <div className="flex items-center justify-end gap-3">
+                            <button
+                                onClick={() => setConfirmStudent(null)}
+                                className="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-sky-100 rounded-xl hover:bg-sky-50/45 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    handleUnenroll(confirmStudent);
+                                    setConfirmStudent(null);
+                                }}
+                                className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors shadow-sm"
+                            >
+                                Yes, Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 };
 
