@@ -7,16 +7,13 @@ import pool from '../config/db.js';
 import { cacheGet, cacheSet, cacheDel } from '../config/redis.js';
 
 function percentageToGradePoint(pct) {
-    // Marks are rounded to zero decimal places
-    const marks = Math.round(pct);
-    
-    if (marks < 50) {
+    if (pct < 50) {
         return 0.00;
-    } else if (marks > 80) {
+    } else if (pct > 80) {
         return 4.00;
     } else {
         // Formula: GPA = 0.1X - 4 (for 50 <= X <= 80)
-        return Number(((0.1 * marks) - 4).toFixed(2));
+        return Number(((0.1 * pct) - 4).toFixed(2));
     }
 }
 
