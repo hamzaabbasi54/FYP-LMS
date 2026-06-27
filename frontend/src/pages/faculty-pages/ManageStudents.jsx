@@ -311,6 +311,7 @@ const ManageStudents = () => {
                                                 <button
                                                     onClick={() => setOpenDropdown(openDropdown === student.id ? null : student.id)}
                                                     className="p-2 text-slate-400 hover:text-sky-700 hover:bg-sky-50 rounded-3xl transition-colors"
+                                                    aria-label="Student actions"
                                                 >
                                                     <MdMoreVert className="w-5 h-5" />
                                                 </button>
