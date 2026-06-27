@@ -20,10 +20,12 @@ import { toast } from 'react-toastify';
 import { studentApi, batchApi } from '../../services/api';
 import OverlayLoader from '../../components/common/OverlayLoader';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCourse } from '../../context/CourseContext';
 
 const RegisterStudent = () => {
     const navigate = useNavigate();
     const { assignmentId } = useParams();
+    const { selectedCourse } = useCourse();
     const fileInputRef = useRef(null);
     const [showImportModal, setShowImportModal] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
@@ -237,7 +239,9 @@ const RegisterStudent = () => {
                     Courses
                 </Link>
                 <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
-                <span className="text-slate-400">Intro to CS</span>
+                <span className="text-slate-400">
+                    {String(selectedCourse?.assignment_id) === String(assignmentId) ? selectedCourse?.code : 'Course'}
+                </span>
                 <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
                 <span className="text-slate-800 font-semibold">Add Student</span>
             </div>

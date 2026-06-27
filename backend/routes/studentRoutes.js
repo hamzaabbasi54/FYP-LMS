@@ -12,6 +12,7 @@ import { verifyToken, isAdmin, isAuthenticated } from '../middleware/auth.js';
 import { scopeToDepartment } from '../middleware/deptScope.js';
 import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
 import { deleteGuard } from '../middleware/deleteGuard.js';
+import { scopeFaculty } from '../middleware/facultyScope.js';
 
 // Students don't have a direct department_id — resolve via batch → department
 const scopeStudent = scopeToDepartment('students', 'id', {
@@ -903,6 +904,25 @@ router.post('/course/:assignmentId/register', isAuthenticated, async (req, res) 
         res.status(500).json({ success: false, message: 'Error registering and enrolling student' });
     } finally {
         conn.release();
+    }
+});
+
+// DELETE unenroll student from a course (Faculty-scoped)
+// Only removes the enrollment record — student data remains in the system
+router.delete('/course/:assignmentId/unenroll/:studentId', isAuthenticated, scopeFaculty('course_assignment', 'params', 'assignmentId'), async (req, res) => {
+    try {
+        const { assignmentId, studentId } = req.params;
+        const [result] = await pool.query(
+            'DELETE FROM enrollments WHERE student_id = ? AND course_assignment_id = ?',
+            [studentId, assignmentId]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'Enrollment not found' });
+        }
+        res.json({ success: true, message: 'Student unenrolled successfully' });
+    } catch (error) {
+        console.error('Unenroll student (faculty) error:', error);
+        res.status(500).json({ success: false, message: 'Error unenrolling student' });
     }
 });
 

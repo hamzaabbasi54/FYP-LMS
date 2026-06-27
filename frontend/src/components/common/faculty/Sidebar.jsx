@@ -8,6 +8,7 @@ import {
     PiChatCircleText,
     PiGauge,
     PiSignOut,
+    PiStudent,
     PiUsersThree
 } from 'react-icons/pi';
 import { useCourse } from '../../../context/CourseContext';
@@ -138,14 +139,21 @@ const Sidebar = () => {
                     icon={PiBooks}
                     label="My Courses"
                     matchPaths={['/faculty-mycourses']}
-                    excludePaths={['/faculty-mycourses/grading', '/grading']}
+                    excludePaths={['/grading', '/students', '/attendance', '/monthly-report']}
                     disabled={!selectedCourse}
                 />
                 <NavItem
-                    to="/faculty-attendance"
+                    to={selectedCourse ? `/faculty-mycourses/${selectedCourse.assignment_id}/students` : '/faculty-dashboard'}
+                    icon={PiStudent}
+                    label="Students"
+                    matchPaths={['/students']}
+                    disabled={!selectedCourse}
+                />
+                <NavItem
+                    to={selectedCourse ? `/faculty-mycourses/${selectedCourse.assignment_id}/attendance` : '/faculty-attendance'}
                     icon={PiUsersThree}
                     label="Attendance"
-                    matchPaths={['/faculty-attendance/monthly-report']}
+                    matchPaths={['/attendance', '/monthly-report']}
                     disabled={!selectedCourse}
                 />
                 <NavItem

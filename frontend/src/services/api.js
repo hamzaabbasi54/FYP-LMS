@@ -497,6 +497,10 @@ export const studentApi = {
         const response = await api.post(`/students/course/${assignmentId}/register`, data);
         return response.data;
     },
+    facultyUnenrollStudent: async (assignmentId, studentId) => {
+        const response = await api.delete(`/students/course/${assignmentId}/unenroll/${studentId}`);
+        return response.data;
+    },
     export: async (batchId) => {
         const response = await api.get(`/students/export/excel`, {
             params: { batch_id: batchId },
