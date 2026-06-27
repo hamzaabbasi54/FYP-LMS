@@ -6,25 +6,18 @@
 import pool from '../config/db.js';
 import { cacheGet, cacheSet, cacheDel } from '../config/redis.js';
 
-// GPA scale mapping (percentage → grade point)
-const gradeScale = [
-    { min: 90, gp: 4.0 },
-    { min: 85, gp: 3.7 },
-    { min: 80, gp: 3.3 },
-    { min: 75, gp: 3.0 },
-    { min: 70, gp: 2.7 },
-    { min: 65, gp: 2.3 },
-    { min: 60, gp: 2.0 },
-    { min: 55, gp: 1.7 },
-    { min: 50, gp: 1.3 },
-    { min: 0,  gp: 0.0 }
-];
-
 function percentageToGradePoint(pct) {
-    for (const g of gradeScale) {
-        if (pct >= g.min) return g.gp;
+    // Marks are rounded to zero decimal places
+    const marks = Math.round(pct);
+    
+    if (marks < 50) {
+        return 0.00;
+    } else if (marks > 80) {
+        return 4.00;
+    } else {
+        // Formula: GPA = 0.1X - 4 (for 50 <= X <= 80)
+        return Number(((0.1 * marks) - 4).toFixed(2));
     }
-    return 0.0;
 }
 
 /**
