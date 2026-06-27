@@ -523,6 +523,39 @@ router.get('/:id/clos-for-assessment', async (req, res) => {
     }
 });
 
+// GET courses assigned to logged in faculty
+router.get('/assigned', async (req, res) => {
+    try {
+        const cacheKey = `facultyDashboardCourses:${req.user.id}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json({ success: true, data: cached });
+
+        const [assignments] = await pool.query(
+            `SELECT ca.id as assignment_id, c.id as course_id, c.title, c.code, c.credit_hours,
+                    s.id as semester_id, s.name as semester_name,
+                    b.id as batch_id, b.name as batch_name, b.start_date, b.end_date,
+                    (SELECT COUNT(*) FROM enrollments e WHERE e.course_assignment_id = ca.id) as student_count
+             FROM course_assignments ca
+             JOIN courses c ON ca.course_id = c.id
+             JOIN semesters s ON ca.semester_id = s.id
+             JOIN batches b ON s.batch_id = b.id
+             WHERE ca.faculty_id = ?
+             ORDER BY b.start_date DESC, s.name DESC, c.code ASC`,
+            [req.user.id]
+        );
+
+        await cacheSet(cacheKey, assignments, 1800); // 30 minutes
+
+        res.json({
+            success: true,
+            data: assignments
+        });
+    } catch (error) {
+        console.error('Get assigned courses error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching assigned courses' });
+    }
+});
+
 // GET single course with CLOs and syllabus
 router.get('/:id', async (req, res) => {
 
@@ -965,38 +998,7 @@ router.put('/:id/syllabus', isAdmin, async (req, res) => {
 
 // ===================== COURSE ASSIGNMENTS =====================
 
-// GET courses assigned to logged in faculty
-router.get('/assigned', async (req, res) => {
-    try {
-        const cacheKey = `facultyDashboardCourses:${req.user.id}`;
-        const cached = await cacheGet(cacheKey);
-        if (cached) return res.json({ success: true, data: cached });
 
-        const [assignments] = await pool.query(
-            `SELECT ca.id as assignment_id, c.id as course_id, c.title, c.code, c.credit_hours,
-                    s.id as semester_id, s.name as semester_name,
-                    b.id as batch_id, b.name as batch_name, b.start_date, b.end_date,
-                    (SELECT COUNT(*) FROM enrollments e WHERE e.course_assignment_id = ca.id) as student_count
-             FROM course_assignments ca
-             JOIN courses c ON ca.course_id = c.id
-             JOIN semesters s ON ca.semester_id = s.id
-             JOIN batches b ON s.batch_id = b.id
-             WHERE ca.faculty_id = ?
-             ORDER BY b.start_date DESC, s.name DESC, c.code ASC`,
-            [req.user.id]
-        );
-
-        await cacheSet(cacheKey, assignments, 1800); // 30 minutes
-
-        res.json({
-            success: true,
-            data: assignments
-        });
-    } catch (error) {
-        console.error('Get assigned courses error:', error);
-        res.status(500).json({ success: false, message: 'Error fetching assigned courses' });
-    }
-});
 
 // GET specific course assignment details
 router.get('/assignments/:id', async (req, res) => {
