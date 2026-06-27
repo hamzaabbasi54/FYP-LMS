@@ -599,6 +599,25 @@ router.post('/course/:assignmentId/register', isAuthenticated, async (req, res) 
     }
 });
 
+// DELETE unenroll student from a course (Faculty-scoped)
+// Only removes the enrollment record — student data remains in the system
+router.delete('/course/:assignmentId/unenroll/:studentId', isAuthenticated, async (req, res) => {
+    try {
+        const { assignmentId, studentId } = req.params;
+        const [result] = await pool.query(
+            'DELETE FROM enrollments WHERE student_id = ? AND course_assignment_id = ?',
+            [studentId, assignmentId]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'Enrollment not found' });
+        }
+        res.json({ success: true, message: 'Student unenrolled successfully' });
+    } catch (error) {
+        console.error('Unenroll student (faculty) error:', error);
+        res.status(500).json({ success: false, message: 'Error unenrolling student' });
+    }
+});
+
 // ===================== EXCEL EXPORT =====================
 
 // GET export all students as Excel
