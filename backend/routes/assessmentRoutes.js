@@ -227,6 +227,17 @@ router.put('/:id', scopeFaculty('assessment', 'params', 'id'), async (req, res) 
     const conn = await pool.getConnection();
     try {
         await conn.beginTransaction();
+
+        const [[currentAssessment]] = await conn.query('SELECT status FROM assessments WHERE id = ?', [req.params.id]);
+        if (!currentAssessment) {
+            await conn.rollback();
+            return res.status(404).json({ success: false, message: 'Assessment not found' });
+        }
+        if (currentAssessment.status === 'graded') {
+            await conn.rollback();
+            return res.status(403).json({ success: false, message: 'Cannot modify a graded assessment. Contact administrator to unlock.' });
+        }
+
         const { type, title, description, due_date, conducted_date, release_grades_on, max_score, weight, duration_minutes, status, mapped_clos, questions } = req.body;
 
         // FIX Issue #6: Validate that all CLO IDs belong to the correct course
@@ -348,6 +359,14 @@ router.put('/:id', scopeFaculty('assessment', 'params', 'id'), async (req, res) 
 // DELETE assessment
 router.delete('/:id', scopeFaculty('assessment', 'params', 'id'), async (req, res) => {
     try {
+        const [[currentAssessment]] = await pool.query('SELECT status FROM assessments WHERE id = ?', [req.params.id]);
+        if (!currentAssessment) {
+            return res.status(404).json({ success: false, message: 'Assessment not found' });
+        }
+        if (currentAssessment.status === 'graded') {
+            return res.status(403).json({ success: false, message: 'Cannot delete a graded assessment. Contact administrator to unlock.' });
+        }
+
         const [result] = await pool.query('DELETE FROM assessments WHERE id = ?', [req.params.id]);
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Assessment not found' });
