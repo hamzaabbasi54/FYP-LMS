@@ -407,16 +407,26 @@ const Grading = () => {
                                                         </Link>
                                                     )}
                                                     <button
-                                                        onClick={() => navigate(`/faculty-mycourses/${courseAssignmentId}/grading/${assessment.id}/edit`)}
-                                                        className="p-2 text-slate-600 hover:text-sky-700 hover:bg-sky-50 rounded-3xl transition-colors"
-                                                        title="Edit assessment"
+                                                        onClick={() => assessment.status !== 'graded' && navigate(`/faculty-mycourses/${courseAssignmentId}/grading/${assessment.id}/edit`)}
+                                                        disabled={assessment.status === 'graded'}
+                                                        className={`p-2 rounded-3xl transition-colors ${
+                                                            assessment.status === 'graded'
+                                                                ? 'text-slate-300 cursor-not-allowed opacity-50'
+                                                                : 'text-slate-600 hover:text-sky-700 hover:bg-sky-50'
+                                                        }`}
+                                                        title={assessment.status === 'graded' ? 'Cannot edit a graded assessment' : 'Edit assessment'}
                                                     >
                                                         <MdEdit className="w-5 h-5" />
                                                     </button>
                                                     <button 
-                                                        onClick={() => handleDelete(assessment.id, assessment.title)}
-                                                        disabled={deleteMutation.isPending && deleteMutation.variables === assessment.id}
-                                                        className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-3xl transition-colors disabled:opacity-50"
+                                                        onClick={() => assessment.status !== 'graded' && handleDelete(assessment.id, assessment.title)}
+                                                        disabled={(deleteMutation.isPending && deleteMutation.variables === assessment.id) || assessment.status === 'graded'}
+                                                        className={`p-2 rounded-3xl transition-colors ${
+                                                            assessment.status === 'graded'
+                                                                ? 'text-slate-300 cursor-not-allowed opacity-50'
+                                                                : 'text-slate-600 hover:text-red-600 hover:bg-red-50 disabled:opacity-50'
+                                                        }`}
+                                                        title={assessment.status === 'graded' ? 'Cannot delete a graded assessment' : 'Delete assessment'}
                                                     >
                                                         <MdDelete className="w-5 h-5" />
                                                     </button>
