@@ -153,13 +153,23 @@ const AssessmentDetails = () => {
                             Grade Now
                         </Link>
                     )}
-                    <Link
-                        to={`/faculty-mycourses/${courseAssignmentId}/grading/${gradeAssignmentId}/edit`}
-                        className="flex items-center px-4 py-2.5 bg-white border border-sky-100 text-slate-700 rounded-3xl hover:bg-sky-50/45 shadow-sm transition-colors font-medium text-sm"
-                    >
-                        <MdEdit className="w-5 h-5 mr-2" />
-                        Edit
-                    </Link>
+                    {assessment.status === 'graded' ? (
+                        <span
+                            className="flex items-center px-4 py-2.5 bg-sky-50 border border-sky-100 text-slate-400 rounded-3xl cursor-not-allowed font-medium text-sm"
+                            title="Cannot edit a graded assessment"
+                        >
+                            <MdEdit className="w-5 h-5 mr-2" />
+                            Edit
+                        </span>
+                    ) : (
+                        <Link
+                            to={`/faculty-mycourses/${courseAssignmentId}/grading/${gradeAssignmentId}/edit`}
+                            className="flex items-center px-4 py-2.5 bg-white border border-sky-100 text-slate-700 rounded-3xl hover:bg-sky-50/45 shadow-sm transition-colors font-medium text-sm"
+                        >
+                            <MdEdit className="w-5 h-5 mr-2" />
+                            Edit
+                        </Link>
+                    )}
                     <button
                         onClick={handleExport}
                         disabled={!isGraded || exporting}
