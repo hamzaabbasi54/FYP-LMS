@@ -40,7 +40,7 @@ const Messages = () => {
             const res = await messageApi.getContacts();
             return res.success ? res.data : [];
         },
-        refetchInterval: 30000,
+        staleTime: Infinity,
     });
 
     const contacts = contactsData || [];
@@ -52,6 +52,7 @@ const Messages = () => {
             return res.success ? res.data : [];
         },
         enabled: !!selectedContact?.id,
+        staleTime: Infinity,
     });
 
     // Sync server data to local state
@@ -70,6 +71,9 @@ const Messages = () => {
             if (data.success) {
                 // Add to local messages optimistically
                 setLocalMessages(prev => [...prev, data.data]);
+                // Inject into TanStack Query cache to persist locally
+                queryClient.setQueryData(['conversation', selectedContact.id], old => old ? [...old, data.data] : [data.data]);
+                
                 setMessageInput('');
                 // Refresh contacts to update last_message
                 queryClient.invalidateQueries({ queryKey: ['messageContacts'] });
@@ -87,6 +91,9 @@ const Messages = () => {
         if (!socket) return;
 
         const handleNewMessage = (data) => {
+            // Always inject the message into the local cache for offline persistence
+            queryClient.setQueryData(['conversation', data.sender_id], old => old ? [...old, data] : [data]);
+
             // If from the currently viewed contact → append locally
             if (selectedContact && data.sender_id === selectedContact.id) {
                 setLocalMessages(prev => [...prev, data]);

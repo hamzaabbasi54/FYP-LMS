@@ -35,8 +35,10 @@ const CurriculumDetails = () => {
         queryFn: async () => {
             const response = await curriculumApi.getById(id);
             if (response.success) return response.data;
+            if (response.success) return response.data;
             throw new Error('Failed to load curriculum');
-        }
+        },
+        staleTime: Infinity,
     });
 
     const { data: allCourses = [] } = useQuery({
@@ -134,13 +136,49 @@ const CurriculumDetails = () => {
 
     if (loading) {
         return (
-            <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200 p-8">
-                <div className="max-w-7xl mx-auto">
+            <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200">
+                <div className="p-8 max-w-7xl mx-auto">
+                    {/* Breadcrumb loads instantly */}
+                    <div className="mb-6">
+                        <Link to="/admin-curricula" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm">
+                            <MdArrowBack className="w-4 h-4" /> Back to Curricula
+                        </Link>
+                    </div>
+
                     <div className="animate-pulse">
-                        <div className="h-8 bg-slate-200 rounded w-1/3 mb-8"></div>
-                        <div className="h-48 bg-slate-200 rounded-2xl mb-6"></div>
-                        <div className="grid grid-cols-4 gap-4">
-                            {[1, 2, 3, 4].map(i => <div key={i} className="h-12 bg-slate-200 rounded-xl"></div>)}
+                        {/* Header Skeleton */}
+                        <div className="mb-8 flex items-center gap-3">
+                            <div className="w-2 h-8 bg-indigo-200 rounded-full"></div>
+                            <div className="h-8 bg-slate-200 rounded-lg w-64"></div>
+                        </div>
+
+                        {/* Stats Row Skeleton */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            {[1, 2, 3, 4].map(i => (
+                                <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 h-[92px]">
+                                    <div className="flex gap-4">
+                                        <div className="w-11 h-11 bg-slate-100 rounded-xl"></div>
+                                        <div className="space-y-2 flex-1">
+                                            <div className="h-3 bg-slate-100 rounded w-16"></div>
+                                            <div className="h-6 bg-slate-200 rounded w-10"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Tabs & Content Skeleton */}
+                        <div className="bg-white rounded-2xl border border-slate-200 h-96">
+                            <div className="flex gap-4 p-4 border-b border-slate-100">
+                                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                                    <div key={i} className="h-6 w-16 bg-slate-100 rounded"></div>
+                                ))}
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div className="h-16 bg-slate-50 rounded-xl border border-slate-100"></div>
+                                <div className="h-16 bg-slate-50 rounded-xl border border-slate-100"></div>
+                                <div className="h-16 bg-slate-50 rounded-xl border border-slate-100"></div>
+                            </div>
                         </div>
                     </div>
                 </div>

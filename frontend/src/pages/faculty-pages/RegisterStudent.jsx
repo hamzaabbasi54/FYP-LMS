@@ -720,7 +720,7 @@ const RegisterStudent = () => {
                             
                             <div className="bg-sky-50/45 rounded-3xl p-4 border border-sky-100 mb-6">
                                 <ul className="text-sm text-slate-600 space-y-2 font-mono">
-                                    <li><span className="font-bold text-emerald-600">roll_number</span> (Required, Unique)</li>
+                                    <li><span className="font-bold text-emerald-600">student_id_number</span> (Required, Unique)</li>
                                     <li><span className="font-bold text-emerald-600">first_name</span> (Required)</li>
                                     <li><span className="font-bold text-emerald-600">last_name</span> (Required)</li>
                                     <li><span className="font-bold text-emerald-600">email</span> (Required)</li>

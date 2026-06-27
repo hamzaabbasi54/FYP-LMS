@@ -5,6 +5,7 @@
 // ============================================
 
 import express from 'express';
+import fs from 'fs';
 import multer from 'multer';
 import pool from '../config/db.js';
 import { verifyToken, isAdmin, isAuthenticated } from '../middleware/auth.js';
@@ -18,6 +19,7 @@ const scopeStudent = scopeToDepartment('students', 'id', {
 });
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
 import { parseExcel, generateExcel, getUploadDir, createExcelUpload, parseAcademicBackground } from '../utils/excel.js';
+import { cacheGet, cacheSet, cacheDelPattern } from '../config/redis.js';
 
 const router = express.Router();
 router.use(verifyToken);
@@ -32,6 +34,14 @@ router.get('/', async (req, res) => {
     try {
         const { batch_id, search } = req.query;
         const { page, limit, offset } = parsePagination(req.query);
+
+        const departmentId = (req.user.role === 'deptadmin' && req.user.department_id) ? req.user.department_id : 'all';
+        const cacheKey = `students:all:batch_${batch_id || 'all'}:dept_${departmentId}:search_${search || 'none'}:page_${page}:limit_${limit}`;
+        
+        const cachedData = await cacheGet(cacheKey);
+        if (cachedData) {
+            return res.json(cachedData);
+        }
 
         let whereClause = 'WHERE 1=1';
         const params = [];
@@ -65,7 +75,9 @@ router.get('/', async (req, res) => {
             [...params, limit, offset]
         );
 
-        res.json(paginatedResponse(students, total, page, limit));
+        const responseData = paginatedResponse(students, total, page, limit);
+        await cacheSet(cacheKey, responseData, 3600); // cache for 1 hour
+        res.json(responseData);
     } catch (error) {
         console.error('Get students error:', error);
         res.status(500).json({ success: false, message: 'Error fetching students' });
@@ -76,7 +88,7 @@ router.get('/import/template', isAdmin, (req, res) => {
     try {
         const templateData = [
             {
-                roll_number: '',
+                student_id_number: '',
                 first_name: '',
                 last_name: '',
                 email: '',
@@ -166,6 +178,9 @@ router.post('/', isAdmin, async (req, res) => {
         }
 
         await conn.commit();
+        await cacheDelPattern('students:*');
+        await cacheDelPattern('parents:*');
+        await cacheDelPattern('dashboard:*');
         res.status(201).json({
             success: true,
             message: 'Student registered',
@@ -209,6 +224,9 @@ router.put('/:id', isAdmin, scopeStudent, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Student not found' });
         }
+        await cacheDelPattern('students:*');
+        await cacheDelPattern('parents:*');
+        await cacheDelPattern('dashboard:*');
         res.json({ success: true, message: 'Student updated' });
     } catch (error) {
         console.error('Update student error:', error);
@@ -223,6 +241,9 @@ router.delete('/:id', isAdmin, scopeStudent, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Student not found' });
         }
+        await cacheDelPattern('students:*');
+        await cacheDelPattern('parents:*');
+        await cacheDelPattern('dashboard:*');
         res.json({ success: true, message: 'Student deleted' });
     } catch (error) {
         console.error('Delete student error:', error);
@@ -255,6 +276,9 @@ router.post('/bulk-delete', isAdmin, deleteGuard('students_bulk'), async (req, r
         const placeholders = student_ids.map(() => '?').join(',');
         const [result] = await pool.query(`DELETE FROM students WHERE id IN (${placeholders})`, student_ids);
 
+        await cacheDelPattern('students:*');
+        await cacheDelPattern('parents:*');
+        await cacheDelPattern('dashboard:*');
         res.json({ success: true, message: `${result.affectedRows} students deleted successfully` });
     } catch (error) {
         console.error('Bulk delete students error:', error);
@@ -266,116 +290,253 @@ router.post('/bulk-delete', isAdmin, deleteGuard('students_bulk'), async (req, r
 
 // POST bulk import students from Excel
 router.post('/import', isAdmin, upload.single('file'), validateMagicBytes, async (req, res) => {
+    const filePath = req.file?.path ?? null;
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'Excel file is required. Upload as form-data with key "file".' });
     }
 
-    const conn = await pool.getConnection();
+    let conn = null;
     try {
-        await conn.beginTransaction();
-        const rows = parseExcel(req.file.path);
+        const rows = parseExcel(filePath);
 
         if (rows.length === 0) {
-            await conn.rollback();
             return res.status(400).json({ success: false, message: 'Excel file is empty' });
         }
 
         // Validate required columns
-        const requiredCols = ['roll_number', 'first_name', 'last_name', 'email'];
+        const requiredCols = ['student_id_number', 'first_name', 'last_name', 'email'];
         const missingCols = requiredCols.filter(col => !(col in rows[0]));
         if (missingCols.length > 0) {
-            await conn.rollback();
             return res.status(400).json({
                 success: false,
                 message: `Missing required columns: ${missingCols.join(', ')}`,
-                expected_columns: ['roll_number', 'first_name', 'last_name', 'email', 'phone', 'parent_name', 'parent_email', 'parent_phone', 'matric_marks', 'fsc_marks', 'background']
+                expected_columns: ['student_id_number', 'first_name', 'last_name', 'email', 'phone', 'parent_name', 'parent_email', 'parent_phone', 'matric_marks', 'fsc_marks', 'background']
             });
         }
 
         const targetBatchId = req.body.batch_id;
-        if (!targetBatchId && !rows[0].batch_id) {
-            await conn.rollback();
-            return res.status(400).json({ success: false, message: 'Batch ID is required either in the URL/body or the CSV' });
-        }
 
-        let imported = 0;
-        let skipped = 0;
-        const errors = [];
+        const validRows = [];
+        const preflightErrors = [];
+        const seenRollNumbers = new Set();
+        const seenEmails = new Set();
 
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
-            try {
-                const rollNumber = String(row.roll_number || '').trim();
-                if (!rollNumber) {
-                    throw new Error('Roll number is required');
-                }
+            const rowNum = i + 2;
+            const rowErrors = [];
 
-                const studentBatchId = row.batch_id || targetBatchId;
+            const rollNumber = String(row.student_id_number || row.roll_number || '').trim();
+            const email = String(row.email || '').trim().toLowerCase();
+            const firstName = String(row.first_name || '').trim();
+            const lastName = String(row.last_name || '').trim();
 
-                // Robust background parsing
-                const cleanBackground = parseAcademicBackground(row.background);
+            // Required field checks
+            const rowBatchId = row.batch_id || targetBatchId;
+            if (!rowBatchId) rowErrors.push('batch_id is required (not provided in request body or CSV)');
+            if (!rollNumber) rowErrors.push('student_id_number is required');
+            if (!firstName) rowErrors.push('first_name is required');
+            if (!lastName) rowErrors.push('last_name is required');
+            if (!email) rowErrors.push('email is required');
 
-                const [result] = await conn.query(
-                    `INSERT INTO students (student_id_number, first_name, last_name, email, phone, batch_id, matric_marks, fsc_marks, background)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                     ON DUPLICATE KEY UPDATE 
-                        id = LAST_INSERT_ID(id),
-                        first_name = VALUES(first_name), 
-                        last_name = VALUES(last_name), 
-                        phone = VALUES(phone), 
-                        batch_id = VALUES(batch_id),
-                        matric_marks = VALUES(matric_marks),
-                        fsc_marks = VALUES(fsc_marks),
-                        background = VALUES(background)`,
-                    [rollNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', studentBatchId, row.matric_marks || null, row.fsc_marks || null, cleanBackground]
-                );
+            // Email format check
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                rowErrors.push('email format is invalid');
+            }
 
-                const studentId = result.insertId;
+            // Phone validation — only if provided
+            if (row.phone) {
+                const digits = String(row.phone).replace(/[\s\-]/g, '');
+                if (!/^\d{11}$/.test(digits)) rowErrors.push('phone must be 11 digits');
+            }
 
-                // Insert parent if provided
-                if (row.parent_name && studentId) {
-                    await conn.query(
-                        'INSERT INTO parents (student_id, name, email, phone) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email), phone = VALUES(phone)',
-                        [studentId, row.parent_name, row.parent_email || null, row.parent_phone || null]
-                    );
-                }
+            // Parent phone validation — only if provided
+            if (row.parent_phone) {
+                const digits = String(row.parent_phone).replace(/[\s\-]/g, '');
+                if (!/^\d{11}$/.test(digits)) rowErrors.push('parent_phone must be 11 digits');
+            }
 
-                imported++;
-            } catch (err) {
-                skipped++;
-                errors.push({ row: i + 2, email: row.email, error: err.code === 'ER_DUP_ENTRY' ? 'Duplicate roll number or email' : err.message });
+            // In-file duplicate checks
+            if (rollNumber && seenRollNumbers.has(rollNumber)) {
+                rowErrors.push(`Duplicate student_id_number in file: ${rollNumber}`);
+            } else if (rollNumber) {
+                seenRollNumbers.add(rollNumber);
+            }
+
+            if (email && seenEmails.has(email)) {
+                rowErrors.push(`Duplicate email in file: ${email}`);
+            } else if (email) {
+                seenEmails.add(email);
+            }
+
+            if (rowErrors.length > 0) {
+                preflightErrors.push({
+                    row: rowNum,
+                    student_id_number: rollNumber || null,
+                    email: email || null,
+                    error: rowErrors.join('; ')
+                });
+            } else {
+                validRows.push({ ...row, student_id_number: rollNumber, email, batch_id: rowBatchId });
             }
         }
 
+        // If nothing is valid, return immediately — no DB connection
+        if (validRows.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: `Import failed: all ${rows.length} rows have validation errors`,
+                data: { imported: 0, skipped: preflightErrors.length, errors: preflightErrors }
+            });
+        }
+
+        conn = await pool.getConnection();
+        await conn.beginTransaction();
+
+        const studentValues = validRows.map(row => {
+            const studentBatchId = row.batch_id; // already validated in pre-flight
+            return [
+                row.student_id_number,
+                row.first_name,
+                row.last_name,
+                row.email,
+                row.phone || '',
+                studentBatchId,
+                row.matric_marks || null,
+                row.fsc_marks || null,
+                parseAcademicBackground(row.background)
+            ];
+        });
+
+        await conn.query(
+            `INSERT INTO students 
+                (student_id_number, first_name, last_name, email, phone, batch_id, matric_marks, fsc_marks, background)
+             VALUES ?
+             ON DUPLICATE KEY UPDATE
+                first_name = VALUES(first_name),
+                last_name = VALUES(last_name),
+                phone = VALUES(phone),
+                batch_id = VALUES(batch_id),
+                matric_marks = VALUES(matric_marks),
+                fsc_marks = VALUES(fsc_marks),
+                background = VALUES(background)`,
+            [studentValues]
+        );
+
+        const rollNumbers = validRows.map(row => row.student_id_number);
+
+        const [studentRows] = await conn.query(
+            `SELECT id, student_id_number FROM students WHERE student_id_number IN (?)`,
+            [rollNumbers]
+        );
+
+        const rollNumberToStudentId = new Map(
+            studentRows.map(s => [s.student_id_number, s.id])
+        );
+
+        const parentValues = validRows
+            .filter(row => row.parent_name && String(row.parent_name).trim())
+            .map(row => {
+                const studentId = rollNumberToStudentId.get(row.student_id_number);
+                return [
+                    studentId,
+                    String(row.parent_name).trim(),
+                    row.parent_email || null,
+                    row.parent_phone || null
+                ];
+            })
+            .filter(entry => entry[0] !== undefined); // safety: skip if ID not found
+
+        if (parentValues.length > 0) {
+            await conn.query(
+                `INSERT INTO parents (student_id, name, email, phone)
+                 VALUES ?
+                 ON DUPLICATE KEY UPDATE
+                    name = VALUES(name),
+                    email = VALUES(email),
+                    phone = VALUES(phone)`,
+                [parentValues]
+            );
+        }
+
         await conn.commit();
+        await cacheDelPattern('students:*');
+        await cacheDelPattern('parents:*');
+        await cacheDelPattern('dashboard:*');
+
+        const imported = validRows.length;
+        const skipped = preflightErrors.length;
+
         res.json({
             success: true,
             message: `Import complete: ${imported} added, ${skipped} skipped`,
-            data: { imported, skipped, errors: errors.slice(0, 20) }
+            data: {
+                imported,
+                skipped,
+                errors: preflightErrors
+            }
         });
+
     } catch (error) {
-        await conn.rollback();
-        console.error('Import students error:', error);
-        res.status(500).json({ success: false, message: 'Error importing students' });
+        if (conn) {
+            try { await conn.rollback(); } catch (rollbackErr) { console.error('Rollback failed:', rollbackErr); }
+        }
+        console.error('Import error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Import failed due to a database error. No records were saved. Fix the file and try again.',
+            error: error.message
+        });
     } finally {
-        conn.release();
+        if (conn) conn.release();
+        // Always delete the uploaded file
+        if (filePath) {
+            try {
+                await fs.promises.unlink(filePath);
+            } catch (cleanupErr) {
+                console.error('Failed to delete uploaded file:', cleanupErr);
+            }
+        }
     }
 });
 
 // POST bulk import students and enroll them into a course assignment (Faculty)
 router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file'), validateMagicBytes, async (req, res) => {
+    const filePath = req.file?.path ?? null;
+    const assignmentId = parseInt(req.params.assignmentId, 10);
+    
+    if (isNaN(assignmentId) || assignmentId <= 0) {
+        if (filePath) {
+            try { await fs.promises.unlink(filePath); } catch (e) {}
+        }
+        return res.status(400).json({ success: false, message: 'Invalid assignment ID' });
+    }
+
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'Excel file is required. Upload as form-data with key "file".' });
     }
 
-    const { assignmentId } = req.params;
-    const conn = await pool.getConnection();
-
+    let conn = null;
     try {
-        await conn.beginTransaction();
+        const rows = parseExcel(filePath);
 
-        // Verify assignment and get batch_id
-        const [assignments] = await conn.query(
+        if (rows.length === 0) {
+            return res.status(400).json({ success: false, message: 'Excel file is empty' });
+        }
+
+        // Validate required columns
+        const requiredCols = ['student_id_number', 'first_name', 'last_name', 'email'];
+        const missingCols = requiredCols.filter(col => !(col in rows[0]));
+        if (missingCols.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: `Missing required columns: ${missingCols.join(', ')}`,
+                expected_columns: ['student_id_number', 'first_name', 'last_name', 'email', 'phone', 'parent_name', 'parent_email', 'parent_phone', 'matric_marks', 'fsc_marks', 'background']
+            });
+        }
+
+        // Verify assignment and get batch_id before processing rows
+        const [assignments] = await pool.query(
             `SELECT ca.id, s.batch_id 
              FROM course_assignments ca
              JOIN semesters s ON ca.semester_id = s.id
@@ -384,98 +545,208 @@ router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file
         );
 
         if (assignments.length === 0) {
-            await conn.rollback();
             return res.status(404).json({ success: false, message: 'Course assignment not found' });
         }
 
-        const batchId = assignments[0].batch_id;
+        const targetBatchId = assignments[0].batch_id;
 
-        const rows = parseExcel(req.file.path);
-
-        if (rows.length === 0) {
-            await conn.rollback();
-            return res.status(400).json({ success: false, message: 'Excel file is empty' });
-        }
-
-        // Validate required columns
-        const requiredCols = ['roll_number', 'first_name', 'last_name', 'email'];
-        const missingCols = requiredCols.filter(col => !(col in rows[0]));
-        if (missingCols.length > 0) {
-            await conn.rollback();
-            return res.status(400).json({
-                success: false,
-                message: `Missing required columns: ${missingCols.join(', ')}`,
-                expected_columns: ['roll_number', 'first_name', 'last_name', 'email', 'phone', 'parent_name', 'parent_email', 'parent_phone', 'matric_marks', 'fsc_marks', 'background']
-            });
-        }
-
-        let imported = 0;
-        let skipped = 0;
-        const errors = [];
+        const validRows = [];
+        const preflightErrors = [];
+        const seenRollNumbers = new Set();
+        const seenEmails = new Set();
 
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
-            try {
-                const rollNumber = String(row.roll_number || '').trim();
-                if (!rollNumber) {
-                    throw new Error('Roll number is required');
-                }
+            const rowNum = i + 2;
+            const rowErrors = [];
 
-                // Robust background parsing
-                const cleanBackground = parseAcademicBackground(row.background);
+            const rollNumber = String(row.student_id_number || '').trim();
+            const email = String(row.email || '').trim().toLowerCase();
+            const firstName = String(row.first_name || '').trim();
+            const lastName = String(row.last_name || '').trim();
 
-                const [result] = await conn.query(
-                    `INSERT INTO students (student_id_number, first_name, last_name, email, phone, batch_id, matric_marks, fsc_marks, background)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                     ON DUPLICATE KEY UPDATE 
-                        id = LAST_INSERT_ID(id),
-                        first_name = VALUES(first_name), 
-                        last_name = VALUES(last_name), 
-                        phone = VALUES(phone), 
-                        matric_marks = VALUES(matric_marks),
-                        fsc_marks = VALUES(fsc_marks),
-                        background = VALUES(background)`,
-                    [rollNumber, row.first_name, row.last_name, String(row.email).toLowerCase(), row.phone || '', batchId, row.matric_marks || null, row.fsc_marks || null, cleanBackground]
-                );
+            // Required field checks
+            const rowBatchId = row.batch_id || targetBatchId;
+            if (!rowBatchId) rowErrors.push('batch_id is required');
+            if (!rollNumber) rowErrors.push('student_id_number is required');
+            if (!firstName) rowErrors.push('first_name is required');
+            if (!lastName) rowErrors.push('last_name is required');
+            if (!email) rowErrors.push('email is required');
 
-                const studentId = result.insertId;
+            // Email format check
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                rowErrors.push('email format is invalid');
+            }
 
-                // Insert parent if provided
-                if (row.parent_name && studentId) {
-                    await conn.query(
-                        'INSERT INTO parents (student_id, name, email, phone) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email), phone = VALUES(phone)',
-                        [studentId, row.parent_name, row.parent_email || null, row.parent_phone || null]
-                    );
-                }
+            // Phone validation — only if provided
+            if (row.phone) {
+                const digits = String(row.phone).replace(/[\s\-]/g, '');
+                if (!/^\d{11}$/.test(digits)) rowErrors.push('phone must be 11 digits');
+            }
 
-                // Enroll student in the course assignment
-                if (studentId) {
-                    await conn.query(
-                        `INSERT INTO enrollments (student_id, course_assignment_id) VALUES (?, ?)
-                         ON DUPLICATE KEY UPDATE student_id = VALUES(student_id)`,
-                        [studentId, assignmentId]
-                    );
-                }
+            // Parent phone validation — only if provided
+            if (row.parent_phone) {
+                const digits = String(row.parent_phone).replace(/[\s\-]/g, '');
+                if (!/^\d{11}$/.test(digits)) rowErrors.push('parent_phone must be 11 digits');
+            }
 
-                imported++;
-            } catch (err) {
-                skipped++;
-                errors.push({ row: i + 2, error: err.message });
+            // In-file duplicate checks
+            if (rollNumber && seenRollNumbers.has(rollNumber)) {
+                rowErrors.push(`Duplicate student_id_number in file: ${rollNumber}`);
+            } else if (rollNumber) {
+                seenRollNumbers.add(rollNumber);
+            }
+
+            if (email && seenEmails.has(email)) {
+                rowErrors.push(`Duplicate email in file: ${email}`);
+            } else if (email) {
+                seenEmails.add(email);
+            }
+
+            if (rowErrors.length > 0) {
+                preflightErrors.push({
+                    row: rowNum,
+                    student_id_number: rollNumber || null,
+                    email: email || null,
+                    error: rowErrors.join('; ')
+                });
+            } else {
+                validRows.push({ ...row, student_id_number: rollNumber, email, batch_id: rowBatchId });
             }
         }
 
+        // If nothing is valid, return immediately — no DB connection
+        if (validRows.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: `Import failed: all ${rows.length} rows have validation errors`,
+                data: { imported: 0, skipped: preflightErrors.length, errors: preflightErrors }
+            });
+        }
+
+        conn = await pool.getConnection();
+        await conn.beginTransaction();
+
+        const studentValues = validRows.map(row => {
+            return [
+                row.student_id_number,
+                row.first_name,
+                row.last_name,
+                row.email,
+                row.phone || '',
+                row.batch_id, // Already validated during pre-flight
+                row.matric_marks || null,
+                row.fsc_marks || null,
+                parseAcademicBackground(row.background)
+            ];
+        });
+
+        await conn.query(
+            `INSERT INTO students 
+                (student_id_number, first_name, last_name, email, phone, batch_id, matric_marks, fsc_marks, background)
+             VALUES ?
+             ON DUPLICATE KEY UPDATE
+                first_name = VALUES(first_name),
+                last_name = VALUES(last_name),
+                phone = VALUES(phone),
+                batch_id = VALUES(batch_id),
+                matric_marks = VALUES(matric_marks),
+                fsc_marks = VALUES(fsc_marks),
+                background = VALUES(background)`,
+            [studentValues]
+        );
+
+        const rollNumbers = validRows.map(row => row.student_id_number);
+
+        const [studentRows] = await conn.query(
+            `SELECT id, student_id_number FROM students WHERE student_id_number IN (?)`,
+            [rollNumbers]
+        );
+
+        const rollNumberToStudentId = new Map(
+            studentRows.map(s => [s.student_id_number, s.id])
+        );
+
+        const parentValues = validRows
+            .filter(row => row.parent_name && String(row.parent_name).trim())
+            .map(row => {
+                const studentId = rollNumberToStudentId.get(row.student_id_number);
+                return [
+                    studentId,
+                    String(row.parent_name).trim(),
+                    row.parent_email || null,
+                    row.parent_phone || null
+                ];
+            })
+            .filter(entry => entry[0] !== undefined); // safety: skip if ID not found
+
+        if (parentValues.length > 0) {
+            await conn.query(
+                `INSERT INTO parents (student_id, name, email, phone)
+                 VALUES ?
+                 ON DUPLICATE KEY UPDATE
+                    name = VALUES(name),
+                    email = VALUES(email),
+                    phone = VALUES(phone)`,
+                [parentValues]
+            );
+        }
+
+        const enrollmentValues = validRows
+            .map(row => {
+                const studentId = rollNumberToStudentId.get(row.student_id_number);
+                return studentId ? [studentId, assignmentId] : null;
+            })
+            .filter(Boolean);
+
+        if (enrollmentValues.length > 0) {
+            await conn.query(
+                `INSERT INTO enrollments (student_id, course_assignment_id)
+                 VALUES ?
+                 ON DUPLICATE KEY UPDATE
+                    student_id = VALUES(student_id)`,
+                [enrollmentValues]
+            );
+        }
+
         await conn.commit();
+        await cacheDelPattern('students:*');
+        await cacheDelPattern('parents:*');
+        await cacheDelPattern('dashboard:*');
+
+        const imported = validRows.length;
+        const skipped = preflightErrors.length;
+
         res.json({
             success: true,
             message: `Import complete: ${imported} added and enrolled, ${skipped} skipped`,
-            data: { imported, skipped, errors: errors.slice(0, 20) }
+            data: {
+                imported,
+                skipped,
+                errors: preflightErrors   // ALL errors, no slice
+            }
         });
+
     } catch (error) {
-        await conn.rollback();
+        if (conn) {
+            try { await conn.rollback(); } catch (rollbackErr) { console.error('Rollback failed:', rollbackErr); }
+        }
         console.error('Import and enroll students error:', error);
-        res.status(500).json({ success: false, message: 'Error importing and enrolling students' });
+        res.status(500).json({
+            success: false,
+            message: 'Import failed due to a database error. No records were saved. Fix the file and try again.',
+            error: error.message
+        });
     } finally {
-        conn.release();
+        if (conn) conn.release();
+        // Always delete the uploaded file
+        if (filePath) {
+            try {
+                await fs.promises.unlink(filePath);
+            } catch (cleanupErr) {
+                console.error('Failed to delete uploaded file:', cleanupErr);
+            }
+        }
     }
 });
 
@@ -484,6 +755,12 @@ router.get('/by-batch/:batchId', isAuthenticated, async (req, res) => {
     try {
         const { batchId } = req.params;
         const search = req.query.search || '';
+
+        const cacheKey = `students:by-batch:${batchId}:search_${search || 'none'}`;
+        const cachedData = await cacheGet(cacheKey);
+        if (cachedData) {
+            return res.json({ success: true, data: cachedData });
+        }
 
         let query = `SELECT s.id, s.student_id_number, s.first_name, s.last_name, s.email, s.phone,
                             s.batch_id, s.matric_marks, s.fsc_marks, s.background,
@@ -504,10 +781,37 @@ router.get('/by-batch/:batchId', isAuthenticated, async (req, res) => {
         query += ' ORDER BY s.last_name, s.first_name LIMIT 100';
 
         const [students] = await pool.query(query, params);
+        await cacheSet(cacheKey, students, 3600);
         res.json({ success: true, data: students });
     } catch (error) {
         console.error('Get students by batch error:', error);
         res.status(500).json({ success: false, message: 'Error fetching students' });
+    }
+});
+
+// GET all student IDs for a batch (for Delete All - admin only)
+router.get('/by-batch/:batchId/ids', isAdmin, async (req, res) => {
+    try {
+        const { batchId } = req.params;
+
+        // Department scoping: verify batch belongs to deptadmin's department
+        if (req.user.role === 'deptadmin') {
+            const [[batch]] = await pool.query(
+                'SELECT department_id FROM batches WHERE id = ?', [batchId]
+            );
+            if (!batch || batch.department_id !== req.user.department_id) {
+                return res.status(403).json({ success: false, message: 'Access denied. Batch belongs to a different department.' });
+            }
+        }
+
+        const [students] = await pool.query(
+            'SELECT id FROM students WHERE batch_id = ?',
+            [batchId]
+        );
+        res.json({ success: true, data: students.map(s => s.id) });
+    } catch (error) {
+        console.error('Get student IDs error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching student IDs' });
     }
 });
 
@@ -582,6 +886,9 @@ router.post('/course/:assignmentId/register', isAuthenticated, async (req, res) 
         }
 
         await conn.commit();
+        await cacheDelPattern('students:*');
+        await cacheDelPattern('parents:*');
+        await cacheDelPattern('dashboard:*');
         res.status(201).json({
             success: true,
             message: 'Student registered and enrolled successfully',
@@ -676,6 +983,8 @@ router.put('/:studentId/parent', isAdmin, async (req, res) => {
              ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email), phone = VALUES(phone)`,
             [req.params.studentId, name, email || null, phone || null]
         );
+        await cacheDelPattern('parents:*');
+        await cacheDelPattern('students:*');
         res.json({ success: true, message: 'Parent info saved' });
     } catch (error) {
         console.error('Save parent error:', error);
@@ -695,6 +1004,7 @@ router.post('/enroll', isAdmin, async (req, res) => {
             'INSERT INTO enrollments (student_id, course_assignment_id) VALUES (?, ?)',
             [student_id, course_assignment_id]
         );
+        await cacheDelPattern(`enrolledStudents:${course_assignment_id}:*`);
         res.status(201).json({ success: true, message: 'Student enrolled', data: { id: result.insertId } });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') {
@@ -707,10 +1017,12 @@ router.post('/enroll', isAdmin, async (req, res) => {
 
 router.delete('/enroll/:id', isAdmin, async (req, res) => {
     try {
-        const [result] = await pool.query('DELETE FROM enrollments WHERE id = ?', [req.params.id]);
-        if (result.affectedRows === 0) {
+        const [[enrollment]] = await pool.query('SELECT course_assignment_id FROM enrollments WHERE id = ?', [req.params.id]);
+        if (!enrollment) {
             return res.status(404).json({ success: false, message: 'Enrollment not found' });
         }
+        await pool.query('DELETE FROM enrollments WHERE id = ?', [req.params.id]);
+        await cacheDelPattern(`enrolledStudents:${enrollment.course_assignment_id}:*`);
         res.json({ success: true, message: 'Student unenrolled' });
     } catch (error) {
         console.error('Unenroll student error:', error);
@@ -720,8 +1032,13 @@ router.delete('/enroll/:id', isAdmin, async (req, res) => {
 
 router.get('/enrolled/:courseAssignmentId', async (req, res) => {
     try {
-        const { page: pg, limit: lm } = req.query;
         const { page, limit, offset } = parsePagination(req.query);
+        const cacheKey = `enrolledStudents:${req.params.courseAssignmentId}:p${page}:l${limit}`;
+
+        const cachedData = await cacheGet(cacheKey);
+        if (cachedData) {
+            return res.json(JSON.parse(cachedData));
+        }
 
         const [[{ total }]] = await pool.query(
             'SELECT COUNT(*) as total FROM enrollments WHERE course_assignment_id = ?',
@@ -738,7 +1055,9 @@ router.get('/enrolled/:courseAssignmentId', async (req, res) => {
             [req.params.courseAssignmentId, limit, offset]
         );
 
-        res.json(paginatedResponse(students, total, page, limit));
+        const responseData = paginatedResponse(students, total, page, limit);
+        await cacheSet(cacheKey, JSON.stringify(responseData), 2592000); // 30 days
+        res.json(responseData);
     } catch (error) {
         console.error('Get enrolled students error:', error);
         res.status(500).json({ success: false, message: 'Error fetching enrolled students' });

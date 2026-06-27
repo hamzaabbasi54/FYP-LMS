@@ -7,6 +7,7 @@ import express from 'express';
 import pool from '../config/db.js';
 import { verifyToken } from '../middleware/auth.js';
 import { getIO } from '../utils/socket.js';
+import { cacheGet, cacheSet, cacheDelPattern } from '../config/redis.js';
 
 const router = express.Router();
 
@@ -24,6 +25,10 @@ router.get('/contacts', async (req, res) => {
         if (!deptId) {
             return res.json({ success: true, data: [] });
         }
+
+        const cacheKey = `messages:contacts:${userId}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json({ success: true, data: cached });
 
         const [contacts] = await pool.query(
             `SELECT u.id, u.full_name, u.email, u.role,
@@ -45,6 +50,7 @@ router.get('/contacts', async (req, res) => {
             [userId, userId, userId, userId, userId, deptId, userId]
         );
 
+        await cacheSet(cacheKey, contacts, 86400); // Cache for 24 hours
         res.json({ success: true, data: contacts });
     } catch (error) {
         console.error('Get contacts error:', error);
@@ -75,6 +81,24 @@ router.get('/conversation/:userId', async (req, res) => {
             return res.status(403).json({ success: false, message: 'Cannot message users outside your department' });
         }
 
+        const cacheKey = `messages:conversation:${Math.min(currentUserId, otherUserId)}:${Math.max(currentUserId, otherUserId)}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) {
+            // Still mark as read in background
+            pool.query(
+                `UPDATE messages SET is_read = TRUE 
+                 WHERE sender_id = ? AND recipient_id = ? AND is_read = FALSE`,
+                [otherUserId, currentUserId]
+            ).then(([result]) => {
+                if (result.affectedRows > 0) {
+                    cacheDelPattern(`messages:contacts:${otherUserId}`);
+                    cacheDelPattern(`messages:contacts:${currentUserId}`);
+                    cacheDelPattern(cacheKey);
+                }
+            }).catch(() => {});
+            return res.json({ success: true, data: cached, contact: { id: otherUser[0].id, full_name: otherUser[0].full_name } });
+        }
+
         // Fetch conversation messages
         const [messages] = await pool.query(
             `SELECT m.id, m.sender_id, m.recipient_id, m.content, m.is_read, m.created_at,
@@ -89,11 +113,18 @@ router.get('/conversation/:userId', async (req, res) => {
         );
 
         // Mark unread messages from this sender as read
-        await pool.query(
+        const [readResult] = await pool.query(
             `UPDATE messages SET is_read = TRUE 
              WHERE sender_id = ? AND recipient_id = ? AND is_read = FALSE`,
             [otherUserId, currentUserId]
         );
+
+        if (readResult.affectedRows > 0) {
+            await cacheDelPattern(`messages:contacts:${otherUserId}`);
+            await cacheDelPattern(`messages:contacts:${currentUserId}`);
+        }
+
+        await cacheSet(cacheKey, messages, 86400); // 24 hours
 
         res.json({
             success: true,
@@ -171,6 +202,11 @@ router.post('/send', async (req, res) => {
             console.error('Socket emit error (non-blocking):', socketErr);
         }
 
+        const cacheKey = `messages:conversation:${Math.min(senderId, recipient_id)}:${Math.max(senderId, recipient_id)}`;
+        await cacheDelPattern(cacheKey);
+        await cacheDelPattern(`messages:contacts:${senderId}`);
+        await cacheDelPattern(`messages:contacts:${recipient_id}`);
+
         res.json({ success: true, data: messageData });
     } catch (error) {
         console.error('Send message error:', error);
@@ -207,6 +243,12 @@ router.put('/read/:userId', async (req, res) => {
              WHERE sender_id = ? AND recipient_id = ? AND is_read = FALSE`,
             [senderId, currentUserId]
         );
+
+        const cacheKey = `messages:conversation:${Math.min(currentUserId, senderId)}:${Math.max(currentUserId, senderId)}`;
+
+        await cacheDelPattern(`messages:contacts:${senderId}`);
+        await cacheDelPattern(`messages:contacts:${currentUserId}`);
+        await cacheDelPattern(cacheKey);
 
         res.json({ success: true, message: 'Messages marked as read' });
     } catch (error) {

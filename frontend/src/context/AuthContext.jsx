@@ -5,6 +5,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { authApi } from '../services/api';
 
 const AuthContext = createContext();
@@ -14,6 +15,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     // On mount: check if user is authenticated via cookie
     useEffect(() => {
@@ -33,6 +35,7 @@ export const AuthProvider = ({ children }) => {
         // Listen for forced logout from axios 401 interceptor
         const handleForceLogout = () => {
             setUser(null);
+            queryClient.clear();
             navigate('/');
         };
         window.addEventListener('auth:logout', handleForceLogout);
@@ -49,6 +52,7 @@ export const AuthProvider = ({ children }) => {
         try { await authApi.logout(); } catch {}
         setUser(null);
         localStorage.removeItem('selectedFacultyCourse');
+        queryClient.clear();
         navigate('/');
     };
 

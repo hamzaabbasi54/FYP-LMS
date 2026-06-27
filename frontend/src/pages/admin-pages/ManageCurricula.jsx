@@ -34,8 +34,10 @@ const ManageCurricula = () => {
         queryFn: async () => {
             const response = await curriculumApi.getAll();
             if (response.success) return response.data || [];
+            if (response.success) return response.data || [];
             throw new Error('Failed to fetch curricula');
-        }
+        },
+        staleTime: Infinity
     });
 
     const { data: departments = [] } = useQuery({

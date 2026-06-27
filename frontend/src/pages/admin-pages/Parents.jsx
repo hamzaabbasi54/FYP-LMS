@@ -44,7 +44,8 @@ const Parents = () => {
             }
             throw new Error('Failed to load parents');
         },
-        placeholderData: keepPreviousData
+        placeholderData: keepPreviousData,
+        staleTime: Infinity
     });
 
     const parents = data?.parents || [];

@@ -8,7 +8,7 @@ import pool from '../config/db.js';
 import { verifyToken, isAdmin, isFaculty } from '../middleware/auth.js';
 import { scopeToDepartment } from '../middleware/deptScope.js';
 import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
-import { cacheDel } from '../config/redis.js';
+import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '../config/redis.js';
 import { deleteGuard } from '../middleware/deleteGuard.js';
 
 const scopeBatch = scopeToDepartment('batches');
@@ -136,6 +136,15 @@ router.get('/', async (req, res) => {
 // GET single batch with PLOs and semesters
 router.get('/:id', async (req, res) => {
     try {
+        const cacheKey = `batch:${req.params.id}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) {
+            if (req.user.role === 'deptadmin' && cached.department_id !== req.user.department_id) {
+                return res.status(403).json({ success: false, message: 'Access denied' });
+            }
+            return res.json({ success: true, data: cached });
+        }
+
         const [batches] = await pool.query(
             `SELECT b.*, d.name as department_name, f.name as faculty_name,
                     cur.name as curriculum_name,
@@ -173,9 +182,12 @@ router.get('/:id', async (req, res) => {
             [req.params.id]
         );
 
+        const payload = { ...batches[0], semesters, plos };
+        await cacheSet(cacheKey, payload, 2592000); // 30 days
+
         res.json({
             success: true,
-            data: { ...batches[0], semesters, plos }
+            data: payload
         });
     } catch (error) {
         console.error('Get batch error:', error);
@@ -231,6 +243,9 @@ router.post('/', isAdmin, async (req, res) => {
         }
 
         await conn.commit();
+        await cacheDelPattern('batch:*');
+        await cacheDelPattern('batchCourses:*');
+        await cacheDelPattern('dashboard:stats:*');
         res.status(201).json({
             success: true,
             message: 'Batch created',
@@ -317,6 +332,8 @@ router.put('/:id', isAdmin, scopeBatch, async (req, res) => {
 
         // Invalidate scope cache for this batch
         await cacheDel(`scope:batches:${req.params.id}`);
+        await cacheDel(`batch:${req.params.id}`);
+        await cacheDelPattern('dashboard:stats:*');
     } catch (error) {
         await conn.rollback();
         console.error('Update batch error:', error.code, error.sqlMessage || error.message, error.sql || '');
@@ -333,6 +350,9 @@ router.delete('/:id', isAdmin, scopeBatch, deleteGuard('batch'), async (req, res
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Batch not found' });
         }
+        await cacheDelPattern('batch:*');
+        await cacheDelPattern('batchCourses:*');
+        await cacheDelPattern('dashboard:stats:*');
         res.json({ success: true, message: 'Batch deleted' });
 
         // Invalidate scope cache for deleted batch
@@ -348,6 +368,10 @@ router.delete('/:id', isAdmin, scopeBatch, deleteGuard('batch'), async (req, res
 // GET batch courses (grouped by semester) — reads from batch_semester_courses
 router.get('/:id/curriculum-courses', async (req, res) => {
     try {
+        const cacheKey = `batchCourses:${req.params.id}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json({ success: true, data: cached });
+
         const [batch] = await pool.query(
             `SELECT b.*, cur.name as curriculum_name, cur.total_semesters
              FROM batches b
@@ -384,14 +408,17 @@ router.get('/:id/curriculum-courses', async (req, res) => {
             });
         }
 
+        const payload = {
+            curriculum_id: batch[0].curriculum_id,
+            curriculum_name: batch[0].curriculum_name,
+            total_semesters: totalSemesters,
+            semesters
+        };
+        await cacheSet(cacheKey, payload, 2592000); // 30 days
+
         res.json({
             success: true,
-            data: {
-                curriculum_id: batch[0].curriculum_id,
-                curriculum_name: batch[0].curriculum_name,
-                total_semesters: totalSemesters,
-                semesters
-            }
+            data: payload
         });
     } catch (error) {
         console.error('Get batch curriculum courses error:', error);
@@ -463,6 +490,8 @@ router.post('/:id/semesters/:semNum/courses', isAdmin, async (req, res) => {
         }
 
         await conn.commit();
+        await cacheDelPattern('batch:*');
+        await cacheDelPattern('batchCourses:*');
         res.status(201).json({
             success: true,
             message: `${added.length} course(s) added to semester ${semNum}`,
@@ -567,6 +596,8 @@ router.delete('/:id/semesters/:semNum/courses/:courseId', isAdmin, async (req, r
         );
 
         await conn.commit();
+        await cacheDelPattern('batch:*');
+        await cacheDelPattern('batchCourses:*');
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Course not in this semester' });
@@ -652,6 +683,8 @@ router.post('/:batchId/semesters', isAdmin, async (req, res) => {
             'INSERT INTO semesters (batch_id, name, semester_number, term, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?)',
             [req.params.batchId, name, semester_number, term || null, start_date || null, end_date || null]
         );
+        await cacheDelPattern('batch:*');
+        await cacheDelPattern('batchCourses:*');
         res.status(201).json({
             success: true,
             message: 'Semester created',
@@ -681,6 +714,9 @@ router.put('/:batchId/semesters/:semId', isAdmin, async (req, res) => {
         }
         values.push(req.params.semId);
         await pool.query(`UPDATE semesters SET ${fields.join(', ')} WHERE id = ?`, values);
+        await cacheDelPattern('batch:*');
+        await cacheDelPattern('batchCourses:*');
+        await cacheDelPattern('dashboard:stats:*');
         res.json({ success: true, message: 'Semester updated' });
     } catch (error) {
         console.error('Update semester error:', error);
@@ -695,6 +731,8 @@ router.delete('/:batchId/semesters/:semId', isAdmin, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Semester not found' });
         }
+        await cacheDelPattern('batch:*');
+        await cacheDelPattern('batchCourses:*');
         res.json({ success: true, message: 'Semester deleted' });
     } catch (error) {
         console.error('Delete semester error:', error);
@@ -781,7 +819,7 @@ router.post('/:batchId/semesters/:semesterNumber/courses/:courseId/assign', isAd
                 updatedBy: req.user.email
             });
         }
-
+        await cacheDelPattern(`batchCourseDetails:${batchId}:*`);
         res.json({ success: true, message: 'Faculty assigned successfully' });
     } catch (error) {
         await conn.rollback();
@@ -841,6 +879,8 @@ router.post('/:batchId/semesters/:semesterNumber/courses/:courseId/upload', isAd
             [assignmentId, req.file.originalname, filePath, req.file.mimetype]
         );
 
+        await cacheDelPattern(`batchCourseDetails:${batchId}:*`);
+
         res.status(201).json({ success: true, message: 'File uploaded successfully', data: { filePath } });
     } catch (error) {
         console.error('File upload error:', error);
@@ -853,6 +893,9 @@ router.post('/:batchId/semesters/:semesterNumber/courses/:courseId/upload', isAd
 router.get('/:batchId/courses/:courseId/details', async (req, res) => {
     try {
         const { batchId, courseId } = req.params;
+        const cacheKey = `batchCourseDetails:${batchId}:${courseId}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json(cached);
 
         const [batches] = await pool.query(
             `SELECT b.id, b.name as batch_name, b.status, b.curriculum_id FROM batches b WHERE b.id = ?`,
@@ -913,7 +956,7 @@ router.get('/:batchId/courses/:courseId/details', async (req, res) => {
             [batchId, courseId, courseId]
         );
 
-        res.json({
+        const payload = {
             success: true,
             data: {
                 ...courses[0],
@@ -922,7 +965,9 @@ router.get('/:batchId/courses/:courseId/details', async (req, res) => {
                 files,
                 clos
             }
-        });
+        };
+        await cacheSet(cacheKey, payload, 2592000);
+        res.json(payload);
     } catch (error) {
         console.error('Get batch course details error:', error);
         res.status(500).json({ success: false, message: 'Error fetching course details' });
@@ -933,6 +978,9 @@ router.get('/:batchId/courses/:courseId/details', async (req, res) => {
 router.get('/:batchId/courses/:courseId/schedule', async (req, res) => {
     try {
         const { batchId, courseId } = req.params;
+        const cacheKey = `batchCourseSchedule:${batchId}:${courseId}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json(cached);
         const [schedule] = await pool.query(
             `SELECT id, day_of_week, start_time, end_time, shift
              FROM class_schedules
@@ -940,7 +988,9 @@ router.get('/:batchId/courses/:courseId/schedule', async (req, res) => {
              ORDER BY FIELD(day_of_week, 'monday','tuesday','wednesday','thursday','friday','saturday','sunday')`,
             [batchId, courseId]
         );
-        res.json({ success: true, data: schedule });
+        const payload = { success: true, data: schedule };
+        await cacheSet(cacheKey, payload, 2592000);
+        res.json(payload);
     } catch (error) {
         console.error('Get class schedule error:', error);
         res.status(500).json({ success: false, message: 'Error fetching schedule' });
@@ -996,6 +1046,7 @@ router.put('/:batchId/courses/:courseId/schedule', isAdmin, async (req, res) => 
         }
 
         await conn.commit();
+        await cacheDelPattern(`batchCourseSchedule:${batchId}:${courseId}`);
 
         // Notify faculty about schedule change
         if (facultyId) {
@@ -1026,6 +1077,10 @@ router.put('/:batchId/courses/:courseId/schedule', isAdmin, async (req, res) => 
 // GET /api/batches/:id/plos - Fetch PLOs attached to a specific batch
 router.get('/:id/plos', async (req, res) => {
     try {
+        const cacheKey = `batchPLOs:${req.params.id}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json(cached);
+
         const [plos] = await pool.query(
             `SELECT p.id, p.plo_number, p.description 
              FROM batch_plos bp
@@ -1034,7 +1089,9 @@ router.get('/:id/plos', async (req, res) => {
              ORDER BY p.plo_number`,
             [req.params.id]
         );
-        res.json({ success: true, data: plos });
+        const payload = { success: true, data: plos };
+        await cacheSet(cacheKey, payload, 2592000);
+        res.json(payload);
     } catch (error) {
         console.error('Error fetching batch PLOs:', error);
         res.status(500).json({ success: false, message: 'Error fetching batch PLOs' });
@@ -1054,6 +1111,9 @@ router.post('/:id/plos', isAdmin, async (req, res) => {
             await conn.query('INSERT INTO batch_plos (batch_id, plo_id) VALUES ?', [ploValues]);
         }
         await conn.commit();
+        await cacheDelPattern('obe:*');
+        await cacheDelPattern('batch:*');
+        await cacheDelPattern(`batchPLOs:${req.params.id}`);
         res.json({ success: true, message: 'Batch PLOs updated' });
     } catch (error) {
         await conn.rollback();
@@ -1068,6 +1128,7 @@ router.post('/:id/plos', isAdmin, async (req, res) => {
 router.delete('/:id/plos/:ploId', isAdmin, async (req, res) => {
     try {
         await pool.query('DELETE FROM batch_plos WHERE batch_id = ? AND plo_id = ?', [req.params.id, req.params.ploId]);
+        await cacheDelPattern(`batchPLOs:${req.params.id}`);
         res.json({ success: true, message: 'PLO removed from batch' });
     } catch (error) {
         console.error('Delete batch PLO error:', error);
@@ -1080,11 +1141,17 @@ router.delete('/:id/plos/:ploId', isAdmin, async (req, res) => {
 // GET CLO-PLO mappings for a batch
 router.get('/:id/clo-mappings', async (req, res) => {
     try {
+        const cacheKey = `batchCloPloMappings:${req.params.id}`;
+        const cached = await cacheGet(cacheKey);
+        if (cached) return res.json(cached);
+
         const [mappings] = await pool.query(
             'SELECT clo_id, plo_id FROM batch_clo_plo_mapping WHERE batch_id = ?',
             [req.params.id]
         );
-        res.json({ success: true, data: mappings });
+        const payload = { success: true, data: mappings };
+        await cacheSet(cacheKey, payload, 2592000);
+        res.json(payload);
     } catch (error) {
         console.error('Error fetching CLO-PLO mappings:', error);
         res.status(500).json({ success: false, message: 'Error fetching mappings' });
@@ -1119,6 +1186,10 @@ router.post('/:id/clo-mappings', isAdmin, async (req, res) => {
         }
 
         await conn.commit();
+        await cacheDelPattern('obe:*');
+        await cacheDelPattern('batch:*');
+        await cacheDelPattern(`batchCloPloMappings:${req.params.id}`);
+        await cacheDelPattern(`batchCourseDetails:${req.params.id}:*`);
         res.json({ success: true, message: 'CLO-PLO mappings saved successfully' });
     } catch (error) {
         await conn.rollback();

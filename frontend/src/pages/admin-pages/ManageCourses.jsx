@@ -48,7 +48,7 @@ const ManageCourses = () => {
 
         // Pre-flight: check for active data
         try {
-            const guardRes = await courseApi.delete(course.id);
+            const guardRes = await courseApi.delete(course.id, { dryRun: true });
             if (guardRes.requiresConfirmation && guardRes.hasActiveData) {
                 const confirmed = window.confirm(guardRes.message);
                 if (!confirmed) return;

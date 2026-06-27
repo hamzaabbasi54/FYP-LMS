@@ -15,12 +15,14 @@ import { useCourse } from '../../context/CourseContext';
 import { studentApi } from '../../services/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import useUndoStore from '../../stores/useUndoStore';
+import OverlayLoader from '../../components/common/OverlayLoader';
 
 const ManageStudents = () => {
     const { selectedCourse } = useCourse();
     const { assignmentId } = useParams();
     const [searchQuery, setSearchQuery] = useState('');
     const [page, setPage] = useState(1);
+    const [isPaginating, setIsPaginating] = useState(false);
     const limit = 10;
     const courseAssignmentId = selectedCourse?.assignment_id || assignmentId;
     const queryClient = useQueryClient();
@@ -84,7 +86,9 @@ const ManageStudents = () => {
                 throw new Error(response.message || 'Failed to fetch students');
             }
             return response.data || [];
-        }
+        },
+        staleTime: 30 * 60 * 1000,
+        gcTime: 60 * 60 * 1000
     });
 
     const error = !courseAssignmentId ? 'No course selected' : (queryError?.message || null);
@@ -99,6 +103,15 @@ const ManageStudents = () => {
 
     const totalPages = Math.ceil(filteredStudents.length / limit);
     const paginatedStudents = filteredStudents.slice((page - 1) * limit, page * limit);
+
+    const handlePageChange = (newPage) => {
+        setIsPaginating(true);
+        // Small delay to allow the loading screen to render, as requested by user
+        setTimeout(() => {
+            setPage(newPage);
+            setIsPaginating(false);
+        }, 400); 
+    };
 
     // Generate avatar color based on student name
     const getAvatarColor = (name) => {
@@ -135,6 +148,7 @@ const ManageStudents = () => {
     return (
         <>
             <div className="min-h-[calc(100vh-140px)] space-y-6">
+                <OverlayLoader isLoading={isPaginating} text="Loading page..." />
                 {/* Breadcrumbs */}
             <div className="flex items-center text-sm text-slate-500 font-medium">
                 <Link to={selectedCourse ? `/faculty-mycourses/${courseAssignmentId}` : '/faculty-dashboard'} className="hover:text-sky-700 transition-colors">
@@ -174,30 +188,6 @@ const ManageStudents = () => {
                         <div>
                             <p className="text-2xl font-bold text-slate-800">{students.length}</p>
                             <p className="text-sm font-medium text-slate-500">Total Enrolled</p>
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-5">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-3xl bg-emerald-100 flex items-center justify-center">
-                            <MdPeople className="w-5 h-5 text-emerald-600" />
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold text-slate-800">{students.filter(s => s.is_active).length}</p>
-                            <p className="text-sm font-medium text-slate-500">Active Students</p>
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-white/92 rounded-3xl shadow-sm border border-sky-100 p-5">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-3xl bg-sky-50 flex items-center justify-center">
-                            <MdPeople className="w-5 h-5 text-sky-700" />
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold text-slate-800">
-                                {students.length > 0 ? (students.reduce((acc, s) => acc + parseFloat(s.cgpa || 0), 0) / students.length).toFixed(2) : '0.00'}
-                            </p>
-                            <p className="text-sm font-medium text-slate-500">Avg CGPA</p>
                         </div>
                     </div>
                 </div>
@@ -264,12 +254,6 @@ const ManageStudents = () => {
                                     <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                                         Enrolled
                                     </th>
-                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                                        CGPA
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                                        Status
-                                    </th>
                                     <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                                         Actions
                                     </th>
@@ -315,27 +299,6 @@ const ManageStudents = () => {
                                             {/* Enrolled Date */}
                                             <td className="px-6 py-4">
                                                 <span className="text-sm text-slate-600 font-medium">{formatDate(student.enrolled_at)}</span>
-                                            </td>
-
-                                            {/* CGPA */}
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`text-sm font-bold ${parseFloat(student.cgpa) >= 3.5 ? 'text-emerald-600' :
-                                                            parseFloat(student.cgpa) >= 2.5 ? 'text-amber-600' : 'text-red-600'
-                                                        }`}>
-                                                        {parseFloat(student.cgpa || 0).toFixed(2)}
-                                                    </span>
-                                                </div>
-                                            </td>
-
-                                            {/* Status */}
-                                            <td className="px-6 py-4">
-                                                <span className={`inline-flex px-2.5 py-1 rounded-3xl text-[10px] font-bold uppercase tracking-wider ${student.is_active
-                                                    ? 'bg-emerald-100 text-emerald-700'
-                                                    : 'bg-sky-50 text-slate-700'
-                                                    }`}>
-                                                    {student.is_active ? 'Active' : 'Inactive'}
-                                                </span>
                                             </td>
 
                                             {/* Actions */}
@@ -386,8 +349,8 @@ const ManageStudents = () => {
                         {totalPages > 1 && (
                             <div className="flex items-center gap-2">
                                 <button 
-                                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                                    disabled={page === 1}
+                                    onClick={() => handlePageChange(Math.max(1, page - 1))}
+                                    disabled={page === 1 || isPaginating}
                                     className="px-3 py-1.5 border border-sky-100 rounded-3xl text-sm font-semibold text-slate-600 hover:bg-sky-50/45 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                 >
                                     Previous
@@ -396,8 +359,8 @@ const ManageStudents = () => {
                                     Page {page} of {totalPages}
                                 </span>
                                 <button 
-                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={page === totalPages}
+                                    onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
+                                    disabled={page === totalPages || isPaginating}
                                     className="px-3 py-1.5 border border-sky-100 rounded-3xl text-sm font-semibold text-slate-600 hover:bg-sky-50/45 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                 >
                                     Next

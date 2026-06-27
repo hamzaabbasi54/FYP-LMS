@@ -15,13 +15,19 @@ const StudentList = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [newStudent, setNewStudent] = useState({
-        firstName: '', lastName: '', email: '', roll_number: '', contact_number: '', cgpa: '',
+        firstName: '', lastName: '', email: '', student_id_number: '', contact_number: '', cgpa: '',
         matric_marks: '', fsc_marks: '', background: '',
         parentName: '', parentEmail: '', parentPhone: ''
     });
     const [showImportModal, setShowImportModal] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
+    const [importReport, setImportReport] = useState(null);
     const [selectedStudents, setSelectedStudents] = useState(new Set());
+    const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+    const [isProcessingDeleteAll, setIsProcessingDeleteAll] = useState(false);
+    const [activeDataWarning, setActiveDataWarning] = useState(null);
+    const [pendingDeleteAction, setPendingDeleteAction] = useState(null);
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
     // Pagination & Search
     const [page, setPage] = useState(1);
@@ -33,7 +39,7 @@ const StudentList = () => {
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    const { data, isLoading: loading } = useQuery({
+    const { data, isLoading: loading, isFetching } = useQuery({
         queryKey: ['students', id, page, debouncedSearch],
         queryFn: async () => {
             const response = await studentApi.getAll({
@@ -50,7 +56,8 @@ const StudentList = () => {
             }
             throw new Error('Failed to load students');
         },
-        placeholderData: keepPreviousData
+        placeholderData: keepPreviousData,
+        staleTime: 1000 * 60 * 5, // Cache on frontend for 5 minutes
     });
 
     const students = data?.students || [];
@@ -61,8 +68,9 @@ const StudentList = () => {
         onSuccess: () => {
             toast.success('Student added successfully!');
             setShowAddModal(false);
-            setNewStudent({ firstName: '', lastName: '', email: '', roll_number: '', contact_number: '', cgpa: '', matric_marks: '', fsc_marks: '', background: '', parentName: '', parentEmail: '', parentPhone: '' });
+            setNewStudent({ firstName: '', lastName: '', email: '', student_id_number: '', contact_number: '', cgpa: '', matric_marks: '', fsc_marks: '', background: '', parentName: '', parentEmail: '', parentPhone: '' });
             queryClient.invalidateQueries({ queryKey: ['students', id] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
         },
         onError: (error) => {
             toast.error(error.response?.data?.message || 'Failed to add student');
@@ -76,7 +84,7 @@ const StudentList = () => {
             last_name: newStudent.lastName,
             email: newStudent.email,
             phone: newStudent.contact_number,
-            student_id_number: newStudent.roll_number,
+            student_id_number: newStudent.student_id_number,
             cgpa: parseFloat(newStudent.cgpa) || 0,
             matric_marks: parseFloat(newStudent.matric_marks) || null,
             fsc_marks: parseFloat(newStudent.fsc_marks) || null,
@@ -115,17 +123,21 @@ const StudentList = () => {
         onSuccess: (response) => {
             const imported = response.data?.imported || 0;
             const skipped = response.data?.skipped || 0;
-            
-            if (skipped > 0) {
-                const firstError = response.data?.errors?.[0]?.error || 'Unknown error';
-                toast.warn(`Imported ${imported} students. Skipped ${skipped}. First error: ${firstError}`);
+
+            if (skipped > 0 || response.data?.errors?.length > 0) {
+                setImportReport(response.data);
             } else {
                 toast.success(`Imported ${imported} students successfully!`);
             }
             queryClient.invalidateQueries({ queryKey: ['students', id] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
         },
         onError: (error) => {
-            toast.error(error.response?.data?.message || 'Failed to import students');
+            if (error.response?.status === 400 && error.response?.data?.data?.errors) {
+                setImportReport(error.response.data.data);
+            } else {
+                toast.error(error.response?.data?.message || 'Failed to import students');
+            }
         },
         onSettled: () => {
             setIsImporting(false);
@@ -192,15 +204,46 @@ const StudentList = () => {
 
     const handleBulkDelete = async () => {
         if (selectedStudents.size === 0) return;
+        setIsBulkDeleting(true);
         const ids = Array.from(selectedStudents);
         const undoId = `students-bulk-${ids.join('-').substring(0, 30)}`;
 
         // Pre-flight: check for active data via deleteGuard
         try {
-            const guardRes = await studentApi.bulkDelete(ids);
+            const guardRes = await studentApi.bulkDelete(ids, { dryRun: true });
             if (guardRes.requiresConfirmation && guardRes.hasActiveData) {
-                const confirmed = window.confirm(guardRes.message);
-                if (!confirmed) return;
+                setActiveDataWarning(guardRes.message);
+                setPendingDeleteAction(() => () => {
+                    // Optimistically remove from cache
+                    queryClient.setQueryData(['students', id, page, debouncedSearch], (old) => {
+                        if (!old) return old;
+                        return {
+                            ...old,
+                            students: old.students.filter(s => !selectedStudents.has(s.id)),
+                            pagination: { ...old.pagination, total: (old.pagination?.total || ids.length) - ids.length }
+                        };
+                    });
+                    setSelectedStudents(new Set());
+                    enqueueUndo({
+                        id: undoId,
+                        type: 'Students',
+                        label: `${ids.length} student(s)`,
+                        highRisk: true,
+                        apiCall: async () => {
+                            await studentApi.bulkDelete(ids, { confirm: true });
+                            queryClient.invalidateQueries({ queryKey: ['students', id] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+                            toast.success(`${ids.length} student(s) deleted`);
+                        },
+                        onUndo: () => {
+                            queryClient.invalidateQueries({ queryKey: ['students', id] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+                            toast.info(`Deletion of ${ids.length} student(s) undone`);
+                        }
+                    });
+                });
+                setIsBulkDeleting(false);
+                return;
             }
         } catch { /* proceed */ }
 
@@ -223,18 +266,109 @@ const StudentList = () => {
             apiCall: async () => {
                 await studentApi.bulkDelete(ids, { confirm: true });
                 queryClient.invalidateQueries({ queryKey: ['students', id] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
                 toast.success(`${ids.length} student(s) deleted`);
             },
             onUndo: () => {
                 queryClient.invalidateQueries({ queryKey: ['students', id] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
                 toast.info(`Deletion of ${ids.length} student(s) undone`);
             }
         });
+        setIsBulkDeleting(false);
+    };
+
+    const handleDeleteAll = () => {
+        setShowDeleteAllModal(true);
+    };
+
+    const executeDeleteAll = async () => {
+        setIsProcessingDeleteAll(true);
+        try {
+            const res = await studentApi.getAllIds(id);
+            if (res.success && res.data && res.data.length > 0) {
+                const ids = res.data;
+                const undoId = `students-delete-all-${ids.join('-').substring(0, 30)}`;
+
+                // Pre-flight check
+                try {
+                    const guardRes = await studentApi.bulkDelete(ids, { dryRun: true });
+                    if (guardRes.requiresConfirmation && guardRes.hasActiveData) {
+                        setActiveDataWarning(guardRes.message);
+                        setPendingDeleteAction(() => () => {
+                            queryClient.setQueryData(['students', id, page, debouncedSearch], (old) => {
+                                if (!old) return old;
+                                return { ...old, students: [], pagination: { ...old.pagination, total: 0 } };
+                            });
+                            setSelectedStudents(new Set());
+                            enqueueUndo({
+                                id: undoId,
+                                type: 'Students',
+                                label: `All ${ids.length} student(s)`,
+                                highRisk: true,
+                                apiCall: async () => {
+                                    await studentApi.bulkDelete(ids, { confirm: true });
+                                    queryClient.invalidateQueries({ queryKey: ['students', id] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+                                    toast.success(`All ${ids.length} student(s) deleted`);
+                                },
+                                onUndo: () => {
+                                    queryClient.invalidateQueries({ queryKey: ['students', id] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+                                    toast.info(`Deletion of all ${ids.length} student(s) undone`);
+                                }
+                            });
+                        });
+                        setShowDeleteAllModal(false);
+                        setIsProcessingDeleteAll(false);
+                        return;
+                    }
+                } catch { /* proceed */ }
+
+                // Optimistically clear current page cache
+                queryClient.setQueryData(['students', id, page, debouncedSearch], (old) => {
+                    if (!old) return old;
+                    return {
+                        ...old,
+                        students: [],
+                        pagination: { ...old.pagination, total: 0 }
+                    };
+                });
+                setSelectedStudents(new Set());
+
+                enqueueUndo({
+                    id: undoId,
+                    type: 'Students',
+                    label: `All ${ids.length} student(s)`,
+                    highRisk: true,
+                    apiCall: async () => {
+                        await studentApi.bulkDelete(ids, { confirm: true });
+                        queryClient.invalidateQueries({ queryKey: ['students', id] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+                        toast.success(`All ${ids.length} student(s) deleted`);
+                    },
+                    onUndo: () => {
+                        queryClient.invalidateQueries({ queryKey: ['students', id] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+                        toast.info(`Deletion of all ${ids.length} student(s) undone`);
+                    }
+                });
+            } else {
+                toast.info("No students found in this batch to delete.");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to fetch students for deletion.");
+        } finally {
+            setShowDeleteAllModal(false);
+            setIsProcessingDeleteAll(false);
+        }
     };
 
     return (
-        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200">
+        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200 relative">
             <OverlayLoader isLoading={isImporting} text="Importing students to batch..." />
+            <OverlayLoader isLoading={isFetching && !loading} text="Loading students..." />
             <div className="p-8 max-w-7xl mx-auto">
                 <div className="mb-6">
                     <Link to={`/admin-managebatches/${id}`} className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm">
@@ -254,9 +388,13 @@ const StudentList = () => {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
-                        {selectedStudents.size > 0 && (
-                            <button onClick={handleBulkDelete} disabled={deleting} className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-all disabled:opacity-50">
-                                <MdDelete className="w-5 h-5" /> {deleting ? 'Deleting...' : `Delete (${selectedStudents.size})`}
+                        {selectedStudents.size > 0 ? (
+                            <button onClick={handleBulkDelete} disabled={isBulkDeleting} className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-all disabled:opacity-50">
+                                <MdDelete className="w-5 h-5" /> {isBulkDeleting ? 'Deleting...' : `Delete (${selectedStudents.size})`}
+                            </button>
+                        ) : (
+                            <button onClick={handleDeleteAll} disabled={students.length === 0 || isProcessingDeleteAll} className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-all disabled:opacity-50">
+                                <MdDelete className="w-5 h-5" /> Delete All
                             </button>
                         )}
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx,.xls,.csv" className="hidden" />
@@ -288,9 +426,9 @@ const StudentList = () => {
                             <thead>
                                 <tr className="border-b border-slate-100">
                                     <th className="py-4 px-6 w-12 text-left">
-                                            <div className="flex items-center h-full">
-                                            <input 
-                                                type="checkbox" 
+                                        <div className="flex items-center h-full">
+                                            <input
+                                                type="checkbox"
                                                 className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                                 checked={students.length > 0 && selectedStudents.size === students.length}
                                                 onChange={handleSelectAll}
@@ -313,8 +451,8 @@ const StudentList = () => {
                                         <tr key={student.id} onClick={() => navigate(`/admin-managebatches/${id}/students/${student.id}`)} className="hover:bg-slate-50/50 transition-colors cursor-pointer group">
                                             <td className="py-4 px-6 w-12" onClick={(e) => e.stopPropagation()}>
                                                 <div className="flex items-center h-full">
-                                                    <input 
-                                                        type="checkbox" 
+                                                    <input
+                                                        type="checkbox"
                                                         className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                                         checked={selectedStudents.has(student.id)}
                                                         onChange={(e) => handleSelect(e, student.id)}
@@ -335,7 +473,7 @@ const StudentList = () => {
                                                 </div>
                                             </td>
                                             <td className="py-4 px-6">
-                                                <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-sm font-mono">{student.student_id_number || student.roll_number || 'N/A'}</span>
+                                                <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-sm font-mono">{student.student_id_number || 'N/A'}</span>
                                             </td>
                                             <td className="py-4 px-6 text-sm text-slate-500">{student.phone || student.contact_number || 'N/A'}</td>
                                             <td className="py-4 px-6">
@@ -353,15 +491,15 @@ const StudentList = () => {
                     </div>
                     <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
                         <p className="text-sm text-slate-500">
-                            {selectedStudents.size > 0 
+                            {selectedStudents.size > 0
                                 ? `${selectedStudents.size} selected`
                                 : (pagination ? `Showing ${students.length} of ${pagination.total} students` : `Showing ${students.length} students`)
                             }
                         </p>
-                        
+
                         {pagination && pagination.totalPages > 1 && (
                             <div className="flex items-center gap-2">
-                                <button 
+                                <button
                                     onClick={() => setPage(p => Math.max(1, p - 1))}
                                     disabled={!pagination.hasPrev}
                                     className="px-3 py-1.5 border-2 border-slate-300 shadow-sm rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
@@ -371,7 +509,7 @@ const StudentList = () => {
                                 <span className="text-sm text-slate-600 font-medium px-2">
                                     Page {pagination.page} of {pagination.totalPages}
                                 </span>
-                                <button 
+                                <button
                                     onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
                                     disabled={!pagination.hasNext}
                                     className="px-3 py-1.5 border-2 border-slate-300 shadow-sm rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
@@ -426,7 +564,7 @@ const StudentList = () => {
                                             <label className="block text-sm font-bold text-slate-700 mb-2">Roll Number</label>
                                             <div className="relative">
                                                 <MdBadge className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-                                                <input type="text" required value={newStudent.roll_number} onChange={(e) => setNewStudent({ ...newStudent, roll_number: e.target.value })}
+                                                <input type="text" required value={newStudent.student_id_number} onChange={(e) => setNewStudent({ ...newStudent, student_id_number: e.target.value })}
                                                     placeholder="e.g. 04162213027"
                                                     className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium text-slate-800 placeholder-slate-400" />
                                             </div>
@@ -568,10 +706,10 @@ const StudentList = () => {
                             <div className="p-6">
                                 <h4 className="font-semibold text-slate-800 mb-2">Excel File Format Requirements</h4>
                                 <p className="text-sm text-slate-600 mb-4">Please ensure your Excel file (.xlsx or .csv) contains the following column headers exactly as shown:</p>
-                                
+
                                 <div className="bg-white border-2 border-slate-200 rounded-xl shadow-sm p-4 mb-4">
                                     <ul className="text-sm text-slate-600 space-y-2 font-mono">
-                                        <li><span className="font-bold text-emerald-600">roll_number</span> (Required, Unique)</li>
+                                        <li><span className="font-bold text-emerald-600">student_id_number</span> (Required, Unique)</li>
                                         <li><span className="font-bold text-emerald-600">first_name</span> (Required)</li>
                                         <li><span className="font-bold text-emerald-600">last_name</span> (Required)</li>
                                         <li><span className="font-bold text-emerald-600">email</span> (Required)</li>
@@ -587,7 +725,7 @@ const StudentList = () => {
 
                                 {/* Download Template Button */}
                                 <button onClick={handleDownloadTemplate} type="button"
-                                    className="w-full mb-6 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 text-blue-700 rounded-xl hover:from-blue-100 hover:to-indigo-100 font-semibold text-sm transition-all flex items-center justify-center gap-2">
+                                    className="w-full mb-6 px-4 py-2.5 bg-sky-50 border border-sky-200 text-sky-700 rounded-xl hover:bg-sky-100 font-semibold text-sm transition-all flex items-center justify-center gap-2">
                                     <MdFileDownload className="w-5 h-5" /> Download Excel Template
                                 </button>
 
@@ -597,6 +735,155 @@ const StudentList = () => {
                                         <MdFileUpload className="w-5 h-5" /> Select File
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Import Report Modal */}
+                {importReport && (
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                    <MdDescription className="w-6 h-6 text-indigo-500" /> Import Summary
+                                </h3>
+                                <button onClick={() => setImportReport(null)} className="text-slate-400 hover:text-slate-600 transition-colors p-2 hover:bg-slate-100 rounded-lg">
+                                    <MdClose className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="p-6 overflow-y-auto flex-1">
+                                <div className="flex gap-4 mb-6">
+                                    <div className="bg-emerald-50 text-emerald-700 px-5 py-4 rounded-xl border border-emerald-100 flex-1 flex flex-col items-center justify-center">
+                                        <span className="text-3xl font-bold mb-1">{importReport.imported || 0}</span>
+                                        <span className="text-sm font-medium opacity-90 uppercase tracking-wider">Successfully Added</span>
+                                    </div>
+                                    <div className="bg-rose-50 text-rose-700 px-5 py-4 rounded-xl border border-rose-100 flex-1 flex flex-col items-center justify-center">
+                                        <span className="text-3xl font-bold mb-1">{importReport.skipped || 0}</span>
+                                        <span className="text-sm font-medium opacity-90 uppercase tracking-wider">Skipped / Failed</span>
+                                    </div>
+                                </div>
+
+                                {importReport.errors?.length > 0 && (
+                                    <div>
+                                        <h4 className="font-semibold text-slate-800 mb-3">Error Details (Row by Row)</h4>
+                                        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                                            <table className="w-full text-sm text-left">
+                                                <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                                                    <tr>
+                                                        <th className="px-4 py-3 w-20 text-center">Row</th>
+                                                        <th className="px-4 py-3 w-40">Roll No / Email</th>
+                                                        <th className="px-4 py-3">Error Description</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100">
+                                                    {importReport.errors.map((err, idx) => (
+                                                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                                            <td className="px-4 py-3 text-center font-bold text-slate-700 bg-slate-50/50">{err.row}</td>
+                                                            <td className="px-4 py-3 text-slate-600">
+                                                                {err.student_id_number && <div className="font-medium text-slate-800">{err.student_id_number}</div>}
+                                                                {err.email && <div className="text-xs text-slate-500 truncate max-w-[120px]">{err.email}</div>}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-rose-600 font-medium">{err.error}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-5 border-t border-slate-100 flex justify-end bg-slate-50 rounded-b-xl">
+                                <button
+                                    onClick={() => setImportReport(null)}
+                                    className="px-6 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-colors shadow-sm font-medium"
+                                >
+                                    Close Report
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Delete All Confirmation Modal */}
+                {showDeleteAllModal && (
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                            <div className="p-6">
+                                <div className="flex items-center gap-4 mb-4 text-red-600">
+                                    <div className="p-3 bg-red-100 rounded-full">
+                                        <MdDelete className="w-6 h-6" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-slate-800">Delete All Students</h3>
+                                </div>
+                                <p className="text-slate-600 mb-2">
+                                    Are you sure you want to delete <strong>ALL {students.length > 0 ? (pagination?.total || 'students') : ''}</strong> in this batch?
+                                </p>
+                                <p className="text-sm text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                    This will trigger a bulk delete operation. This action cannot be easily undone once the undo timer expires.
+                                </p>
+                            </div>
+                            <div className="flex justify-end gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
+                                <button
+                                    onClick={() => setShowDeleteAllModal(false)}
+                                    disabled={isProcessingDeleteAll}
+                                    className="px-5 py-2.5 text-slate-600 font-medium rounded-xl hover:bg-slate-200 transition-colors disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={executeDeleteAll}
+                                    disabled={isProcessingDeleteAll}
+                                    className="px-5 py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    {isProcessingDeleteAll ? (
+                                        <>
+                                            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                                            Processing...
+                                        </>
+                                    ) : 'Yes, Delete All'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Active Data Warning Modal */}
+                {activeDataWarning && (
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                            <div className="p-6">
+                                <div className="flex items-center gap-4 mb-4 text-amber-600">
+                                    <div className="p-3 bg-amber-100 rounded-full">
+                                        <MdDelete className="w-6 h-6" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-slate-800">Active Data Warning</h3>
+                                </div>
+                                <p className="text-slate-600 mb-2">
+                                    {activeDataWarning}
+                                </p>
+                                <p className="text-sm text-slate-500 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                                    Proceeding may affect enrollments, grades, or other linked records. This action cannot be easily undone once the undo timer expires.
+                                </p>
+                            </div>
+                            <div className="flex justify-end gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
+                                <button
+                                    onClick={() => { setActiveDataWarning(null); setPendingDeleteAction(null); }}
+                                    className="px-5 py-2.5 text-slate-600 font-medium rounded-xl hover:bg-slate-200 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const action = pendingDeleteAction;
+                                        setActiveDataWarning(null);
+                                        setPendingDeleteAction(null);
+                                        if (action) action();
+                                    }}
+                                    className="px-5 py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors shadow-sm"
+                                >
+                                    Yes, Force Delete
+                                </button>
                             </div>
                         </div>
                     </div>

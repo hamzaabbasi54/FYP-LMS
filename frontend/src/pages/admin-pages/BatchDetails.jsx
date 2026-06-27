@@ -46,7 +46,8 @@ const BatchDetails = () => {
             const res = await batchApi.getById(id);
             if (res.success) return res.data;
             throw new Error('Failed to load batch');
-        }
+        },
+        staleTime: Infinity
     });
 
     const { data: curricula = [] } = useQuery({
@@ -65,7 +66,8 @@ const BatchDetails = () => {
             if (res.success) return res.data;
             return null;
         },
-        enabled: !!batchData?.curriculum_id
+        enabled: !!batchData?.curriculum_id,
+        staleTime: Infinity
     });
 
     const handleCurriculumChange = async (val) => {

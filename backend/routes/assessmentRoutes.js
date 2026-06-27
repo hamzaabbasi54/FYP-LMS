@@ -12,6 +12,7 @@ import { validateMagicBytes } from '../middleware/validateMagicBytes.js';
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
 import { parseExcel, generateExcel, getUploadDir, createExcelUpload } from '../utils/excel.js';
 import { recalcCGPAForAssessment } from '../utils/cgpa.js';
+import { cacheDelPattern } from '../config/redis.js';
 
 const router = express.Router();
 router.use(verifyToken);
@@ -210,6 +211,7 @@ router.post('/', scopeFaculty('course_assignment', 'body', 'course_assignment_id
         }
 
         await conn.commit();
+        await cacheDelPattern('obe:*');
         res.status(201).json({ success: true, message: 'Assessment created', data: { id: assessmentId, title, type } });
     } catch (error) {
         await conn.rollback();
@@ -332,6 +334,7 @@ router.put('/:id', scopeFaculty('assessment', 'params', 'id'), async (req, res) 
         }
 
         await conn.commit();
+        await cacheDelPattern('obe:*');
         res.json({ success: true, message: 'Assessment updated' });
     } catch (error) {
         await conn.rollback();
@@ -349,6 +352,7 @@ router.delete('/:id', scopeFaculty('assessment', 'params', 'id'), async (req, re
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Assessment not found' });
         }
+        await cacheDelPattern('obe:*');
         res.json({ success: true, message: 'Assessment deleted' });
     } catch (error) {
         console.error('Delete assessment error:', error);
@@ -512,6 +516,7 @@ router.post('/:id/grades', async (req, res) => {
         await conn.query(`UPDATE assessments SET status = 'graded' WHERE id = ?`, [req.params.id]);
 
         await conn.commit();
+        await cacheDelPattern('obe:*');
 
         // Recalculate CGPA for all affected students (fire-and-forget)
         recalcCGPAForAssessment(req.params.id).catch(err => console.error('CGPA recalc error:', err.message));
@@ -868,6 +873,7 @@ router.post('/:id/grades/import', upload.single('file'), validateMagicBytes, asy
         }
 
         await conn.commit();
+        await cacheDelPattern('obe:*');
 
         // Recalculate CGPA for all affected students (fire-and-forget)
         recalcCGPAForAssessment(req.params.id).catch(err => console.error('CGPA recalc error:', err.message));

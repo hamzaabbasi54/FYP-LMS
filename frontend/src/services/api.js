@@ -468,8 +468,8 @@ export const studentApi = {
         const response = await api.put(`/students/${id}`, data);
         return response.data;
     },
-    delete: async (id) => {
-        const response = await api.delete(`/students/${id}`);
+    delete: async (id, data) => {
+        const response = await api.delete(`/students/${id}`, { data });
         return response.data;
     },
     bulkDelete: async (studentIds, data) => {
@@ -525,6 +525,10 @@ export const studentApi = {
         const response = await api.get(`/students/by-batch/${batchId}`, { params: { search } });
         return response.data;
     },
+    getAllIds: async (batchId) => {
+        const response = await api.get(`/students/by-batch/${batchId}/ids`);
+        return response.data;
+    },
     downloadImportTemplate: async () => {
         const response = await api.get('/students/import/template', { responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -558,8 +562,8 @@ export const assessmentApi = {
         const response = await api.put(`/assessments/${id}`, data);
         return response.data;
     },
-    delete: async (id) => {
-        const response = await api.delete(`/assessments/${id}`);
+    delete: async (id, data) => {
+        const response = await api.delete(`/assessments/${id}`, { data });
         return response.data;
     },
     getCLOsForCourse: async (courseId) => {
@@ -829,8 +833,8 @@ export const curriculumApi = {
         const response = await api.put(`/curricula/${id}`, data);
         return response.data;
     },
-    delete: async (id) => {
-        const response = await api.delete(`/curricula/${id}`);
+    delete: async (id, data) => {
+        const response = await api.delete(`/curricula/${id}`, { data });
         return response.data;
     },
     addCourses: async (curriculumId, semesterNumber, data) => {

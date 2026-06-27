@@ -24,7 +24,8 @@ const ManageFaculty = () => {
             const res = await approvalApi.getUsersByRole('faculty');
             if (res.success) return res.data || [];
             throw new Error('Failed to load faculty');
-        }
+        },
+        staleTime: Infinity
     });
 
     const enqueueUndo = useUndoStore(s => s.enqueue);

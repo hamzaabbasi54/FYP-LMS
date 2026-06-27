@@ -86,6 +86,8 @@ const Dashboard = () => {
             if (response.success) return response.data || [];
             throw new Error('Failed to load assigned courses. Please try again.');
         },
+        staleTime: 30 * 60 * 1000, // 30 minutes
+        gcTime: 60 * 60 * 1000,    // 1 hour
         refetchOnWindowFocus: true,
         retry: 2
     });
