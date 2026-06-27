@@ -985,6 +985,7 @@ router.post('/enroll', isAdmin, async (req, res) => {
             'INSERT INTO enrollments (student_id, course_assignment_id) VALUES (?, ?)',
             [student_id, course_assignment_id]
         );
+        await cacheDelPattern(`enrolledStudents:${course_assignment_id}:*`);
         res.status(201).json({ success: true, message: 'Student enrolled', data: { id: result.insertId } });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') {
@@ -997,10 +998,12 @@ router.post('/enroll', isAdmin, async (req, res) => {
 
 router.delete('/enroll/:id', isAdmin, async (req, res) => {
     try {
-        const [result] = await pool.query('DELETE FROM enrollments WHERE id = ?', [req.params.id]);
-        if (result.affectedRows === 0) {
+        const [[enrollment]] = await pool.query('SELECT course_assignment_id FROM enrollments WHERE id = ?', [req.params.id]);
+        if (!enrollment) {
             return res.status(404).json({ success: false, message: 'Enrollment not found' });
         }
+        await pool.query('DELETE FROM enrollments WHERE id = ?', [req.params.id]);
+        await cacheDelPattern(`enrolledStudents:${enrollment.course_assignment_id}:*`);
         res.json({ success: true, message: 'Student unenrolled' });
     } catch (error) {
         console.error('Unenroll student error:', error);
@@ -1010,8 +1013,13 @@ router.delete('/enroll/:id', isAdmin, async (req, res) => {
 
 router.get('/enrolled/:courseAssignmentId', async (req, res) => {
     try {
-        const { page: pg, limit: lm } = req.query;
         const { page, limit, offset } = parsePagination(req.query);
+        const cacheKey = `enrolledStudents:${req.params.courseAssignmentId}:p${page}:l${limit}`;
+
+        const cachedData = await cacheGet(cacheKey);
+        if (cachedData) {
+            return res.json(JSON.parse(cachedData));
+        }
 
         const [[{ total }]] = await pool.query(
             'SELECT COUNT(*) as total FROM enrollments WHERE course_assignment_id = ?',
@@ -1028,7 +1036,9 @@ router.get('/enrolled/:courseAssignmentId', async (req, res) => {
             [req.params.courseAssignmentId, limit, offset]
         );
 
-        res.json(paginatedResponse(students, total, page, limit));
+        const responseData = paginatedResponse(students, total, page, limit);
+        await cacheSet(cacheKey, JSON.stringify(responseData), 2592000); // 30 days
+        res.json(responseData);
     } catch (error) {
         console.error('Get enrolled students error:', error);
         res.status(500).json({ success: false, message: 'Error fetching enrolled students' });
