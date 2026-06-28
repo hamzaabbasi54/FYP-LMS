@@ -142,7 +142,7 @@ router.get('/clos/all', async (req, res) => {
             clo.mapped_plos = ploMap[clo.id] || [];
         });
         
-        await cacheSet(cacheKey, clos, 2592000); // Cache for 30 days
+        await cacheSet(cacheKey, clos, 3600); // Cache for 1 hour
         
         res.json({ success: true, data: clos });
     } catch (error) {
@@ -435,7 +435,7 @@ router.get('/export', async (req, res) => {
 router.get('/my-schedule', async (req, res) => {
     try {
         const [schedule] = await pool.query(
-            `SELECT cs.id, cs.day_of_week, cs.start_time, cs.end_time, cs.shift,
+            `SELECT DISTINCT cs.id, cs.day_of_week, cs.start_time, cs.end_time, cs.shift,
                     c.id as course_id, c.title as course_name, c.code as course_code, c.credit_hours,
                     b.id as batch_id, b.name as batch_name,
                     (SELECT COUNT(*) FROM enrollments e
@@ -485,7 +485,7 @@ router.get('/assignments', isAdmin, async (req, res) => {
 });
 
 // GET CLOs for a specific course (for assessment question CLO dropdown)
-router.get('/:id/clos-for-assessment', async (req, res) => {
+router.get('/:id/clos-for-assessment', isAuthenticated, async (req, res) => {
     try {
         const [clos] = await pool.query(
             `SELECT c.id, c.clo_number, c.title, c.description
