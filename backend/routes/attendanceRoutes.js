@@ -51,7 +51,12 @@ router.get('/course/:courseAssignmentId', async (req, res) => {
         );
 
         const response = paginatedResponse(records, total, page, limit);
-        response.summary = { total: summary.total, present: summary.present_count, absent: summary.absent_count, late: summary.late_count };
+        response.summary = {
+            total: Number(summary.total) || 0,
+            present: Number(summary.present_count) || 0,
+            absent: Number(summary.absent_count) || 0,
+            late: Number(summary.late_count) || 0
+        };
         res.json(response);
     } catch (error) {
         console.error('Get attendance error:', error);
