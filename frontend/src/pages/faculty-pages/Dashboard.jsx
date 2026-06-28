@@ -123,8 +123,8 @@ const Dashboard = () => {
     ];
 
     return (
-        <div className="h-[calc(100vh-154px)] overflow-hidden">
-            <div className="mx-auto flex h-full max-w-7xl flex-col gap-3">
+        <div className="min-h-[calc(100dvh-128px)] lg:h-[calc(100vh-154px)] lg:overflow-hidden">
+            <div className="mx-auto flex min-h-0 max-w-7xl flex-col gap-3 lg:h-full">
                 {/* Hero Section */}
                 <section className="relative min-h-[126px] overflow-hidden rounded-3xl border border-white/70 bg-white/82 p-4 shadow-[0_24px_80px_rgba(14,116,144,0.14)] backdrop-blur-2xl lg:p-5">
                     <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-sky-200/35 blur-3xl" />
@@ -185,7 +185,7 @@ const Dashboard = () => {
                         </div>
                     </div>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto bg-sky-50/30 p-4">
+                    <div className="min-h-0 flex-1 bg-sky-50/30 p-4 lg:overflow-y-auto">
                         {/* Loading State */}
                         {loading && (
                             <div className="flex justify-center items-center py-16">

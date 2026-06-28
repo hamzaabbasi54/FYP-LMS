@@ -436,7 +436,7 @@ const BatchCourseSchedule = () => {
     };
 
     if (loading) return (
-        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200 p-8">
+        <div className="min-h-full bg-[#eff8ff] p-4 sm:p-8">
             <div className="max-w-5xl mx-auto animate-pulse">
                 <div className="h-6 bg-slate-200 rounded w-48 mb-8"></div>
                 <div className="h-48 bg-slate-200 rounded-2xl mb-8"></div>
@@ -448,40 +448,43 @@ const BatchCourseSchedule = () => {
     );
 
     return (
-        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200">
+        <div className="min-h-full bg-[#eff8ff]">
             <OverlayLoader isLoading={savingMappings || uploading} text={savingMappings ? "Saving CLO-PLO mappings..." : "Uploading syllabus file..."} />
-            <div className="p-8 max-w-5xl mx-auto">
+            <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
                 {/* Breadcrumb */}
                 <div className="mb-6">
-                    <Link to={`/admin-managebatches/${batchId}`} className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors">
+                    <Link to={`/admin-managebatches/${batchId}`} className="inline-flex items-center gap-2 text-sky-700 hover:text-sky-900 text-sm font-semibold transition-colors">
                         <MdArrowBack className="w-4 h-4" /> Back to Batch
                     </Link>
                 </div>
 
                 {/* Header */}
-                <div className="mb-8">
+                <div className="mb-7 rounded-[8px] border border-sky-100 bg-gradient-to-r from-white via-[#f4fbff] to-[#e5f6ff] p-5 sm:p-6 shadow-sm">
                     <div className="flex items-center gap-3 mb-1">
-                        <h1 className="text-2xl font-bold text-slate-800">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-[8px] border border-sky-200 bg-sky-50 text-sky-700">
+                            <MdSchedule className="h-5 w-5" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-slate-900">
                             Course Schedule
                         </h1>
                     </div>
-                    <p className="text-sm text-slate-500">
+                    <p className="ml-0 mt-2 text-sm text-slate-600 sm:ml-14 sm:mt-0">
                         Set the weekly class schedule for this course.
                     </p>
                 </div>
 
                 {/* Course Info Card */}
                 {courseData && (
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-8">
+                    <div className="mb-8 rounded-[8px] border border-sky-100 bg-white p-4 shadow-sm sm:p-6">
                         <div className="flex flex-wrap items-start gap-6">
                             {/* Course icon + info */}
                             <div className="flex items-start gap-4 flex-1 min-w-[280px]">
-                                <div className="w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center shadow-sm flex-shrink-0">
-                                    <MdMenuBook className="w-6 h-6 text-white" />
+                                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[8px] border border-sky-200 bg-sky-50 text-sky-700">
+                                    <MdMenuBook className="w-6 h-6" />
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded uppercase tracking-wider">{courseData.code}</span>
+                                        <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-sky-700">{courseData.code}</span>
                                         <h2 className="text-xl font-bold text-slate-800">{courseData.title}</h2>
                                     </div>
                                     <p className="text-sm text-slate-500">{courseData.credit_hours} Credit Hours • {courseData.department_name}</p>
@@ -490,16 +493,16 @@ const BatchCourseSchedule = () => {
                             {/* Meta pills */}
                             <div className="flex flex-wrap gap-3">
                                 {courseData.batch && (
-                                    <div className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg shadow-sm">
-                                        <MdSchool className="w-4 h-4 text-slate-400" />
+                                    <div className="flex items-center gap-2 rounded-[8px] border border-sky-100 bg-sky-50/60 px-3 py-2">
+                                        <MdSchool className="w-4 h-4 text-sky-600" />
                                         <div>
                                             <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Batch</p>
                                             <p className="text-sm font-medium text-slate-700">{courseData.batch.batch_name}</p>
                                         </div>
                                     </div>
                                 )}
-                                <div className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg shadow-sm">
-                                    <MdSchedule className="w-4 h-4 text-slate-400" />
+                                <div className="flex items-center gap-2 rounded-[8px] border border-sky-100 bg-sky-50/60 px-3 py-2">
+                                    <MdSchedule className="w-4 h-4 text-sky-600" />
                                     <div>
                                         <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Days Active</p>
                                         <p className="text-sm font-medium text-slate-700">{activeDayCount} / 7</p>
@@ -509,24 +512,24 @@ const BatchCourseSchedule = () => {
                         </div>
 
                         {/* Faculty Assignment & Course Content Divider */}
-                        <div className="my-6 border-t border-slate-100"></div>
+                        <div className="my-6 border-t border-sky-100"></div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             {/* Faculty Assignment */}
                             <div>
                                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                    <MdPerson className="w-4 h-4 text-slate-400" /> {courseData.assignment?.faculty_id ? 'Assigned Faculty' : 'Assign Faculty'}
+                                    <MdPerson className="w-4 h-4 text-sky-600" /> {courseData.assignment?.faculty_id ? 'Assigned Faculty' : 'Assign Faculty'}
                                 </h3>
                                 {courseData.assignment?.faculty_id ? (
                                     /* Faculty is assigned — show info + Unassign button */
                                     <div>
-                                        <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                                        <div className="flex items-center justify-between gap-3 rounded-[8px] border border-sky-100 bg-sky-50/60 p-3">
                                             <div>
                                                 <p className="text-xs text-slate-400 font-medium">Currently Assigned</p>
-                                                <p className="text-sm font-bold text-emerald-700">{courseData.assignment.faculty_name}</p>
+                                                <p className="text-sm font-bold text-sky-800">{courseData.assignment.faculty_name}</p>
                                             </div>
                                             <button onClick={handleUnassignFaculty} disabled={unassigningFaculty}
-                                                className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50">
+                                                className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-50">
                                                 {unassigningFaculty ? 'Removing...' : 'Unassign'}
                                             </button>
                                         </div>
@@ -538,14 +541,14 @@ const BatchCourseSchedule = () => {
                                         <div className="flex-1">
                                             <label className="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Select Faculty</label>
                                             <select value={selectedFaculty} onChange={(e) => setSelectedFaculty(e.target.value)}
-                                                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-white appearance-none">
+                                                className="w-full appearance-none rounded-[8px] border border-sky-100 bg-white px-3 py-2 text-sm outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100">
                                                 <option value="">-- Choose Faculty --</option>
                                                 {facultyList.map(f => (
                                                     <option key={f.id} value={f.id}>{f.full_name || f.fullName} ({f.department || 'No Dept'})</option>
                                                 ))}
                                             </select>
                                         </div>
-                                        <button onClick={handleAssignFaculty} disabled={assigningFaculty} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50">
+                                        <button onClick={handleAssignFaculty} disabled={assigningFaculty} className="rounded-full bg-[#0798e7] px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0078c5] disabled:opacity-50">
                                             {assigningFaculty ? 'Saving...' : 'Assign'}
                                         </button>
                                     </div>
@@ -555,15 +558,15 @@ const BatchCourseSchedule = () => {
                             {/* Course Content / Files */}
                             <div>
                                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                    <MdMenuBook className="w-4 h-4 text-slate-400" /> Course Content
+                                    <MdMenuBook className="w-4 h-4 text-sky-600" /> Course Content
                                 </h3>
                                 <div className="flex items-end gap-3 mb-3">
                                     <div className="flex-1">
                                         <label className="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Upload File (PDF/Word)</label>
                                         <input type="file" onChange={(e) => setUploadFile(e.target.files[0])}
-                                            className="w-full px-3 py-1.5 border border-slate-200 bg-white rounded-lg text-sm file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer" />
+                                            className="w-full cursor-pointer rounded-[8px] border border-sky-100 bg-white px-3 py-1.5 text-sm file:mr-3 file:rounded-full file:border-0 file:bg-sky-50 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-sky-700 hover:file:bg-sky-100" />
                                     </div>
-                                    <button onClick={handleUploadFile} disabled={uploading || !uploadFile} className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm shadow-sm font-medium hover:bg-slate-700 transition-colors disabled:opacity-50">
+                                    <button onClick={handleUploadFile} disabled={uploading || !uploadFile} className="rounded-full bg-[#0798e7] px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0078c5] disabled:opacity-50">
                                         {uploading ? 'Uploading...' : 'Upload'}
                                     </button>
                                 </div>
@@ -571,9 +574,9 @@ const BatchCourseSchedule = () => {
                                 {courseData.files && courseData.files.length > 0 ? (
                                     <div className="space-y-2 max-h-32 overflow-y-auto">
                                         {courseData.files.map(f => (
-                                            <div key={f.id} className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+                                            <div key={f.id} className="flex items-center justify-between rounded-[8px] border border-sky-100 bg-sky-50/50 px-3 py-2 text-sm">
                                                 <span className="text-slate-700 truncate mr-3 flex-1">{f.file_name}</span>
-                                                <a href={`/document-viewer?url=${encodeURIComponent(getFileUrl(f.file_path))}&name=${encodeURIComponent(f.file_name)}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline flex-shrink-0 text-xs font-medium">View</a>
+                                                <a href={`/document-viewer?url=${encodeURIComponent(getFileUrl(f.file_path))}&name=${encodeURIComponent(f.file_name)}`} target="_blank" rel="noreferrer" className="flex-shrink-0 text-xs font-semibold text-sky-700 hover:text-sky-900">View</a>
                                             </div>
                                         ))}
                                     </div>
@@ -594,18 +597,18 @@ const BatchCourseSchedule = () => {
                         saving={saving}
                     />
                 )}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+                <div className="mb-8 overflow-hidden rounded-[8px] border border-sky-100 bg-white shadow-sm">
                     {/* Section header */}
-                    <div className="flex items-center justify-between p-5 border-b border-slate-200">
+                    <div className="flex flex-col gap-4 border-b border-sky-100 bg-gradient-to-r from-white to-sky-50/70 p-5 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-sky-200 bg-sky-50 text-sky-700"><MdSchedule className="h-4 w-4" /></div>
                             <h3 className="text-lg font-semibold text-slate-800">Weekly Schedule</h3>
                             <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">{activeDayCount} day(s) selected</span>
                         </div>
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center justify-center gap-2 rounded-full bg-[#0798e7] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0078c5] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <MdSave className="w-4 h-4" />
                             {saving ? 'Saving...' : 'Save Schedule'}
@@ -624,8 +627,8 @@ const BatchCourseSchedule = () => {
                                         key={day.key}
                                         className={`rounded-lg border transition-all duration-200 overflow-hidden ${
                                             isActive
-                                                ? 'border-blue-300 bg-blue-50/40 shadow-sm'
-                                                : 'border-slate-200 bg-white hover:border-slate-300'
+                                                ? 'border-sky-300 bg-sky-50/50 shadow-sm'
+                                                : 'border-sky-100 bg-white hover:border-sky-200'
                                         }`}
                                     >
                                         {/* Day toggle header */}
@@ -633,13 +636,13 @@ const BatchCourseSchedule = () => {
                                             onClick={() => toggleDay(day.key)}
                                             className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${
                                                 isActive
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                                                    ? 'bg-sky-50 text-sky-800 border-b border-sky-200'
+                                                    : 'bg-white text-slate-700 hover:bg-sky-50'
                                             }`}
                                         >
                                             <span className="font-semibold text-sm">{day.label}</span>
                                             {isActive ? (
-                                                <MdCheckCircle className="w-5 h-5" />
+                                                <MdCheckCircle className="w-5 h-5 text-sky-600" />
                                             ) : (
                                                 <div className="w-5 h-5 rounded-full border-2 border-slate-300 bg-white"></div>
                                             )}
@@ -659,7 +662,7 @@ const BatchCourseSchedule = () => {
                                                             type="time"
                                                             value={entry.start_time}
                                                             onChange={(e) => updateDay(day.key, 'start_time', e.target.value)}
-                                                            className="w-full pl-9 pr-3 py-2 border border-slate-200 shadow-sm rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-white"
+                                                            className="w-full rounded-[8px] border border-sky-100 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                                                         />
                                                     </div>
                                                 </div>
@@ -675,7 +678,7 @@ const BatchCourseSchedule = () => {
                                                             type="time"
                                                             value={entry.end_time}
                                                             onChange={(e) => updateDay(day.key, 'end_time', e.target.value)}
-                                                            className="w-full pl-9 pr-3 py-2 border border-slate-200 shadow-sm rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-white"
+                                                            className="w-full rounded-[8px] border border-sky-100 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                                                         />
                                                     </div>
                                                 </div>
@@ -685,12 +688,12 @@ const BatchCourseSchedule = () => {
                                                     <label className="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">
                                                         Shift
                                                     </label>
-                                                    <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5">
+                                                    <div className="flex gap-1 rounded-[8px] bg-sky-50 p-1">
                                                         <button
                                                             onClick={() => updateDay(day.key, 'shift', 'morning')}
                                                             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-colors ${
                                                                 entry.shift === 'morning'
-                                                                    ? 'bg-amber-400 text-white shadow-sm'
+                                                                    ? 'border border-sky-200 bg-white text-sky-700 shadow-sm'
                                                                     : 'text-slate-500 hover:text-slate-700'
                                                             }`}
                                                         >
@@ -701,7 +704,7 @@ const BatchCourseSchedule = () => {
                                                             onClick={() => updateDay(day.key, 'shift', 'evening')}
                                                             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-colors ${
                                                                 entry.shift === 'evening'
-                                                                    ? 'bg-blue-600 text-white shadow-sm'
+                                                                    ? 'border border-sky-200 bg-white text-sky-700 shadow-sm'
                                                                     : 'text-slate-500 hover:text-slate-700'
                                                             }`}
                                                         >
@@ -719,7 +722,7 @@ const BatchCourseSchedule = () => {
 
                         {/* Summary */}
                         {activeDayCount > 0 && (
-                            <div className="mt-6 p-4 bg-white border border-slate-200 rounded-lg shadow-sm">
+                            <div className="mt-6 rounded-[8px] border border-sky-100 bg-sky-50/40 p-4">
                                 <h4 className="text-sm font-semibold text-slate-700 mb-3">Schedule Summary</h4>
                                 <div className="space-y-2">
                                     {DAYS.filter(d => schedule[d.key].active).map(d => {
@@ -732,8 +735,8 @@ const BatchCourseSchedule = () => {
                                                 </span>
                                                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${
                                                     entry.shift === 'morning'
-                                                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                                        : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                                        ? 'bg-white text-sky-700 border border-sky-200'
+                                                        : 'bg-white text-sky-700 border border-sky-200'
                                                 }`}>
                                                     {entry.shift === 'morning' ? <MdWbSunny className="w-3 h-3" /> : <MdNightsStay className="w-3 h-3" />}
                                                     {entry.shift === 'morning' ? 'Morning' : 'Evening'}
@@ -746,8 +749,8 @@ const BatchCourseSchedule = () => {
                         )}
 
                         {activeDayCount === 0 && (
-                            <div className="mt-6 text-center py-12 bg-white border border-dashed border-slate-300 rounded-lg shadow-sm">
-                                <MdSchedule className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                            <div className="mt-6 rounded-[8px] border border-dashed border-sky-200 bg-sky-50/30 py-12 text-center">
+                                <MdSchedule className="mx-auto mb-3 h-10 w-10 text-sky-300" />
                                 <p className="text-slate-400 text-sm">Click on a day above to set its class time</p>
                             </div>
                         )}
@@ -755,14 +758,17 @@ const BatchCourseSchedule = () => {
                 </div>
 
                 {courseData && (
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-8">
+                    <div className="mb-8 rounded-[8px] border border-sky-100 bg-white p-4 shadow-sm sm:p-6">
                         {/* Course CLOs Section */}
                         <div>
-                            <div className="flex items-center justify-between mb-4">
+                            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                                    <MdCheckCircle className="w-4 h-4 text-emerald-500" /> Course Learning Outcomes (CLOs)
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-sky-200 bg-sky-50 text-sky-700">
+                                        <MdCheckCircle className="h-4 w-4" />
+                                    </span>
+                                    Course Learning Outcomes (CLOs)
                                 </h3>
-                                <button onClick={openAddCloModal} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors">
+                                <button onClick={openAddCloModal} className="flex items-center justify-center gap-1.5 rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-bold text-sky-700 transition-colors hover:bg-sky-50">
                                     <MdAdd className="w-4 h-4" /> Add CLO
                                 </button>
                             </div>
@@ -770,23 +776,23 @@ const BatchCourseSchedule = () => {
                             {courseData.clos && courseData.clos.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {courseData.clos.map(clo => (
-                                        <div key={clo.id} className="p-4 bg-white border border-slate-200 shadow-sm rounded-lg hover:shadow-md transition-shadow">
+                                        <div key={clo.id} className="rounded-[8px] border border-sky-100 bg-gradient-to-r from-white to-sky-50/50 p-4 transition-colors hover:border-sky-200">
                                             <div className="flex items-start justify-between mb-2">
                                                 <div className="flex items-center gap-2">
                                                     <h4 className="font-bold text-slate-800 text-sm">{clo.title}</h4>
-                                                    <button onClick={() => openEditCloModal(clo)} className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors" title="Edit CLO">
+                                                    <button onClick={() => openEditCloModal(clo)} className="rounded-full border border-sky-100 bg-white p-1.5 text-sky-600 transition-colors hover:bg-sky-50" title="Edit CLO">
                                                         <MdEdit className="w-4 h-4" />
                                                     </button>
-                                                    <button onClick={() => handleDeleteClo(clo.id)} className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors" title="Delete CLO">
+                                                    <button onClick={() => handleDeleteClo(clo.id)} className="rounded-full border border-rose-100 bg-white p-1.5 text-rose-500 transition-colors hover:bg-rose-50" title="Delete CLO">
                                                         <MdDelete className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                                 {clo.mapped_plo_ids ? (
-                                                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-[10px] font-bold tracking-wide">
+                                                    <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-bold tracking-wide text-sky-700">
                                                         MAPPED
                                                     </span>
                                                 ) : (
-                                                    <span className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded text-[10px] font-bold tracking-wide">
+                                                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold tracking-wide text-slate-500">
                                                         UNMAPPED
                                                     </span>
                                                 )}
@@ -796,10 +802,10 @@ const BatchCourseSchedule = () => {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="p-6 bg-slate-50 border border-slate-200 rounded-lg text-center">
+                                <div className="rounded-[8px] border border-dashed border-sky-200 bg-sky-50/30 p-8 text-center">
                                     <MdCheckCircle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                                     <p className="text-sm text-slate-500 font-medium">No CLOs attached to this course.</p>
-                                    <button onClick={openAddCloModal} className="mt-3 px-4 py-2 bg-blue-600 shadow-sm text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                                    <button onClick={openAddCloModal} className="mt-3 rounded-full bg-[#0798e7] px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0078c5]">
                                         Add First CLO
                                     </button>
                                 </div>
@@ -809,7 +815,7 @@ const BatchCourseSchedule = () => {
                         {/* CLO-PLO Mapping */}
                         {courseData.clos && courseData.clos.length > 0 && (
                             <>
-                                <div className="my-6 border-t border-slate-100"></div>
+                                <div className="my-6 border-t border-sky-100"></div>
                                 {isMappingsDirty() && (
                                     <UnsavedBanner
                                         onSave={handleSaveMappings}
@@ -818,11 +824,11 @@ const BatchCourseSchedule = () => {
                                     />
                                 )}
                                 <div>
-                                    <div className="flex items-center justify-between mb-4">
+                                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                         <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                                            <MdSchool className="w-4 h-4 text-slate-400" /> Map CLOs to Batch PLOs
+                                            <span className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-sky-200 bg-sky-50 text-sky-700"><MdSchool className="h-4 w-4" /></span> Map CLOs to Batch PLOs
                                         </h3>
-                                        <button onClick={handleSaveMappings} disabled={savingMappings} className="px-4 py-2 bg-blue-600 shadow-sm text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50">
+                                        <button onClick={handleSaveMappings} disabled={savingMappings} className="rounded-full bg-[#0798e7] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0078c5] disabled:opacity-50">
                                             {savingMappings ? 'Saving...' : 'Save Mappings'}
                                         </button>
                                     </div>
@@ -831,7 +837,7 @@ const BatchCourseSchedule = () => {
                                     ) : (
                                         <div className="space-y-4">
                                             {courseData.clos.map(clo => (
-                                                <div key={clo.id} className="bg-white border border-slate-200 shadow-sm rounded-lg p-4">
+                                                <div key={clo.id} className="rounded-[8px] border border-sky-100 bg-gradient-to-r from-white to-sky-50/40 p-4">
                                                     <div className="flex flex-col md:flex-row md:items-start gap-4">
                                                         <div className="flex-1">
                                                             <h4 className="font-bold text-slate-800 text-sm">CLO {clo.clo_number}: {clo.title}</h4>
@@ -841,7 +847,7 @@ const BatchCourseSchedule = () => {
                                                             <label className="block text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-2">Map to PLOs:</label>
                                                             <div className="relative">
                                                                 <div 
-                                                                    className="flex min-h-[38px] w-full flex-wrap items-center gap-1.5 rounded-lg border border-slate-200 shadow-sm bg-white px-3 py-1.5 cursor-pointer hover:border-blue-400 transition-colors"
+                                                                    className="flex min-h-[42px] w-full cursor-pointer flex-wrap items-center gap-1.5 rounded-[8px] border border-sky-100 bg-white px-3 py-1.5 transition-colors hover:border-sky-300"
                                                                     onClick={() => setOpenPloDropdowns(prev => ({...prev, [clo.id]: !prev[clo.id]}))}
                                                                 >
                                                                     {(() => {
@@ -852,11 +858,11 @@ const BatchCourseSchedule = () => {
                                                                             const plo = batchPlos.find(p => p.id === ploId);
                                                                             if (!plo) return null;
                                                                             return (
-                                                                                <span key={ploId} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
+                                                                                <span key={ploId} className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
                                                                                     PLO {plo.plo_number}
                                                                                     <button 
                                                                                         type="button" 
-                                                                                        className="text-blue-400 hover:text-blue-600 focus:outline-none"
+                                                                                        className="text-sky-400 hover:text-sky-700 focus:outline-none"
                                                                                         onClick={(e) => {
                                                                                             e.stopPropagation();
                                                                                             setCloMappings(prev => ({
@@ -875,12 +881,12 @@ const BatchCourseSchedule = () => {
                                                                 </div>
 
                                                                 {openPloDropdowns[clo.id] && (
-                                                                    <div className="absolute z-10 mt-1 w-full rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 border border-slate-200">
+                                                                    <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-[8px] border border-sky-100 bg-white shadow-lg">
                                                                         <div className="max-h-60 overflow-y-auto py-1">
                                                                             {batchPlos.map(plo => {
                                                                                 const isMapped = (cloMappings[clo.id] || []).includes(plo.id);
                                                                                 return (
-                                                                                    <label key={plo.id} className="flex cursor-pointer items-start px-4 py-2 hover:bg-slate-50">
+                                                                                    <label key={plo.id} className="flex cursor-pointer items-start px-4 py-2.5 hover:bg-sky-50">
                                                                                         <div className="flex h-5 items-center">
                                                                                             <input 
                                                                                                 type="checkbox" 
@@ -893,7 +899,7 @@ const BatchCourseSchedule = () => {
                                                                                                         return { ...prev, [clo.id]: current.filter(id => id !== plo.id) };
                                                                                                     });
                                                                                                 }}
-                                                                                                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600" 
+                                                                                                className="h-4 w-4 rounded border-sky-300 accent-[#0798e7] focus:ring-sky-500" 
                                                                                             />
                                                                                         </div>
                                                                                         <div className="ml-3 text-sm">
@@ -922,27 +928,27 @@ const BatchCourseSchedule = () => {
 
             {/* Add/Edit CLO Modal */}
             {isCloModalOpen && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
-                        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-sm">
+                    <div className="flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-[8px] border border-sky-100 bg-white shadow-2xl">
+                        <div className="flex items-center justify-between border-b border-sky-100 bg-gradient-to-r from-white to-sky-50 p-4 sm:p-5">
                             <h3 className="text-lg font-bold text-slate-800">
                                 {editingClo ? 'Edit CLO' : 'Add CLO'}
                             </h3>
-                            <button onClick={() => setIsCloModalOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded transition-colors">
+                            <button onClick={() => setIsCloModalOpen(false)} className="rounded-full border border-sky-100 bg-white p-2 text-slate-500 transition-colors hover:bg-sky-50 hover:text-sky-700">
                                 <MdClose className="w-5 h-5" />
                             </button>
                         </div>
                         
                         {!editingClo && (
-                            <div className="flex border-b border-slate-200">
+                            <div className="grid grid-cols-2 gap-2 border-b border-sky-100 bg-sky-50/40 p-3">
                                 <button 
-                                    className={`flex-1 py-3 text-sm font-semibold transition-colors ${cloModalTab === 'select' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                                    className={`rounded-full border px-3 py-2.5 text-sm font-semibold transition-colors ${cloModalTab === 'select' ? 'border-sky-300 bg-white text-sky-700 shadow-sm' : 'border-transparent text-slate-500 hover:bg-white'}`}
                                     onClick={() => setCloModalTab('select')}
                                 >
                                     Select Existing
                                 </button>
                                 <button 
-                                    className={`flex-1 py-3 text-sm font-semibold transition-colors ${cloModalTab === 'create' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                                    className={`rounded-full border px-3 py-2.5 text-sm font-semibold transition-colors ${cloModalTab === 'create' ? 'border-sky-300 bg-white text-sky-700 shadow-sm' : 'border-transparent text-slate-500 hover:bg-white'}`}
                                     onClick={() => setCloModalTab('create')}
                                 >
                                     Create New
@@ -958,10 +964,10 @@ const BatchCourseSchedule = () => {
                                         <p className="text-sm text-slate-500 italic text-center py-4">No unmapped CLOs available.</p>
                                     ) : (
                                         globalClos.filter(g => !courseData?.clos?.some(c => c.id === g.id)).map(clo => (
-                                            <label key={clo.id} className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 shadow-sm hover:bg-slate-50 hover:border-slate-300 cursor-pointer transition-colors">
+                                            <label key={clo.id} className="flex cursor-pointer items-start gap-3 rounded-[8px] border border-sky-100 bg-white p-3 transition-colors hover:border-sky-200 hover:bg-sky-50/50">
                                                 <input 
                                                     type="checkbox" 
-                                                    className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                    className="mt-0.5 rounded border-sky-300 accent-[#0798e7] focus:ring-sky-500"
                                                     checked={selectedGlobalClos.includes(clo.id)}
                                                     onChange={(e) => {
                                                         if (e.target.checked) setSelectedGlobalClos([...selectedGlobalClos, clo.id]);
@@ -977,10 +983,10 @@ const BatchCourseSchedule = () => {
                                     )}
                                 </div>
                                 <div className="mt-auto flex gap-3">
-                                    <button type="button" onClick={() => setIsCloModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 bg-white text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+                                    <button type="button" onClick={() => setIsCloModalOpen(false)} className="flex-1 rounded-full border border-sky-100 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-sky-50">
                                         Cancel
                                     </button>
-                                    <button type="button" onClick={handleMapSelectedClos} disabled={savingClo || selectedGlobalClos.length === 0} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg shadow-sm text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50">
+                                    <button type="button" onClick={handleMapSelectedClos} disabled={savingClo || selectedGlobalClos.length === 0} className="flex-1 rounded-full bg-[#0798e7] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0078c5] disabled:opacity-50">
                                         {savingClo ? 'Adding...' : `Add Selected (${selectedGlobalClos.length})`}
                                     </button>
                                 </div>
@@ -996,7 +1002,7 @@ const BatchCourseSchedule = () => {
                                             placeholder="e.g. CLO-1"
                                             value={cloForm.title}
                                             onChange={(e) => setCloForm({...cloForm, title: e.target.value})}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-colors text-sm"
+                                            className="w-full rounded-[8px] border border-sky-100 bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                                         />
                                         <p className="text-xs text-slate-500 mt-1">Must be in format CLO-X (e.g., CLO-1, CLO-2)</p>
                                     </div>
@@ -1007,7 +1013,7 @@ const BatchCourseSchedule = () => {
                                             placeholder="What will students learn?"
                                             value={cloForm.description}
                                             onChange={(e) => setCloForm({...cloForm, description: e.target.value})}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-colors resize-none text-sm"
+                                            className="w-full resize-none rounded-[8px] border border-sky-100 bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                                         ></textarea>
                                     </div>
                                     <div>
@@ -1015,7 +1021,7 @@ const BatchCourseSchedule = () => {
                                         <select
                                             value={cloForm.cognitive_level}
                                             onChange={(e) => setCloForm({...cloForm, cognitive_level: e.target.value})}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-colors text-sm appearance-none"
+                                            className="w-full appearance-none rounded-[8px] border border-sky-100 bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                                         >
                                             <option value="C1">C1 - Knowledge</option>
                                             <option value="C2">C2 - Comprehension</option>
@@ -1028,10 +1034,10 @@ const BatchCourseSchedule = () => {
                                 </div>
 
                                 <div className="mt-6 flex gap-3">
-                                    <button type="button" onClick={() => setIsCloModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 bg-white text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+                                    <button type="button" onClick={() => setIsCloModalOpen(false)} className="flex-1 rounded-full border border-sky-100 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-sky-50">
                                         Cancel
                                     </button>
-                                    <button type="submit" disabled={savingClo} className="flex-1 px-4 py-2 bg-blue-600 shadow-sm text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                                    <button type="submit" disabled={savingClo} className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#0798e7] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0078c5] disabled:opacity-50">
                                         {savingClo ? 'Saving...' : 'Save CLO'}
                                     </button>
                                 </div>

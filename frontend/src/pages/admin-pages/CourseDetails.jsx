@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MdArrowBack, MdAccessTime, MdInfoOutline, MdAccountBalance, MdAdd, MdDelete } from 'react-icons/md';
+import { MdArrowBack, MdAdd, MdDelete } from 'react-icons/md';
+import { PiClock, PiInfo, PiTarget } from 'react-icons/pi';
 import { courseApi } from '../../services/api';
 import MapCourseCLOModal from './MapCourseCLOModal';
 import OverlayLoader from '../../components/common/OverlayLoader';
@@ -80,7 +81,7 @@ const CourseDetails = () => {
     const { clos = [] } = course;
 
     return (
-        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200 p-8">
+        <div className="campus-detail-page min-h-full bg-gradient-to-br from-slate-100 to-slate-200 p-8">
             <div className="max-w-5xl mx-auto space-y-6">
                 {/* Breadcrumb */}
                 <div className="flex items-center text-sm text-gray-500 mb-2">
@@ -92,9 +93,7 @@ const CourseDetails = () => {
                 </div>
 
                 {/* Header Section */}
-                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-8 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-                    
+                <div className="campus-section-card bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-8 relative overflow-hidden">
                     <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-6">
                         <div className="flex-1">
                             <div className="flex items-center gap-3 mb-3">
@@ -111,16 +110,16 @@ const CourseDetails = () => {
                             </p>
                         </div>
                         
-                        <div className="flex flex-row md:flex-col gap-4 bg-slate-50 p-5 rounded-xl border-2 border-slate-200 min-w-[200px]">
+                        <div className="campus-meta-panel flex flex-row md:flex-col gap-4 p-5 rounded-xl min-w-[200px]">
                             <div>
                                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                    <MdAccessTime className="w-4 h-4" /> Credit Hours
+                                    <PiClock className="w-4 h-4" /> Credit Hours
                                 </p>
                                 <p className="text-2xl font-bold text-slate-800">{course.credit_hours}</p>
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                    <MdInfoOutline className="w-4 h-4" /> Prerequisites
+                                    <PiInfo className="w-4 h-4" /> Prerequisites
                                 </p>
                                 {course.prerequisite_courses && course.prerequisite_courses.length > 0 ? (
                                     <div className="flex flex-wrap gap-1.5">
@@ -140,11 +139,11 @@ const CourseDetails = () => {
                 </div>
 
                 {/* CLO Section */}
-                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-8">
+                <div className="campus-section-card bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-8">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md">
-                                <MdAccountBalance className="w-5 h-5" />
+                            <div className="campus-icon-tile w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md">
+                                <PiTarget className="w-5 h-5" />
                             </div>
                             <div>
                                 <h2 className="text-xl font-bold text-slate-900">Course Learning Outcomes (CLOs)</h2>
@@ -154,7 +153,7 @@ const CourseDetails = () => {
                         {clos.length > 0 && (
                             <button 
                                 onClick={() => setShowCLOModal(true)}
-                                className="flex items-center gap-1.5 px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 rounded-xl font-semibold text-sm transition-colors border border-indigo-200"
+                                className="campus-secondary-button flex items-center gap-1.5 px-4 py-2 bg-sky-50 text-sky-700 hover:bg-sky-100 rounded-full font-semibold text-sm transition-colors border border-sky-200"
                             >
                                 <MdAdd className="w-4 h-4" /> Manage CLOs
                             </button>
@@ -162,9 +161,9 @@ const CourseDetails = () => {
                     </div>
 
                     {clos.length === 0 ? (
-                        <div className="text-center py-12 bg-slate-50 border-2 border-slate-200 border-dashed rounded-2xl shadow-sm">
-                            <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4">
-                                <MdAccountBalance className="w-8 h-8 text-indigo-300" />
+                        <div className="campus-empty-state text-center py-12 rounded-2xl">
+                            <div className="campus-empty-icon">
+                                <PiTarget className="w-8 h-8 text-sky-400" />
                             </div>
                             <h3 className="text-lg font-bold text-slate-700 mb-2">No CLOs Defined</h3>
                             <p className="text-slate-500 mb-6 max-w-md mx-auto">
@@ -172,7 +171,7 @@ const CourseDetails = () => {
                             </p>
                             <button 
                                 onClick={() => setShowCLOModal(true)}
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 hover:shadow-lg transition-all"
+                                className="campus-primary-button inline-flex items-center gap-2 px-6 py-3 bg-sky-600 text-white font-semibold rounded-full hover:bg-sky-700 hover:shadow-lg transition-all"
                             >
                                 <MdAdd className="w-5 h-5" /> Add CLOs to Course
                             </button>
@@ -223,7 +222,7 @@ const CourseDetails = () => {
 
             {/* Custom Confirmation Modal */}
             {cloToDelete && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                <div className="campus-modal-shell fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                         <div className="p-6">
                             <div className="flex items-center gap-4 mb-4 text-red-600">

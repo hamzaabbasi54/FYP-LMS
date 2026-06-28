@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MdArrowBack, MdSearch, MdFileDownload, MdFileUpload, MdPersonAdd, MdClose, MdEmail, MdDelete, MdPerson, MdBadge, MdPhone, MdDescription, MdAdd } from 'react-icons/md';
+import { MdArrowBack, MdSearch, MdFileDownload, MdFileUpload, MdClose, MdEmail, MdDelete, MdPerson, MdBadge, MdPhone, MdDescription, MdAdd } from 'react-icons/md';
+import { PiDownloadSimple, PiStudent, PiUploadSimple, PiUserPlus, PiWarningCircle } from 'react-icons/pi';
 import { studentApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import OverlayLoader from '../../components/common/OverlayLoader';
@@ -169,14 +170,6 @@ const StudentList = () => {
             console.error('Export error:', error);
             toast.error('Failed to export students');
         }
-    };
-
-    const getCgpaColor = (cgpa) => {
-        const value = parseFloat(cgpa);
-        if (value >= 3.5) return 'from-emerald-500 to-teal-600';
-        if (value >= 3.0) return 'from-blue-500 to-indigo-600';
-        if (value >= 2.5) return 'from-amber-500 to-orange-600';
-        return 'from-red-500 to-rose-600';
     };
 
     const handleSelectAll = (e) => {
@@ -366,10 +359,10 @@ const StudentList = () => {
     };
 
     return (
-        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200 relative">
+        <div className="campus-detail-page min-h-full bg-gradient-to-br from-slate-100 to-slate-200 relative">
             <OverlayLoader isLoading={isImporting} text="Importing students to batch..." />
             <OverlayLoader isLoading={isFetching && !loading} text="Loading students..." />
-            <div className="p-8 max-w-7xl mx-auto">
+            <div className="campus-page-inner p-8 max-w-7xl mx-auto">
                 <div className="mb-6">
                     <Link to={`/admin-managebatches/${id}`} className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm">
                         <MdArrowBack className="w-4 h-4" /> Back to Batch Details
@@ -379,10 +372,10 @@ const StudentList = () => {
                 <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-3">
-                            <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full"></div>
-                            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Students</h1>
+                            <div className="campus-heading-icon"><PiStudent className="w-6 h-6" /></div>
+                            <h1 className="text-3xl font-bold text-slate-900">Students</h1>
                         </div>
-                        <p className="text-slate-500 ml-5 mt-1">
+                        <p className="text-slate-500 ml-14 mt-1">
                             {loading ? 'Loading...' : `${students.length} students enrolled`}
                         </p>
                     </div>
@@ -398,14 +391,14 @@ const StudentList = () => {
                             </button>
                         )}
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx,.xls,.csv" className="hidden" />
-                        <button onClick={() => setShowAddModal(true)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/25 transition-all">
-                            <MdPersonAdd className="w-5 h-5" /> Add
+                        <button onClick={() => setShowAddModal(true)} className="campus-primary-button inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/25 transition-all">
+                            <PiUserPlus className="w-5 h-5" /> Add
                         </button>
-                        <button onClick={handleImportClick} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 shadow-sm text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
-                            <MdFileUpload className="w-5 h-5 text-emerald-500" /> Import
+                        <button onClick={handleImportClick} className="campus-secondary-button inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 shadow-sm text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                            <PiUploadSimple className="w-5 h-5" /> Import
                         </button>
-                        <button onClick={handleExport} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 shadow-sm text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
-                            <MdFileDownload className="w-5 h-5 text-blue-500" /> Export
+                        <button onClick={handleExport} className="campus-secondary-button inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 shadow-sm text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                            <PiDownloadSimple className="w-5 h-5" /> Export
                         </button>
                     </div>
                 </div>
@@ -420,9 +413,9 @@ const StudentList = () => {
                 </div>
 
                 {/* Students Table */}
-                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden">
+                <div className="campus-section-card bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="campus-student-table w-full">
                             <thead>
                                 <tr className="border-b border-slate-100">
                                     <th className="py-4 px-6 w-12 text-left">
@@ -461,8 +454,8 @@ const StudentList = () => {
                                             </td>
                                             <td className="py-4 px-6">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
-                                                        <span className="text-slate-600 font-bold text-sm">
+                                                    <div className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center">
+                                                        <span className="text-sky-700 font-bold text-sm">
                                                             {(student.first_name || '?')[0]}{(student.last_name || '?')[0]}
                                                         </span>
                                                     </div>
@@ -478,7 +471,7 @@ const StudentList = () => {
                                             <td className="py-4 px-6 text-sm text-slate-500">{student.phone || student.contact_number || 'N/A'}</td>
                                             <td className="py-4 px-6">
                                                 {student.cgpa != null ? (
-                                                    <span className={`px-3 py-1 rounded-lg text-white text-sm font-bold bg-gradient-to-r ${getCgpaColor(student.cgpa)}`}>
+                                                    <span className="px-3 py-1 rounded-full bg-sky-50 border border-sky-100 text-sky-700 text-sm font-bold">
                                                         {parseFloat(student.cgpa).toFixed(2)}
                                                     </span>
                                                 ) : <span className="text-slate-400 text-sm">N/A</span>}
@@ -523,7 +516,7 @@ const StudentList = () => {
 
                 {/* Add Student Modal — Faculty-style layout */}
                 {showAddModal && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+                    <div className="campus-modal-shell fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden flex flex-col" style={{ maxHeight: '90vh' }}>
                             <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
                                 <div>
@@ -693,7 +686,7 @@ const StudentList = () => {
 
                 {/* Import Modal */}
                 {showImportModal && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
+                    <div className="campus-modal-shell fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
                             <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-emerald-50 to-teal-50">
                                 <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -742,7 +735,7 @@ const StudentList = () => {
 
                 {/* Import Report Modal */}
                 {importReport && (
-                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="campus-modal-shell fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                         <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
                             <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                                 <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -807,7 +800,7 @@ const StudentList = () => {
 
                 {/* Delete All Confirmation Modal */}
                 {showDeleteAllModal && (
-                    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="campus-modal-shell fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                             <div className="p-6">
                                 <div className="flex items-center gap-4 mb-4 text-red-600">
@@ -850,19 +843,19 @@ const StudentList = () => {
 
                 {/* Active Data Warning Modal */}
                 {activeDataWarning && (
-                    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="campus-modal-shell fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                             <div className="p-6">
-                                <div className="flex items-center gap-4 mb-4 text-amber-600">
-                                    <div className="p-3 bg-amber-100 rounded-full">
-                                        <MdDelete className="w-6 h-6" />
+                                <div className="flex items-center gap-4 mb-4 text-sky-700">
+                                    <div className="campus-heading-icon">
+                                        <PiWarningCircle className="w-6 h-6" />
                                     </div>
                                     <h3 className="text-xl font-bold text-slate-800">Active Data Warning</h3>
                                 </div>
                                 <p className="text-slate-600 mb-2">
                                     {activeDataWarning}
                                 </p>
-                                <p className="text-sm text-slate-500 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                                <p className="campus-warning-panel text-sm p-3 rounded-lg">
                                     Proceeding may affect enrollments, grades, or other linked records. This action cannot be easily undone once the undo timer expires.
                                 </p>
                             </div>

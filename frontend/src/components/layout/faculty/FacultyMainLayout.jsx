@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, useLocation } from "react-router-dom";
+import { PiList } from 'react-icons/pi';
 import Sidebar from '../../common/faculty/Sidebar.jsx';
 import Navbar from '../../common/faculty/Navbar.jsx';
 import { useAuth } from '../../../context/AuthContext';
@@ -13,7 +14,21 @@ const FacultyMainLayout = () => {
     const socket = useSocket();
     const queryClient = useQueryClient();
     const location = useLocation();
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const hideFooter = location.pathname.includes('/faculty-messages') || location.pathname === '/faculty-dashboard';
+
+    useEffect(() => {
+        setSidebarOpen(false);
+    }, [location.pathname]);
+
+    useEffect(() => {
+        if (!sidebarOpen) return undefined;
+        const closeOnEscape = (event) => {
+            if (event.key === 'Escape') setSidebarOpen(false);
+        };
+        document.addEventListener('keydown', closeOnEscape);
+        return () => document.removeEventListener('keydown', closeOnEscape);
+    }, [sidebarOpen]);
 
     // Listen for real-time WebSocket events from admin
     useEffect(() => {
@@ -45,10 +60,27 @@ const FacultyMainLayout = () => {
 
     return (
         <div className="faculty-main-layout">
-            <div className="sidebar">
+            {sidebarOpen && (
+                <button
+                    type="button"
+                    className="app-sidebar-backdrop"
+                    onClick={() => setSidebarOpen(false)}
+                    aria-label="Close navigation"
+                />
+            )}
+            <aside className={`sidebar app-sidebar ${sidebarOpen ? 'is-open' : ''}`} aria-label="Faculty navigation">
                 <Sidebar />
-            </div>
+            </aside>
             <div className="navbar">
+                <button
+                    type="button"
+                    className="mobile-menu-button"
+                    onClick={() => setSidebarOpen(true)}
+                    aria-label="Open navigation"
+                    aria-expanded={sidebarOpen}
+                >
+                    <PiList className="h-6 w-6" />
+                </button>
                 <Navbar />
             </div>
             <div className="main">

@@ -98,8 +98,8 @@ const Dashboard = () => {
     ];
 
     return (
-        <div className="h-[calc(100vh-128px)] overflow-hidden">
-            <div className="max-w-7xl w-full mx-auto h-full flex flex-col gap-3">
+        <div className="min-h-[calc(100dvh-128px)] lg:h-[calc(100vh-128px)] lg:overflow-hidden">
+            <div className="max-w-7xl w-full mx-auto flex min-h-0 flex-col gap-3 lg:h-full">
                 <section className="relative min-h-[126px] overflow-hidden rounded-3xl border border-white/70 bg-white/82 p-4 shadow-[0_24px_80px_rgba(14,116,144,0.14)] backdrop-blur-2xl lg:p-5">
                     <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-sky-200/35 blur-3xl" />
                     <div className="absolute bottom-0 right-10 hidden h-24 w-64 rounded-full bg-cyan-100/60 blur-2xl md:block" />

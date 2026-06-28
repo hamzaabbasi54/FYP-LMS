@@ -146,9 +146,9 @@ const Navbar = () => {
     return (
         <div className="flex flex-col h-full bg-white/90 border-b border-sky-100">
             {/* Top Section: Title/Breadcrumbs and Actions */}
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center px-4 sm:px-6 lg:px-8 py-3 sm:py-4 gap-3 sm:gap-4">
+            <div className="flex flex-row items-start justify-between px-4 py-3 gap-3 sm:items-center sm:px-6 sm:py-4 sm:gap-4 lg:px-8">
                 {/* Left Side - Title or Breadcrumbs */}
-                <div className="flex-1">
+                <div className="min-w-0 flex-1 overflow-hidden">
                     {isBatchCoursesPage ? (
                         // Breadcrumbs for Batch Courses page
                         <div className="flex items-center text-sm text-slate-500">
@@ -276,7 +276,7 @@ const Navbar = () => {
                 </div>
 
                 {/* Right Side - Help and Notifications */}
-                <div className="flex items-center space-x-3 sm:space-x-4">
+                <div className="ml-auto flex flex-shrink-0 items-center space-x-2 sm:space-x-4">
                     {isGradeAssignmentPage && (
                         <Link
                             to="#"
@@ -291,19 +291,21 @@ const Navbar = () => {
                     <div className="relative" ref={notificationRef}>
                         <button
                             onClick={handleBellClick}
-                            className="relative text-slate-500 hover:text-sky-700 flex-shrink-0"
+                            className="relative inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-sky-100 bg-white/90 text-slate-500 shadow-sm transition-colors hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-100"
+                            aria-label="Open notifications"
+                            aria-expanded={showNotifications}
                         >
                             {unreadCount > 0 && (
                                 <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-xl bg-red-500 text-white text-xs font-bold flex items-center justify-center">
                                     {unreadCount}
                                 </span>
                             )}
-                            <MdNotifications className="w-5 h-5 sm:w-6 sm:h-6" />
+                            <MdNotifications className="h-5 w-5 sm:h-6 sm:w-6" />
                         </button>
 
                         {/* Dropdown */}
                         {showNotifications && (
-                            <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-sky-100 overflow-hidden z-50">
+                            <div className="absolute right-0 z-50 mt-2 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-sky-100 bg-white shadow-lg">
                                 <div className="px-4 py-3 border-b border-sky-100 flex items-center justify-between">
                                     <h3 className="font-semibold text-slate-800">Notifications</h3>
                                     <Link

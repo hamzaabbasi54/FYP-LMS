@@ -241,7 +241,7 @@ const Messages = () => {
     // Render
     // ============================================
     return (
-        <div className="h-[calc(100vh-128px)] overflow-hidden">
+        <div className="h-[calc(100dvh-5.25rem)] min-h-[32rem] overflow-hidden md:h-[calc(100vh-128px)]">
             <div className="h-full w-full max-w-7xl mx-auto flex bg-white rounded-3xl border border-sky-100 shadow-md overflow-hidden">
             {/* ========== LEFT: Contact List ========== */}
             <div className={`w-full md:w-[340px] lg:w-[380px] flex-shrink-0 border-r border-slate-200 flex flex-col bg-slate-50 ${showMobileChat ? 'hidden md:flex' : 'flex'}`}>

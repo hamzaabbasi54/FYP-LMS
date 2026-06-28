@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MdEmail, MdLock, MdVisibility, MdVisibilityOff } from 'react-icons/md';
 import { useAuth } from '../../context/AuthContext';
@@ -17,6 +17,22 @@ const Login = () => {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
 
+    useEffect(() => {
+        try {
+            const rememberedLogin = JSON.parse(localStorage.getItem('campusFlowRememberedLogin'));
+            if (rememberedLogin?.email) {
+                setFormData(prev => ({
+                    ...prev,
+                    email: rememberedLogin.email,
+                    role: rememberedLogin.role || prev.role,
+                    rememberMe: true
+                }));
+            }
+        } catch {
+            localStorage.removeItem('campusFlowRememberedLogin');
+        }
+    }, []);
+
     const roleLabels = {
         super_admin: 'Super Admin',
         deptadmin: 'Department Admin',
@@ -25,6 +41,9 @@ const Login = () => {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
+        if (name === 'rememberMe' && !checked) {
+            localStorage.removeItem('campusFlowRememberedLogin');
+        }
         setFormData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
@@ -62,6 +81,15 @@ const Login = () => {
                 const data = await login(formData.email, formData.password, formData.role);
 
                 if (data.success) {
+                    if (formData.rememberMe) {
+                        localStorage.setItem('campusFlowRememberedLogin', JSON.stringify({
+                            email: formData.email,
+                            role: formData.role
+                        }));
+                    } else {
+                        localStorage.removeItem('campusFlowRememberedLogin');
+                    }
+
                     // Redirect based on role
                     const redirectMap = {
                         super_admin: '/admin-dashboard',

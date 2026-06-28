@@ -81,7 +81,7 @@ const OBEReports = () => {
     }
 
     return (
-        <div className="min-h-[calc(100vh-116px)] space-y-6">
+        <div className="campus-detail-page min-h-[calc(100vh-116px)] space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                 <div>
@@ -91,10 +91,10 @@ const OBEReports = () => {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="campus-stat-grid grid grid-cols-3 gap-4 mb-6">
                 <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm">
                     <div className="flex items-center justify-between mb-2">
-                        <div className="bg-blue-50 text-sky-700 p-2 rounded-lg">
+                        <div className="campus-icon-tile bg-blue-50 text-sky-700 p-2 rounded-lg">
                             <PiStack className="w-6 h-6" />
                         </div>
                         <span className="text-2xl font-bold text-slate-900">{batches.length}</span>
@@ -103,7 +103,7 @@ const OBEReports = () => {
                 </div>
                 <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm">
                     <div className="flex items-center justify-between mb-2">
-                        <div className="bg-emerald-50 text-emerald-500 p-2 rounded-lg">
+                        <div className="campus-icon-tile bg-emerald-50 text-emerald-500 p-2 rounded-lg">
                             <PiChartPieSlice className="w-6 h-6" />
                         </div>
                         <span className="text-2xl font-bold text-slate-900">
@@ -114,7 +114,7 @@ const OBEReports = () => {
                 </div>
                 <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm">
                     <div className="flex items-center justify-between mb-2">
-                        <div className="bg-purple-50 text-purple-500 p-2 rounded-lg">
+                        <div className="campus-icon-tile bg-purple-50 text-purple-500 p-2 rounded-lg">
                             <PiTarget className="w-6 h-6" />
                         </div>
                         <span className="text-2xl font-bold text-slate-900">{batches.reduce((acc, b) => acc + (b.totalPLOs || 0), 0)}</span>
@@ -130,7 +130,7 @@ const OBEReports = () => {
                     const BadgeIcon = badge.icon;
 
                     return (
-                        <div key={batch.id} className="bg-white rounded-3xl border border-slate-200 overflow-hidden mb-3">
+                        <div key={batch.id} className="campus-section-card bg-white rounded-3xl border border-slate-200 overflow-hidden mb-3">
                             {/* Batch Header */}
                             <div
                                 onClick={() => toggleBatch(batch.id)}
