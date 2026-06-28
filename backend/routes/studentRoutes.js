@@ -963,7 +963,7 @@ router.get('/export/excel', isAdmin, async (req, res) => {
 
 // ===================== PARENTS =====================
 
-router.get('/:studentId/parent', async (req, res) => {
+router.get('/:studentId/parent', isAuthenticated, async (req, res) => {
     try {
         const [parents] = await pool.query('SELECT * FROM parents WHERE student_id = ?', [req.params.studentId]);
         res.json({ success: true, data: parents.length > 0 ? parents[0] : null });
@@ -1057,7 +1057,7 @@ router.get('/enrolled/:courseAssignmentId', async (req, res) => {
         );
 
         const responseData = paginatedResponse(students, total, page, limit);
-        await cacheSet(cacheKey, JSON.stringify(responseData), 2592000); // 30 days
+        await cacheSet(cacheKey, JSON.stringify(responseData), 3600); // 1 hour
         res.json(responseData);
     } catch (error) {
         console.error('Get enrolled students error:', error);
