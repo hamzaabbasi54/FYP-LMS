@@ -27,20 +27,18 @@ export async function recalcStudentCGPA(studentId, conn) {
     const db = conn || pool;
     try {
         // Get all course percentages for this student
-        // course_pct = SUM((score/max_score) * weight) / SUM(weight) * 100
-        // Only include assessments that have been fully graded
+        // course_pct = SUM((score/max_score) * weight)
+        // Only include courses where the total weight of graded assessments exactly equals 100%
         const [courseGrades] = await db.query(
             `SELECT ca.course_id, c.credit_hours,
-                    CASE 
-                        WHEN SUM(COALESCE(a.weight, 0)) = 0 THEN 0
-                        ELSE SUM((g.score / a.max_score) * COALESCE(a.weight, 0)) / SUM(COALESCE(a.weight, 0)) * 100
-                    END as course_pct
+                    SUM((g.score / a.max_score) * COALESCE(a.weight, 0)) as course_pct
              FROM grades g
              JOIN assessments a ON g.assessment_id = a.id
              JOIN course_assignments ca ON a.course_assignment_id = ca.id
              JOIN courses c ON ca.course_id = c.id
              WHERE g.student_id = ? AND a.status = 'graded' AND g.score IS NOT NULL
-             GROUP BY ca.course_id, c.credit_hours`,
+             GROUP BY ca.course_id, c.credit_hours
+             HAVING SUM(COALESCE(a.weight, 0)) = 100`,
             [studentId]
         );
 
@@ -49,6 +47,18 @@ export async function recalcStudentCGPA(studentId, conn) {
             await db.query('UPDATE students SET cgpa = 0.00 WHERE id = ?', [studentId]);
             await cacheDel(`cgpa:student:${studentId}`);
             return 0.0;
+        }
+
+        // Check if ALL enrolled courses are fully graded to 100%
+        const [[{ totalEnrolled }]] = await db.query(
+            'SELECT COUNT(*) as totalEnrolled FROM enrollments WHERE student_id = ?',
+            [studentId]
+        );
+
+        if (totalEnrolled === 0 || courseGrades.length < totalEnrolled) {
+            // Not all enrolled courses are at 100% graded weight yet.
+            // Skip updating the student's CGPA.
+            return null;
         }
 
         // Compute weighted CGPA
