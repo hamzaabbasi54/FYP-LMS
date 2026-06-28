@@ -18,6 +18,10 @@ import { scopeFaculty } from '../middleware/facultyScope.js';
 const scopeStudent = scopeToDepartment('students', 'id', {
     joinQuery: `SELECT b.department_id FROM students s JOIN batches b ON s.batch_id = b.id WHERE s.id = ?`
 });
+// Variant that reads from :studentId param (for routes like /:studentId/parent)
+const scopeStudentById = scopeToDepartment('students', 'studentId', {
+    joinQuery: `SELECT b.department_id FROM students s JOIN batches b ON s.batch_id = b.id WHERE s.id = ?`
+});
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
 import { parseExcel, generateExcel, getUploadDir, createExcelUpload, parseAcademicBackground } from '../utils/excel.js';
 import { cacheGet, cacheSet, cacheDelPattern } from '../config/redis.js';
@@ -969,7 +973,7 @@ router.get('/export/excel', isAdmin, async (req, res) => {
 
 // ===================== PARENTS =====================
 
-router.get('/:studentId/parent', isAuthenticated, scopeStudent('params', 'studentId'), async (req, res) => {
+router.get('/:studentId/parent', isAuthenticated, scopeStudentById, async (req, res) => {
     try {
         const [parents] = await pool.query('SELECT * FROM parents WHERE student_id = ?', [req.params.studentId]);
         res.json({ success: true, data: parents.length > 0 ? parents[0] : null });
