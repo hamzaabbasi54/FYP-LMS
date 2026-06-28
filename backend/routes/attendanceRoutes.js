@@ -41,16 +41,17 @@ router.get('/course/:courseAssignmentId', async (req, res) => {
             [...params, limit, offset]
         );
 
-        // Summary stats (across all pages, not just current)
-        const [allRecords] = await pool.query(
-            `SELECT status FROM attendance a ${whereClause}`, params
+        // Summary stats (across all pages, not just current) — single aggregate query
+        const [[summary]] = await pool.query(
+            `SELECT COUNT(*) as total,
+                    SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) as present_count,
+                    SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) as absent_count,
+                    SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) as late_count
+             FROM attendance a ${whereClause}`, params
         );
-        const present = allRecords.filter(r => r.status === 'present').length;
-        const absent = allRecords.filter(r => r.status === 'absent').length;
-        const late = allRecords.filter(r => r.status === 'late').length;
 
         const response = paginatedResponse(records, total, page, limit);
-        response.summary = { total: allRecords.length, present, absent, late };
+        response.summary = { total: summary.total, present: summary.present_count, absent: summary.absent_count, late: summary.late_count };
         res.json(response);
     } catch (error) {
         console.error('Get attendance error:', error);
@@ -116,12 +117,13 @@ router.post('/course/:courseAssignmentId', scopeFaculty('course_assignment', 'pa
             return res.status(400).json({ success: false, message: 'date and records array are required' });
         }
 
-        for (const record of records) {
+        const values = records.map(r => [req.params.courseAssignmentId, r.student_id, date, r.status || 'present', r.remarks || '']);
+        if (values.length > 0) {
             await conn.query(
                 `INSERT INTO attendance (course_assignment_id, student_id, date, status, remarks)
-                 VALUES (?, ?, ?, ?, ?)
+                 VALUES ?
                  ON DUPLICATE KEY UPDATE status = VALUES(status), remarks = VALUES(remarks)`,
-                [req.params.courseAssignmentId, record.student_id, date, record.status || 'present', record.remarks || '']
+                [values]
             );
         }
 
@@ -157,14 +159,17 @@ router.post('/import/:courseAssignmentId', scopeFaculty('course_assignment', 'pa
         let skipped = 0;
         const errors = [];
 
+        // Pre-fetch student map (like grades import does)
+        const [allStudents] = await conn.query('SELECT id, student_id_number FROM students');
+        const studentMap = {};
+        allStudents.forEach(s => { studentMap[String(s.student_id_number).trim()] = s.id; });
+
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             try {
-                // Look up student by student_id_number
-                const [students] = await conn.query(
-                    'SELECT id FROM students WHERE student_id_number = ?', [row.student_id_number]
-                );
-                if (students.length === 0) {
+                // Look up student from pre-fetched map
+                const studentId = studentMap[String(row.student_id_number).trim()];
+                if (!studentId) {
                     skipped++;
                     errors.push({ row: i + 2, student: row.student_id_number, error: 'Student not found' });
                     continue;
@@ -174,7 +179,7 @@ router.post('/import/:courseAssignmentId', scopeFaculty('course_assignment', 'pa
                     `INSERT INTO attendance (course_assignment_id, student_id, date, status, remarks)
                      VALUES (?, ?, ?, ?, ?)
                      ON DUPLICATE KEY UPDATE status = VALUES(status), remarks = VALUES(remarks)`,
-                    [req.params.courseAssignmentId, students[0].id, row.date, row.status || 'present', row.remarks || '']
+                    [req.params.courseAssignmentId, studentId, row.date, row.status || 'present', row.remarks || '']
                 );
                 imported++;
             } catch (err) {
