@@ -82,7 +82,7 @@ router.get('/course/:courseAssignmentId', async (req, res) => {
 });
 
 // GET single assessment with grade summary and questions
-router.get('/:id', async (req, res) => {
+router.get('/:id', isAuthenticated, scopeFaculty('assessment', 'params', 'id'), async (req, res) => {
     try {
         const [assessments] = await pool.query(
             `SELECT a.*, c.title as course_title, c.code as course_code, ca.course_id
@@ -138,6 +138,19 @@ router.post('/', scopeFaculty('course_assignment', 'body', 'course_assignment_id
             return res.status(400).json({ success: false, message: 'course_assignment_id, type, and title are required' });
         }
 
+        // Validate total weight doesn't exceed 100%
+        if (weight !== undefined && weight !== null) {
+            const [[weightSumRows]] = await conn.query(
+                `SELECT SUM(weight) as total_weight FROM assessments WHERE course_assignment_id = ? AND status != 'draft'`,
+                [course_assignment_id]
+            );
+            const currentTotal = parseFloat(weightSumRows?.total_weight) || 0;
+            if (currentTotal + parseFloat(weight) > 100) {
+                await conn.rollback();
+                return res.status(400).json({ success: false, message: `Total weight for this course exceeds 100%. Current total: ${currentTotal}%` });
+            }
+        }
+
         // FIX Issue #6: Validate that all CLO IDs belong to the correct course
         const allCloIdsToValidate = new Set();
         if (mapped_clos && Array.isArray(mapped_clos)) {
@@ -191,14 +204,13 @@ router.post('/', scopeFaculty('course_assignment', 'body', 'course_assignment_id
 
         // Insert questions
         if (questions && Array.isArray(questions) && questions.length > 0) {
-            for (let i = 0; i < questions.length; i++) {
-                const q = questions[i];
-                await conn.query(
-                    `INSERT INTO assessment_questions (assessment_id, question_number, description, max_marks, weightage, clo_id)
-                     VALUES (?, ?, ?, ?, ?, ?)`,
-                    [assessmentId, i + 1, q.description || null, q.max_marks || 10, q.weightage || null, q.clo_id || null]
-                );
-            }
+            const qValues = questions.map((q, i) => [
+                assessmentId, i + 1, q.description || null, q.max_marks || 10, q.weightage || null, q.clo_id || null
+            ]);
+            await conn.query(
+                `INSERT INTO assessment_questions (assessment_id, question_number, description, max_marks, weightage, clo_id) VALUES ?`,
+                [qValues]
+            );
 
             // Auto-collect unique CLOs from questions and add to assessment_clo_mapping
             const questionCloIds = [...new Set(questions.filter(q => q.clo_id).map(q => q.clo_id))];
@@ -239,6 +251,20 @@ router.put('/:id', scopeFaculty('assessment', 'params', 'id'), async (req, res) 
         }
 
         const { type, title, description, due_date, conducted_date, release_grades_on, max_score, weight, duration_minutes, status, mapped_clos, questions } = req.body;
+
+        // Validate total weight doesn't exceed 100%
+        if (weight !== undefined && weight !== null) {
+            const [[assessmentInfoWeight]] = await conn.query('SELECT course_assignment_id FROM assessments WHERE id = ?', [req.params.id]);
+            const [[weightSumRows]] = await conn.query(
+                `SELECT SUM(weight) as total_weight FROM assessments WHERE course_assignment_id = ? AND status != 'draft' AND id != ?`,
+                [assessmentInfoWeight.course_assignment_id, req.params.id]
+            );
+            const currentTotal = parseFloat(weightSumRows?.total_weight) || 0;
+            if (currentTotal + parseFloat(weight) > 100) {
+                await conn.rollback();
+                return res.status(400).json({ success: false, message: `Total weight for this course exceeds 100%. Current total (excluding this assessment): ${currentTotal}%` });
+            }
+        }
 
         // FIX Issue #6: Validate that all CLO IDs belong to the correct course
         const allCloIdsToValidate = new Set();
@@ -283,7 +309,7 @@ router.put('/:id', scopeFaculty('assessment', 'params', 'id'), async (req, res) 
         if (due_date !== undefined) { fields.push('due_date = ?'); values.push(due_date); }
         if (conducted_date !== undefined) { fields.push('conducted_date = ?'); values.push(conducted_date); }
         if (release_grades_on !== undefined) { fields.push('release_grades_on = ?'); values.push(release_grades_on); }
-        if (max_score) { fields.push('max_score = ?'); values.push(max_score); }
+        if (max_score !== undefined) { fields.push('max_score = ?'); values.push(max_score); }
         if (weight !== undefined) { fields.push('weight = ?'); values.push(weight); }
         if (duration_minutes !== undefined) { fields.push('duration_minutes = ?'); values.push(duration_minutes); }
         if (status) { fields.push('status = ?'); values.push(status); }
@@ -317,14 +343,13 @@ router.put('/:id', scopeFaculty('assessment', 'params', 'id'), async (req, res) 
             }
             await conn.query('DELETE FROM assessment_questions WHERE assessment_id = ?', [req.params.id]);
             if (questions.length > 0) {
-                for (let i = 0; i < questions.length; i++) {
-                    const q = questions[i];
-                    await conn.query(
-                        `INSERT INTO assessment_questions (assessment_id, question_number, description, max_marks, weightage, clo_id)
-                         VALUES (?, ?, ?, ?, ?, ?)`,
-                        [req.params.id, i + 1, q.description || null, q.max_marks || 10, q.weightage || null, q.clo_id || null]
-                    );
-                }
+                const qValues = questions.map((q, i) => [
+                    req.params.id, i + 1, q.description || null, q.max_marks || 10, q.weightage || null, q.clo_id || null
+                ]);
+                await conn.query(
+                    `INSERT INTO assessment_questions (assessment_id, question_number, description, max_marks, weightage, clo_id) VALUES ?`,
+                    [qValues]
+                );
             }
         }
 
@@ -382,7 +407,7 @@ router.delete('/:id', scopeFaculty('assessment', 'params', 'id'), async (req, re
 // ===================== GRADES =====================
 
 // GET all grades for an assessment (paginated)
-router.get('/:id/grades', async (req, res) => {
+router.get('/:id/grades', isAuthenticated, scopeFaculty('assessment', 'params', 'id'), async (req, res) => {
     try {
         const { page, limit, offset } = parsePagination(req.query);
 
@@ -479,9 +504,11 @@ router.post('/:id/grades', async (req, res) => {
         // Collect all question grade rows and total grade rows for bulk insert
         const questionGradeValues = [];
         const gradeValues = [];
+        const skippedErrors = [];
 
         for (const grade of grades) {
             let finalScore = grade.score;
+            let studentHasError = false;
 
             if (grade.question_scores && questions.length > 0) {
                 let computedScore = 0;
@@ -491,9 +518,22 @@ router.post('/:id/grades', async (req, res) => {
                         const parsedScore = parseFloat(qScore);
                         if (!isNaN(parsedScore)) {
                             if (parsedScore < 0 || parsedScore > parseFloat(q.max_marks)) {
-                                throw new Error(`Score for Question ${q.question_number} exceeds maximum allowed marks.`);
+                                skippedErrors.push(`Student ${grade.student_id}: Score for Question ${q.question_number} exceeds max allowed.`);
+                                studentHasError = true;
+                                break;
                             }
                             computedScore += parsedScore;
+                        }
+                    }
+                }
+                
+                if (studentHasError) continue;
+                
+                for (const q of questions) {
+                    const qScore = grade.question_scores[`q${q.question_number}`];
+                    if (qScore !== undefined && qScore !== null && qScore !== '') {
+                        const parsedScore = parseFloat(qScore);
+                        if (!isNaN(parsedScore)) {
                             questionGradeValues.push([req.params.id, grade.student_id, q.id, parsedScore]);
                         }
                     }
@@ -503,7 +543,8 @@ router.post('/:id/grades', async (req, res) => {
                 // Validate direct score input against assessment max_score
                 const parsedScore = parseFloat(finalScore);
                 if (!isNaN(parsedScore) && (parsedScore < 0 || parsedScore > parseFloat(assessment.max_score))) {
-                    throw new Error(`Score ${parsedScore} exceeds maximum allowed (${assessment.max_score}).`);
+                    skippedErrors.push(`Student ${grade.student_id}: Total score ${parsedScore} exceeds max allowed (${assessment.max_score}).`);
+                    continue;
                 }
             }
 
@@ -531,16 +572,31 @@ router.post('/:id/grades', async (req, res) => {
             );
         }
 
-        // Update assessment status to graded
-        await conn.query(`UPDATE assessments SET status = 'graded' WHERE id = ?`, [req.params.id]);
+        // Update assessment status to graded only if all enrolled students are graded
+        const [[{ enrolledCount }]] = await conn.query(
+            `SELECT COUNT(*) as enrolledCount FROM enrollments e
+             JOIN assessments a ON e.course_assignment_id = a.course_assignment_id
+             WHERE a.id = ?`, [req.params.id]
+        );
+        const [[{ gradedCount }]] = await conn.query(
+            `SELECT COUNT(*) as gradedCount FROM grades WHERE assessment_id = ?`, [req.params.id]
+        );
+
+        if (enrolledCount > 0 && gradedCount >= enrolledCount) {
+            await conn.query(`UPDATE assessments SET status = 'graded' WHERE id = ?`, [req.params.id]);
+        }
 
         await conn.commit();
         await cacheDelPattern('obe:*');
+        
+        // Trigger CGPA recalc (will only apply if all courses hit 100%)
+        recalcCGPAForAssessment(req.params.id).catch(err => console.error('CGPA Recalc Error:', err));
 
-        // Recalculate CGPA for all affected students (fire-and-forget)
-        recalcCGPAForAssessment(req.params.id).catch(err => console.error('CGPA recalc error:', err.message));
-
-        res.json({ success: true, message: `${grades.length} grades saved` });
+        res.json({ 
+            success: true, 
+            message: `${gradeValues.length} grades saved`,
+            skipped: skippedErrors.length > 0 ? skippedErrors : undefined
+        });
     } catch (error) {
         await conn.rollback();
         console.error('Save grades error:', error);
@@ -663,25 +719,28 @@ router.post('/:id/grades/import-preview', upload.single('file'), validateMagicBy
         const previewData = [];
         const errors = [];
 
+        // Pre-fetch all enrolled students
+        const [enrolledStudents] = await conn.query(
+            `SELECT s.id, s.student_id_number, s.first_name, s.last_name FROM students s
+             JOIN enrollments e ON s.id = e.student_id
+             WHERE e.course_assignment_id = ?`,
+            [assessment.course_assignment_id]
+        );
+        const studentMap = {};
+        enrolledStudents.forEach(s => { studentMap[String(s.student_id_number).trim()] = s; });
+
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             try {
                 const regNum = row['Registration Number'] || row['student_id_number'] || row['Reg No'] || row['registration_number'];
                 if (!regNum) continue;
 
-                const [students] = await conn.query(
-                    `SELECT s.id, s.first_name, s.last_name FROM students s
-                     JOIN enrollments e ON s.id = e.student_id
-                     WHERE s.student_id_number = ? AND e.course_assignment_id = ?`,
-                    [regNum, assessment.course_assignment_id]
-                );
+                const student = studentMap[String(regNum).trim()];
 
-                if (students.length === 0) {
+                if (!student) {
                     errors.push({ row: i + 2, student: regNum, error: 'Student not found or not enrolled' });
                     continue;
                 }
-
-                const student = students[0];
                 let totalScore = 0;
                 const cloAchievements = {}; // Track CLO performance for this student
 
@@ -891,11 +950,25 @@ router.post('/:id/grades/import', upload.single('file'), validateMagicBytes, asy
             );
         }
 
+        // Update assessment status to graded only if all enrolled students are graded
+        const [[{ enrolledCount }]] = await conn.query(
+            `SELECT COUNT(*) as enrolledCount FROM enrollments e
+             JOIN assessments a ON e.course_assignment_id = a.course_assignment_id
+             WHERE a.id = ?`, [req.params.id]
+        );
+        const [[{ gradedCount }]] = await conn.query(
+            `SELECT COUNT(*) as gradedCount FROM grades WHERE assessment_id = ?`, [req.params.id]
+        );
+
+        if (enrolledCount > 0 && gradedCount >= enrolledCount) {
+            await conn.query(`UPDATE assessments SET status = 'graded' WHERE id = ?`, [req.params.id]);
+        }
+
         await conn.commit();
         await cacheDelPattern('obe:*');
 
-        // Recalculate CGPA for all affected students (fire-and-forget)
-        recalcCGPAForAssessment(req.params.id).catch(err => console.error('CGPA recalc error:', err.message));
+        // Trigger CGPA recalc (will only apply if all courses hit 100%)
+        recalcCGPAForAssessment(req.params.id).catch(err => console.error('CGPA Recalc Error:', err));
 
         res.json({
             success: true,
@@ -914,7 +987,7 @@ router.post('/:id/grades/import', upload.single('file'), validateMagicBytes, asy
 // ===================== GRADES EXCEL EXPORT =====================
 
 // GET export grades as Excel
-router.get('/:id/grades/export', async (req, res) => {
+router.get('/:id/grades/export', isAuthenticated, scopeFaculty('assessment', 'params', 'id'), async (req, res) => {
     try {
         const [grades] = await pool.query(
             `SELECT s.student_id_number, s.first_name, s.last_name, s.email,
