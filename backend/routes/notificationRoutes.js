@@ -52,7 +52,7 @@ router.get('/', async (req, res) => {
                 WHERE ca.faculty_id = ?
                   AND a.due_date < NOW()
                   AND a.status IN ('published', 'needs_grading')
-                  AND a.is_active = TRUE
+                  AND a.is_deleted = FALSE
             `, [req.user.id]);
 
             for (const u of ungraded) {
@@ -81,6 +81,8 @@ router.get('/', async (req, res) => {
                 FROM class_schedules cs
                 JOIN courses c ON cs.course_id = c.id
                 JOIN course_assignments ca ON ca.course_id = cs.course_id AND ca.faculty_id = cs.faculty_id
+                JOIN semesters sem ON ca.semester_id = sem.id
+                JOIN batches b ON sem.batch_id = b.id AND b.status = 'active'
                 WHERE cs.faculty_id = ?
                   AND cs.day_of_week = ?
                   AND NOT EXISTS (

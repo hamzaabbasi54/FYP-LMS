@@ -41,16 +41,22 @@ router.get('/course/:courseAssignmentId', async (req, res) => {
             [...params, limit, offset]
         );
 
-        // Summary stats (across all pages, not just current)
-        const [allRecords] = await pool.query(
-            `SELECT status FROM attendance a ${whereClause}`, params
+        // Summary stats (across all pages, not just current) — single aggregate instead of fetching all rows
+        const [[summary]] = await pool.query(
+            `SELECT COUNT(*) as total,
+                    SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) as present_count,
+                    SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) as absent_count,
+                    SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) as late_count
+             FROM attendance a ${whereClause}`, params
         );
-        const present = allRecords.filter(r => r.status === 'present').length;
-        const absent = allRecords.filter(r => r.status === 'absent').length;
-        const late = allRecords.filter(r => r.status === 'late').length;
 
         const response = paginatedResponse(records, total, page, limit);
-        response.summary = { total: allRecords.length, present, absent, late };
+        response.summary = {
+            total: Number(summary.total) || 0,
+            present: Number(summary.present_count) || 0,
+            absent: Number(summary.absent_count) || 0,
+            late: Number(summary.late_count) || 0
+        };
         res.json(response);
     } catch (error) {
         console.error('Get attendance error:', error);
@@ -116,12 +122,23 @@ router.post('/course/:courseAssignmentId', scopeFaculty('course_assignment', 'pa
             return res.status(400).json({ success: false, message: 'date and records array are required' });
         }
 
-        for (const record of records) {
+        // Pre-fetch enrolled student IDs for this course assignment
+        const [enrolled] = await conn.query(
+            'SELECT student_id FROM enrollments WHERE course_assignment_id = ?',
+            [req.params.courseAssignmentId]
+        );
+        const enrolledIds = new Set(enrolled.map(e => e.student_id));
+
+        // Bulk upsert — only enrolled students
+        const values = records
+            .filter(r => enrolledIds.has(r.student_id))
+            .map(r => [req.params.courseAssignmentId, r.student_id, date, r.status || 'present', r.remarks || '']);
+        if (values.length > 0) {
             await conn.query(
                 `INSERT INTO attendance (course_assignment_id, student_id, date, status, remarks)
-                 VALUES (?, ?, ?, ?, ?)
+                 VALUES ?
                  ON DUPLICATE KEY UPDATE status = VALUES(status), remarks = VALUES(remarks)`,
-                [req.params.courseAssignmentId, record.student_id, date, record.status || 'present', record.remarks || '']
+                [values]
             );
         }
 
@@ -157,30 +174,43 @@ router.post('/import/:courseAssignmentId', scopeFaculty('course_assignment', 'pa
         let skipped = 0;
         const errors = [];
 
+        // Pre-fetch enrolled students for this course assignment
+        const [enrolledRows] = await conn.query(
+            `SELECT e.student_id, s.student_id_number 
+             FROM enrollments e 
+             JOIN students s ON e.student_id = s.id 
+             WHERE e.course_assignment_id = ?`,
+            [req.params.courseAssignmentId]
+        );
+        const enrolledMap = {};
+        enrolledRows.forEach(e => { enrolledMap[String(e.student_id_number).trim()] = e.student_id; });
+
+        const bulkValues = [];
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             try {
-                // Look up student by student_id_number
-                const [students] = await conn.query(
-                    'SELECT id FROM students WHERE student_id_number = ?', [row.student_id_number]
-                );
-                if (students.length === 0) {
+                const studentId = enrolledMap[String(row.student_id_number).trim()];
+                if (!studentId) {
                     skipped++;
-                    errors.push({ row: i + 2, student: row.student_id_number, error: 'Student not found' });
+                    errors.push({ row: i + 2, student: row.student_id_number, error: 'Student not enrolled in this course' });
                     continue;
                 }
 
-                await conn.query(
-                    `INSERT INTO attendance (course_assignment_id, student_id, date, status, remarks)
-                     VALUES (?, ?, ?, ?, ?)
-                     ON DUPLICATE KEY UPDATE status = VALUES(status), remarks = VALUES(remarks)`,
-                    [req.params.courseAssignmentId, students[0].id, row.date, row.status || 'present', row.remarks || '']
-                );
+                bulkValues.push([req.params.courseAssignmentId, studentId, row.date, row.status || 'present', row.remarks || '']);
                 imported++;
             } catch (err) {
                 skipped++;
                 errors.push({ row: i + 2, error: err.message });
             }
+        }
+
+        if (bulkValues.length > 0) {
+            await conn.query(
+                `INSERT INTO attendance (course_assignment_id, student_id, date, status, remarks)
+                 VALUES ?
+                 ON DUPLICATE KEY UPDATE status = VALUES(status), remarks = VALUES(remarks)`,
+                [bulkValues]
+            );
         }
 
         await conn.commit();

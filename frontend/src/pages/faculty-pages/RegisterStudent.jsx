@@ -12,6 +12,7 @@ import {
     PiStudent as MdSchool,
     PiSwap as MdSwapHoriz,
     PiUploadSimple as MdFileUpload,
+    PiDownloadSimple as MdDownload,
     PiUser as MdPerson,
     PiUsersThree as MdPeople,
     PiX as MdClose
@@ -29,6 +30,7 @@ const RegisterStudent = () => {
     const fileInputRef = useRef(null);
     const [showImportModal, setShowImportModal] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
+    const [importReport, setImportReport] = useState(null);
 
     // Cross-batch picker state
     const [showPickerModal, setShowPickerModal] = useState(false);
@@ -185,6 +187,18 @@ const RegisterStudent = () => {
         navigate(-1);
     };
 
+    const handleDownloadTemplate = async () => {
+        try {
+            toast.promise(studentApi.downloadFacultyImportTemplate(), {
+                pending: 'Downloading template...',
+                success: 'Template downloaded successfully',
+                error: 'Failed to download template'
+            });
+        } catch (error) {
+            console.error('Download template error:', error);
+        }
+    };
+
     const handleImportClick = () => setShowImportModal(true);
     const triggerFileInput = () => {
         setShowImportModal(false);
@@ -197,20 +211,21 @@ const RegisterStudent = () => {
             const imported = response.data?.imported || 0;
             const skipped = response.data?.skipped || 0;
             
-            if (skipped > 0) {
-                const firstError = response.data?.errors?.[0]?.error || 'Unknown error';
-                toast.warn(`Imported ${imported} students. Skipped ${skipped}. First error: ${firstError}`);
+            if (skipped > 0 || response.data?.errors?.length > 0) {
+                setImportReport(response.data);
             } else {
                 toast.success(`Imported and enrolled ${imported} students successfully!`);
             }
             queryClient.invalidateQueries({ queryKey: ['enrolledStudents', String(assignmentId)] });
             queryClient.invalidateQueries({ queryKey: ['facultyDashboardCourses'] });
             queryClient.invalidateQueries({ queryKey: ['facultyAssignedCourse', String(assignmentId)] });
-            navigate(-1);
         },
         onError: (error) => {
-            console.error('Import error:', error);
-            toast.error(error.response?.data?.message || 'Failed to import students');
+            if (error.response?.status === 400 && error.response?.data?.data?.errors) {
+                setImportReport(error.response.data.data);
+            } else {
+                toast.error(error.response?.data?.message || 'Failed to import students');
+            }
         },
         onSettled: () => {
             setIsImporting(false);
@@ -259,7 +274,7 @@ const RegisterStudent = () => {
                 <div className="flex gap-3">
                     <input type="file" accept=".csv,.xlsx,.xls" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
                     <button type="button" onClick={handleImportClick} className="flex items-center justify-center px-5 py-2.5 bg-white text-slate-700 border border-sky-100 rounded-3xl hover:bg-sky-50/45 shadow-sm transition-colors font-semibold text-sm whitespace-nowrap">
-                        <MdDescription className="w-5 h-5 mr-2" />
+                        <MdFileUpload className="w-5 h-5 mr-2" />
                         Import CSV
                     </button>
                 </div>
@@ -727,6 +742,7 @@ const RegisterStudent = () => {
                                     <li><span className="font-bold text-emerald-600">last_name</span> (Required)</li>
                                     <li><span className="font-bold text-emerald-600">email</span> (Required)</li>
                                     <li><span className="text-slate-500">phone</span> (Optional)</li>
+                                    <li><span className="text-slate-500">batch_id</span> (Optional: Defaults to course batch)</li>
                                     <li><span className="text-slate-500">parent_name</span> (Optional)</li>
                                     <li><span className="text-slate-500">parent_email</span> (Optional)</li>
                                     <li><span className="text-slate-500">parent_phone</span> (Optional)</li>
@@ -736,12 +752,83 @@ const RegisterStudent = () => {
                                 </ul>
                             </div>
 
+                            {/* Download Template Button */}
+                            <button onClick={handleDownloadTemplate} type="button"
+                                className="w-full mb-6 px-4 py-2.5 bg-sky-50 border border-sky-200 text-sky-700 rounded-3xl hover:bg-sky-100 font-semibold text-sm transition-all flex items-center justify-center gap-2">
+                                <MdDownload className="w-5 h-5" /> Download Excel Template
+                            </button>
+
                             <div className="flex gap-3">
                                 <button onClick={() => setShowImportModal(false)} className="flex-1 px-4 py-2.5 border-2 border-sky-100 shadow-sm text-slate-700 rounded-3xl hover:bg-sky-50/45 font-medium">Cancel</button>
                                 <button onClick={triggerFileInput} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-3xl hover:shadow-lg font-medium flex items-center justify-center gap-2">
                                     <MdFileUpload className="w-5 h-5" /> Select File
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Import Report Modal */}
+            {importReport && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                        <div className="p-6 border-b border-sky-100 flex justify-between items-center">
+                            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                <MdDescription className="w-6 h-6 text-indigo-500" /> Import Summary
+                            </h3>
+                            <button onClick={() => { setImportReport(null); navigate(-1); }} className="text-slate-400 hover:text-slate-600 transition-colors p-2 hover:bg-slate-100 rounded-full">
+                                <MdClose className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto flex-1">
+                            <div className="flex gap-4 mb-6">
+                                <div className="bg-emerald-50 text-emerald-700 px-5 py-4 rounded-3xl border border-emerald-100 flex-1 flex flex-col items-center justify-center">
+                                    <span className="text-3xl font-bold mb-1">{importReport.imported || 0}</span>
+                                    <span className="text-sm font-medium opacity-90 uppercase tracking-wider">Successfully Enrolled</span>
+                                </div>
+                                <div className="bg-rose-50 text-rose-700 px-5 py-4 rounded-3xl border border-rose-100 flex-1 flex flex-col items-center justify-center">
+                                    <span className="text-3xl font-bold mb-1">{importReport.skipped || 0}</span>
+                                    <span className="text-sm font-medium opacity-90 uppercase tracking-wider">Skipped / Failed</span>
+                                </div>
+                            </div>
+
+                            {importReport.errors?.length > 0 && (
+                                <div>
+                                    <h4 className="font-semibold text-slate-800 mb-3">Error Details (Row by Row)</h4>
+                                    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                                                <tr>
+                                                    <th className="px-4 py-3 w-20 text-center">Row</th>
+                                                    <th className="px-4 py-3 w-40">Roll No / Email</th>
+                                                    <th className="px-4 py-3">Error Description</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {importReport.errors.map((err, idx) => (
+                                                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                                        <td className="px-4 py-3 text-center font-bold text-slate-700 bg-slate-50/50">{err.row}</td>
+                                                        <td className="px-4 py-3 text-slate-600">
+                                                            {err.student_id_number && <div className="font-medium text-slate-800">{err.student_id_number}</div>}
+                                                            {err.email && <div className="text-xs text-slate-500 truncate max-w-[120px]">{err.email}</div>}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-rose-600 font-medium">{err.error}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-5 border-t border-sky-100 flex justify-end bg-slate-50 rounded-b-3xl">
+                            <button
+                                onClick={() => { setImportReport(null); navigate(-1); }}
+                                className="px-6 py-2.5 bg-slate-800 text-white rounded-3xl hover:bg-slate-700 transition-colors shadow-sm font-medium"
+                            >
+                                Close Report & Back
+                            </button>
                         </div>
                     </div>
                 </div>
