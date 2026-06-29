@@ -998,6 +998,8 @@ router.put('/:id/syllabus', isAdmin, async (req, res) => {
 
 // ===================== COURSE ASSIGNMENTS =====================
 
+
+
 // GET specific course assignment details
 router.get('/assignments/:id', async (req, res) => {
     try {

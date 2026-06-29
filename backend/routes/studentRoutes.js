@@ -18,6 +18,10 @@ import { scopeFaculty } from '../middleware/facultyScope.js';
 const scopeStudent = scopeToDepartment('students', 'id', {
     joinQuery: `SELECT b.department_id FROM students s JOIN batches b ON s.batch_id = b.id WHERE s.id = ?`
 });
+// Variant that reads from :studentId param (for routes like /:studentId/parent)
+const scopeStudentById = scopeToDepartment('students', 'studentId', {
+    joinQuery: `SELECT b.department_id FROM students s JOIN batches b ON s.batch_id = b.id WHERE s.id = ?`
+});
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
 import { parseExcel, generateExcel, getUploadDir, createExcelUpload, parseAcademicBackground } from '../utils/excel.js';
 import { cacheGet, cacheSet, cacheDelPattern } from '../config/redis.js';
@@ -531,7 +535,7 @@ router.post('/import', isAdmin, upload.single('file'), validateMagicBytes, async
 });
 
 // POST bulk import students and enroll them into a course assignment (Faculty)
-router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file'), validateMagicBytes, async (req, res) => {
+router.post('/import/course/:assignmentId', isAuthenticated, scopeFaculty('course_assignment', 'params', 'assignmentId'), upload.single('file'), validateMagicBytes, async (req, res) => {
     const filePath = req.file?.path ?? null;
     const assignmentId = parseInt(req.params.assignmentId, 10);
 
@@ -746,6 +750,8 @@ router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file
         await cacheDelPattern('students:*');
         await cacheDelPattern('parents:*');
         await cacheDelPattern('dashboard:*');
+        await cacheDelPattern(`enrolledStudents:${assignmentId}:*`);
+        await cacheDelPattern('facultyDashboardCourses:*');
 
         const imported = validRows.length;
         const skipped = preflightErrors.length;
@@ -849,7 +855,7 @@ router.get('/by-batch/:batchId/ids', isAdmin, async (req, res) => {
 });
 
 // POST single student registration and enrollment into a course assignment (Faculty)
-router.post('/course/:assignmentId/register', isAuthenticated, async (req, res) => {
+router.post('/course/:assignmentId/register', isAuthenticated, scopeFaculty('course_assignment', 'params', 'assignmentId'), async (req, res) => {
     const { assignmentId } = req.params;
     const conn = await pool.getConnection();
 
@@ -922,6 +928,8 @@ router.post('/course/:assignmentId/register', isAuthenticated, async (req, res) 
         await cacheDelPattern('students:*');
         await cacheDelPattern('parents:*');
         await cacheDelPattern('dashboard:*');
+        await cacheDelPattern(`enrolledStudents:${assignmentId}:*`);
+        await cacheDelPattern('facultyDashboardCourses:*');
         res.status(201).json({
             success: true,
             message: 'Student registered and enrolled successfully',
@@ -952,6 +960,7 @@ router.delete('/course/:assignmentId/unenroll/:studentId', isAuthenticated, scop
             return res.status(404).json({ success: false, message: 'Enrollment not found' });
         }
         await cacheDelPattern(`enrolledStudents:${assignmentId}:*`);
+        await cacheDelPattern('facultyDashboardCourses:*');
         res.json({ success: true, message: 'Student unenrolled successfully' });
     } catch (error) {
         console.error('Unenroll student (faculty) error:', error);
@@ -996,7 +1005,7 @@ router.get('/export/excel', isAdmin, async (req, res) => {
 
 // ===================== PARENTS =====================
 
-router.get('/:studentId/parent', async (req, res) => {
+router.get('/:studentId/parent', isAuthenticated, scopeStudentById, async (req, res) => {
     try {
         const [parents] = await pool.query('SELECT * FROM parents WHERE student_id = ?', [req.params.studentId]);
         res.json({ success: true, data: parents.length > 0 ? parents[0] : null });
@@ -1039,6 +1048,7 @@ router.post('/enroll', isAdmin, async (req, res) => {
             [student_id, course_assignment_id]
         );
         await cacheDelPattern(`enrolledStudents:${course_assignment_id}:*`);
+        await cacheDelPattern('facultyDashboardCourses:*');
         res.status(201).json({ success: true, message: 'Student enrolled', data: { id: result.insertId } });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') {
@@ -1057,6 +1067,7 @@ router.delete('/enroll/:id', isAdmin, async (req, res) => {
         }
         await pool.query('DELETE FROM enrollments WHERE id = ?', [req.params.id]);
         await cacheDelPattern(`enrolledStudents:${enrollment.course_assignment_id}:*`);
+        await cacheDelPattern('facultyDashboardCourses:*');
         res.json({ success: true, message: 'Student unenrolled' });
     } catch (error) {
         console.error('Unenroll student error:', error);

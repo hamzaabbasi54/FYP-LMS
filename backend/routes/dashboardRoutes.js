@@ -46,15 +46,20 @@ router.get('/stats', async (req, res) => {
             [[{ count: pendingQ }]] = await pool.query("SELECT COUNT(*) as count FROM users WHERE status = 'pending'");
         }
 
+        const deptCountQuery = deptId
+            ? 'SELECT 1 as count'
+            : 'SELECT COUNT(*) as count FROM departments';
+        const [[{ count: departmentCount }]] = await pool.query(deptCountQuery);
+
         const statsData = {
                 total_students: studentQ,
                 total_users: facultyQ,
                 active_batches: batchQ,
                 total_courses: courseQ,
-                total_departments: 1,
+                total_departments: deptId ? 1 : departmentCount,
                 pending_approvals: pendingQ
             };
-        await cacheSet(cacheKey, statsData, 2592000); // Cache for 30 days
+        await cacheSet(cacheKey, statsData, 3600); // Cache for 1 hour
 
         res.json({
             success: true,
