@@ -42,13 +42,6 @@ export async function recalcStudentCGPA(studentId, conn) {
             [studentId]
         );
 
-        if (courseGrades.length === 0) {
-            // No grades yet — set CGPA to 0
-            await db.query('UPDATE students SET cgpa = 0.00 WHERE id = ?', [studentId]);
-            await cacheDel(`cgpa:student:${studentId}`);
-            return 0.0;
-        }
-
         // Check if ALL enrolled courses are fully graded to 100%
         const [[{ totalEnrolled }]] = await db.query(
             'SELECT COUNT(*) as totalEnrolled FROM enrollments WHERE student_id = ?',
@@ -59,6 +52,13 @@ export async function recalcStudentCGPA(studentId, conn) {
             // Not all enrolled courses are at 100% graded weight yet.
             // Skip updating the student's CGPA.
             return null;
+        }
+
+        if (courseGrades.length === 0) {
+            // No grades yet, but totalEnrolled is also 0 or somehow they have no grades
+            await db.query('UPDATE students SET cgpa = 0.00 WHERE id = ?', [studentId]);
+            await cacheDel(`cgpa:student:${studentId}`);
+            return 0.0;
         }
 
         // Compute weighted CGPA

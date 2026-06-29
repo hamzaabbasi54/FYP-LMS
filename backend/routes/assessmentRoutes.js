@@ -140,12 +140,18 @@ router.post('/', scopeFaculty('course_assignment', 'body', 'course_assignment_id
 
         // Validate total weight doesn't exceed 100%
         if (weight !== undefined && weight !== null) {
+            const parsedWeight = parseFloat(weight);
+            if (isNaN(parsedWeight) || parsedWeight < 0) {
+                await conn.rollback();
+                return res.status(400).json({ success: false, message: 'Weight must be a valid positive number' });
+            }
+
             const [[weightSumRows]] = await conn.query(
                 `SELECT SUM(weight) as total_weight FROM assessments WHERE course_assignment_id = ? AND status != 'draft'`,
                 [course_assignment_id]
             );
             const currentTotal = parseFloat(weightSumRows?.total_weight) || 0;
-            if (currentTotal + parseFloat(weight) > 100) {
+            if (currentTotal + parsedWeight > 100) {
                 await conn.rollback();
                 return res.status(400).json({ success: false, message: `Total weight for this course exceeds 100%. Current total: ${currentTotal}%` });
             }
@@ -579,7 +585,10 @@ router.post('/:id/grades', async (req, res) => {
              WHERE a.id = ?`, [req.params.id]
         );
         const [[{ gradedCount }]] = await conn.query(
-            `SELECT COUNT(*) as gradedCount FROM grades WHERE assessment_id = ?`, [req.params.id]
+            `SELECT COUNT(*) as gradedCount FROM grades g
+             JOIN enrollments e ON g.student_id = e.student_id
+             JOIN assessments a ON e.course_assignment_id = a.course_assignment_id AND g.assessment_id = a.id
+             WHERE g.assessment_id = ?`, [req.params.id]
         );
 
         if (enrolledCount > 0 && gradedCount >= enrolledCount) {

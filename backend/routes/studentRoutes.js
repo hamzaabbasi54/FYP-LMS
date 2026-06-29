@@ -1156,7 +1156,7 @@ router.get('/enrolled/:courseAssignmentId', async (req, res) => {
 // ===================== STUDENT PORTAL (ME) =====================
 
 // GET student grades
-router.get('/student/me/grades', isAuthenticated, async (req, res) => {
+router.get('/student/me/grades', async (req, res) => {
     try {
         if (req.user.role !== 'student') {
             return res.status(403).json({ success: false, message: 'Access denied' });
@@ -1182,7 +1182,7 @@ router.get('/student/me/grades', isAuthenticated, async (req, res) => {
 });
 
 // GET student attendance
-router.get('/student/me/attendance', isAuthenticated, async (req, res) => {
+router.get('/student/me/attendance', async (req, res) => {
     try {
         if (req.user.role !== 'student') {
             return res.status(403).json({ success: false, message: 'Access denied' });
