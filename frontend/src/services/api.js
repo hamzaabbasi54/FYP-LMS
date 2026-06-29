@@ -539,6 +539,17 @@ export const studentApi = {
         link.click();
         link.remove();
         window.URL.revokeObjectURL(url);
+    },
+    downloadFacultyImportTemplate: async () => {
+        const response = await api.get('/students/import/course/template', { responseType: 'blob' });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'faculty_student_import_template.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
     }
 };
 
