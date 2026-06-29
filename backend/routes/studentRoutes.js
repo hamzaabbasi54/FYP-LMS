@@ -42,7 +42,7 @@ router.get('/', async (req, res) => {
 
         const departmentId = (req.user.role === 'deptadmin' && req.user.department_id) ? req.user.department_id : 'all';
         const cacheKey = `students:all:batch_${batch_id || 'all'}:dept_${departmentId}:search_${search || 'none'}:page_${page}:limit_${limit}`;
-        
+
         const cachedData = await cacheGet(cacheKey);
         if (cachedData) {
             return res.json(cachedData);
@@ -109,6 +109,35 @@ router.get('/import/template', isAdmin, (req, res) => {
         const buffer = generateExcel(templateData, 'Students Template');
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', 'attachment; filename=student_import_template.xlsx');
+        res.send(buffer);
+    } catch (error) {
+        console.error('Generate template error:', error);
+        res.status(500).json({ success: false, message: 'Error generating template' });
+    }
+});
+
+// GET download blank import template for faculty
+router.get('/import/course/template', isAuthenticated, (req, res) => {
+    try {
+        const templateData = [
+            {
+                student_id_number: '',
+                first_name: '',
+                last_name: '',
+                email: '',
+                phone: '',
+                batch_id: '',
+                parent_name: '',
+                parent_email: '',
+                parent_phone: '',
+                matric_marks: '',
+                fsc_marks: '',
+                background: ''
+            }
+        ];
+        const buffer = generateExcel(templateData, 'Students Template');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=faculty_student_import_template.xlsx');
         res.send(buffer);
     } catch (error) {
         console.error('Generate template error:', error);
@@ -509,10 +538,10 @@ router.post('/import', isAdmin, upload.single('file'), validateMagicBytes, async
 router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file'), validateMagicBytes, async (req, res) => {
     const filePath = req.file?.path ?? null;
     const assignmentId = parseInt(req.params.assignmentId, 10);
-    
+
     if (isNaN(assignmentId) || assignmentId <= 0) {
         if (filePath) {
-            try { await fs.promises.unlink(filePath); } catch (e) {}
+            try { await fs.promises.unlink(filePath); } catch (e) { }
         }
         return res.status(400).json({ success: false, message: 'Invalid assignment ID' });
     }
@@ -700,16 +729,19 @@ router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file
         const enrollmentValues = validRows
             .map(row => {
                 const studentId = rollNumberToStudentId.get(row.student_id_number);
-                return studentId ? [studentId, assignmentId] : null;
+                if (!studentId) return null;
+                const enrollOriginalBatchId = (row.batch_id && row.batch_id !== targetBatchId) ? row.batch_id : null;
+                return [studentId, assignmentId, enrollOriginalBatchId];
             })
             .filter(Boolean);
 
         if (enrollmentValues.length > 0) {
             await conn.query(
-                `INSERT INTO enrollments (student_id, course_assignment_id)
+                `INSERT INTO enrollments (student_id, course_assignment_id, original_batch_id)
                  VALUES ?
                  ON DUPLICATE KEY UPDATE
-                    student_id = VALUES(student_id)`,
+                    student_id = VALUES(student_id),
+                    original_batch_id = VALUES(original_batch_id)`,
                 [enrollmentValues]
             );
         }
@@ -1069,7 +1101,7 @@ router.get('/enrolled/:courseAssignmentId', async (req, res) => {
         );
 
         const responseData = paginatedResponse(students, total, page, limit);
-        await cacheSet(cacheKey, JSON.stringify(responseData), 3600); // 1 hour
+        await cacheSet(cacheKey, JSON.stringify(responseData), 2592000); // 30 days
         res.json(responseData);
     } catch (error) {
         console.error('Get enrolled students error:', error);

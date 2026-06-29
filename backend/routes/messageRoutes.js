@@ -46,6 +46,7 @@ router.get('/contacts', async (req, res) => {
              FROM users u
              JOIN departments d ON u.department_id = d.id
              WHERE u.department_id = ? AND u.id != ? AND u.is_active = TRUE AND u.status = 'approved'
+               AND u.role IN ('faculty', 'deptadmin', 'super_admin')
              ORDER BY last_message_time DESC, u.full_name ASC`,
             [userId, userId, userId, userId, userId, deptId, userId]
         );
@@ -156,9 +157,9 @@ router.post('/send', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Message too long. Maximum 5000 characters.' });
         }
 
-        // Security: Verify recipient is in the same department
+        // Security: Verify recipient is in the same department and is faculty/admin
         const [recipient] = await pool.query(
-            'SELECT id, department_id, full_name FROM users WHERE id = ?',
+            'SELECT id, department_id, full_name, role FROM users WHERE id = ?',
             [recipient_id]
         );
 
@@ -168,6 +169,10 @@ router.post('/send', async (req, res) => {
 
         if (recipient[0].department_id !== deptId) {
             return res.status(403).json({ success: false, message: 'You can only message members of your department' });
+        }
+
+        if (!['faculty', 'deptadmin', 'super_admin'].includes(recipient[0].role)) {
+            return res.status(403).json({ success: false, message: 'You can only message faculty or admin accounts' });
         }
 
         // Insert message

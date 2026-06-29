@@ -41,7 +41,7 @@ router.get('/course/:courseAssignmentId', async (req, res) => {
             [...params, limit, offset]
         );
 
-        // Summary stats (across all pages, not just current) — single aggregate query
+        // Summary stats (across all pages, not just current) — single aggregate instead of fetching all rows
         const [[summary]] = await pool.query(
             `SELECT COUNT(*) as total,
                     SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) as present_count,
@@ -122,6 +122,7 @@ router.post('/course/:courseAssignmentId', scopeFaculty('course_assignment', 'pa
             return res.status(400).json({ success: false, message: 'date and records array are required' });
         }
 
+        // Bulk upsert instead of per-row INSERT
         const values = records.map(r => [req.params.courseAssignmentId, r.student_id, date, r.status || 'present', r.remarks || '']);
         if (values.length > 0) {
             await conn.query(
@@ -164,15 +165,15 @@ router.post('/import/:courseAssignmentId', scopeFaculty('course_assignment', 'pa
         let skipped = 0;
         const errors = [];
 
-        // Pre-fetch student map (like grades import does)
+        // Pre-fetch student map (like grades import does) instead of per-row lookup
         const [allStudents] = await conn.query('SELECT id, student_id_number FROM students');
         const studentMap = {};
         allStudents.forEach(s => { studentMap[String(s.student_id_number).trim()] = s.id; });
 
+        const bulkValues = [];
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             try {
-                // Look up student from pre-fetched map
                 const studentId = studentMap[String(row.student_id_number).trim()];
                 if (!studentId) {
                     skipped++;
@@ -180,17 +181,21 @@ router.post('/import/:courseAssignmentId', scopeFaculty('course_assignment', 'pa
                     continue;
                 }
 
-                await conn.query(
-                    `INSERT INTO attendance (course_assignment_id, student_id, date, status, remarks)
-                     VALUES (?, ?, ?, ?, ?)
-                     ON DUPLICATE KEY UPDATE status = VALUES(status), remarks = VALUES(remarks)`,
-                    [req.params.courseAssignmentId, studentId, row.date, row.status || 'present', row.remarks || '']
-                );
+                bulkValues.push([req.params.courseAssignmentId, studentId, row.date, row.status || 'present', row.remarks || '']);
                 imported++;
             } catch (err) {
                 skipped++;
                 errors.push({ row: i + 2, error: err.message });
             }
+        }
+
+        if (bulkValues.length > 0) {
+            await conn.query(
+                `INSERT INTO attendance (course_assignment_id, student_id, date, status, remarks)
+                 VALUES ?
+                 ON DUPLICATE KEY UPDATE status = VALUES(status), remarks = VALUES(remarks)`,
+                [bulkValues]
+            );
         }
 
         await conn.commit();
