@@ -122,8 +122,17 @@ router.post('/course/:courseAssignmentId', scopeFaculty('course_assignment', 'pa
             return res.status(400).json({ success: false, message: 'date and records array are required' });
         }
 
-        // Bulk upsert instead of per-row INSERT
-        const values = records.map(r => [req.params.courseAssignmentId, r.student_id, date, r.status || 'present', r.remarks || '']);
+        // Pre-fetch enrolled student IDs for this course assignment
+        const [enrolled] = await conn.query(
+            'SELECT student_id FROM enrollments WHERE course_assignment_id = ?',
+            [req.params.courseAssignmentId]
+        );
+        const enrolledIds = new Set(enrolled.map(e => e.student_id));
+
+        // Bulk upsert — only enrolled students
+        const values = records
+            .filter(r => enrolledIds.has(r.student_id))
+            .map(r => [req.params.courseAssignmentId, r.student_id, date, r.status || 'present', r.remarks || '']);
         if (values.length > 0) {
             await conn.query(
                 `INSERT INTO attendance (course_assignment_id, student_id, date, status, remarks)
@@ -165,19 +174,25 @@ router.post('/import/:courseAssignmentId', scopeFaculty('course_assignment', 'pa
         let skipped = 0;
         const errors = [];
 
-        // Pre-fetch student map (like grades import does) instead of per-row lookup
-        const [allStudents] = await conn.query('SELECT id, student_id_number FROM students');
-        const studentMap = {};
-        allStudents.forEach(s => { studentMap[String(s.student_id_number).trim()] = s.id; });
+        // Pre-fetch enrolled students for this course assignment
+        const [enrolledRows] = await conn.query(
+            `SELECT e.student_id, s.student_id_number 
+             FROM enrollments e 
+             JOIN students s ON e.student_id = s.id 
+             WHERE e.course_assignment_id = ?`,
+            [req.params.courseAssignmentId]
+        );
+        const enrolledMap = {};
+        enrolledRows.forEach(e => { enrolledMap[String(e.student_id_number).trim()] = e.student_id; });
 
         const bulkValues = [];
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             try {
-                const studentId = studentMap[String(row.student_id_number).trim()];
+                const studentId = enrolledMap[String(row.student_id_number).trim()];
                 if (!studentId) {
                     skipped++;
-                    errors.push({ row: i + 2, student: row.student_id_number, error: 'Student not found' });
+                    errors.push({ row: i + 2, student: row.student_id_number, error: 'Student not enrolled in this course' });
                     continue;
                 }
 

@@ -535,7 +535,7 @@ router.post('/import', isAdmin, upload.single('file'), validateMagicBytes, async
 });
 
 // POST bulk import students and enroll them into a course assignment (Faculty)
-router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file'), validateMagicBytes, async (req, res) => {
+router.post('/import/course/:assignmentId', isAuthenticated, scopeFaculty('course_assignment', 'params', 'assignmentId'), upload.single('file'), validateMagicBytes, async (req, res) => {
     const filePath = req.file?.path ?? null;
     const assignmentId = parseInt(req.params.assignmentId, 10);
 
@@ -855,7 +855,7 @@ router.get('/by-batch/:batchId/ids', isAdmin, async (req, res) => {
 });
 
 // POST single student registration and enrollment into a course assignment (Faculty)
-router.post('/course/:assignmentId/register', isAuthenticated, async (req, res) => {
+router.post('/course/:assignmentId/register', isAuthenticated, scopeFaculty('course_assignment', 'params', 'assignmentId'), async (req, res) => {
     const { assignmentId } = req.params;
     const conn = await pool.getConnection();
 
