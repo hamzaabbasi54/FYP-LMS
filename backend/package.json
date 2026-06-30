@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "migrate": "node migrate.js"
+    "migrate": "node migrate.js",
+    "provision-students": "node scripts/provisionStudentAccounts.js"
   },
   "keywords": [],
   "author": "",
@@ -20,13 +21,13 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
-    "file-type": "^22.0.1",
+    "file-type": "^19.6.0",
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.2",
     "multer": "^2.1.1",
     "mysql2": "^3.22.3",
-    "nodemailer": "^8.0.7",
+    "nodemailer": "^9.0.1",
     "nodemon": "^3.1.11",
     "redis": "^6.0.0",
     "socket.io": "^4.8.3",
