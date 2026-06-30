@@ -217,6 +217,7 @@ export const deleteUser = async (req, res) => {
         }
 
         await cacheDelPattern(`facultyUsers:${approver.department_id}`);
+        await cacheDelPattern('messages:*');
 
         res.status(200).json({
             success: true,

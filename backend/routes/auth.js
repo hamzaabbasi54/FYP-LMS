@@ -428,6 +428,8 @@ router.delete('/users/:id', verifyToken, isAdmin, async (req, res) => {
             await cacheDelPattern('dashboard:stats:*');
         }
 
+        await cacheDelPattern('messages:*');
+
         res.status(200).json({
             success: true,
             message: `${users[0].full_name} has been deleted`

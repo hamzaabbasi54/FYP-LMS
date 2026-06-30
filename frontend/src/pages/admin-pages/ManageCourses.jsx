@@ -10,7 +10,8 @@ import {
     PiMagnifyingGlass,
     PiPlus,
     PiTarget,
-    PiTrash
+    PiTrash,
+    PiWarningCircle
 } from 'react-icons/pi';
 import { courseApi } from '../../services/api';
 import { toast } from 'react-toastify';
@@ -23,6 +24,9 @@ const ManageCourses = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [page, setPage] = useState(1);
+
+    const [activeDataWarning, setActiveDataWarning] = useState(null);
+    const [pendingDeleteAction, setPendingDeleteAction] = useState(null);
 
     const { data, isLoading: loading } = useQuery({
         queryKey: ['courses', page, searchQuery],
@@ -43,19 +47,7 @@ const ManageCourses = () => {
     const enqueueUndo = useUndoStore(s => s.enqueue);
     const isPending = useUndoStore(s => s.isPending);
 
-    const handleDelete = async (course) => {
-        const undoId = `course-${course.id}`;
-        if (isPending(undoId)) return;
-
-        // Pre-flight: check for active data
-        try {
-            const guardRes = await courseApi.delete(course.id, { dryRun: true });
-            if (guardRes.requiresConfirmation && guardRes.hasActiveData) {
-                const confirmed = window.confirm(guardRes.message);
-                if (!confirmed) return;
-            }
-        } catch { /* proceed */ }
-
+    const executeDelete = (course, undoId) => {
         // Optimistically remove from cache
         queryClient.setQueryData(['courses', page, searchQuery], (old) => {
             if (!old) return old;
@@ -81,6 +73,23 @@ const ManageCourses = () => {
                 toast.info(`Deletion of "${course.code}" undone`);
             }
         });
+    };
+
+    const handleDelete = async (course) => {
+        const undoId = `course-${course.id}`;
+        if (isPending(undoId)) return;
+
+        // Pre-flight: check for active data
+        try {
+            const guardRes = await courseApi.delete(course.id, { dryRun: true });
+            if (guardRes.requiresConfirmation && guardRes.hasActiveData) {
+                setActiveDataWarning(guardRes.message);
+                setPendingDeleteAction(() => () => executeDelete(course, undoId));
+                return;
+            }
+        } catch { /* proceed */ }
+
+        executeDelete(course, undoId);
     };
 
     const getStatusStyle = (status) => {
@@ -287,6 +296,46 @@ const ManageCourses = () => {
                     </>
                 )}
             </div>
+
+            {/* Active Data Warning Modal */}
+            {activeDataWarning && (
+                <div className="campus-modal-shell fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="p-6">
+                            <div className="flex items-center gap-4 mb-4 text-sky-700">
+                                <div className="campus-heading-icon">
+                                    <PiWarningCircle className="w-6 h-6" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-800">Active Data Warning</h3>
+                            </div>
+                            <p className="text-slate-600 mb-2">
+                                {activeDataWarning}
+                            </p>
+                            <p className="campus-warning-panel text-sm p-3 rounded-lg">
+                                Proceeding may affect enrollments, grades, or other linked records. This action cannot be easily undone once the undo timer expires.
+                            </p>
+                        </div>
+                        <div className="flex justify-end gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
+                            <button
+                                onClick={() => { setActiveDataWarning(null); setPendingDeleteAction(null); }}
+                                className="px-5 py-2.5 text-slate-600 font-medium rounded-xl hover:bg-slate-200 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (pendingDeleteAction) pendingDeleteAction();
+                                    setActiveDataWarning(null);
+                                    setPendingDeleteAction(null);
+                                }}
+                                className="px-5 py-2.5 bg-sky-600 text-white font-semibold rounded-xl hover:bg-sky-700 transition-colors shadow-sm"
+                            >
+                                Proceed
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
