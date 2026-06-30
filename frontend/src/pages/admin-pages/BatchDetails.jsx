@@ -83,7 +83,7 @@ const BatchDetails = () => {
 
     const handleOpenAddCourse = async () => {
         try {
-            const res = await courseApi.getAllList();
+            const res = await courseApi.getAllList({ department_id: batchData?.department_id });
             if (res.success) setAllCourses(res.data || []);
         } catch (e) { console.error(e); }
         setSelectedCourses([]); setCourseSearch(''); setCourseType('core');

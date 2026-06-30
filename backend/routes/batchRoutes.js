@@ -234,6 +234,18 @@ router.post('/', isAdmin, async (req, res) => {
         const batchId = result.insertId;
 
         if (plo_ids && Array.isArray(plo_ids) && plo_ids.length > 0) {
+            // Validate that all provided PLOs belong to the batch's department
+            const placeholders = plo_ids.map(() => '?').join(',');
+            const [validPlos] = await conn.query(
+                `SELECT id FROM plos WHERE id IN (${placeholders}) AND department_id = ?`,
+                [...plo_ids, final_department_id]
+            );
+            
+            if (validPlos.length !== plo_ids.length) {
+                await conn.rollback();
+                return res.status(400).json({ success: false, message: 'One or more selected PLOs do not belong to this department' });
+            }
+
             const ploValues = plo_ids.map(ploId => [batchId, ploId]);
             await conn.query('INSERT INTO batch_plos (batch_id, plo_id) VALUES ?', [ploValues]);
         }
@@ -309,8 +321,24 @@ router.put('/:id', isAdmin, scopeBatch, async (req, res) => {
 
         const { plo_ids } = req.body;
         if (plo_ids && Array.isArray(plo_ids)) {
+            // We need the batch's department_id for validation
+            const [[batchInfo]] = await conn.query('SELECT department_id FROM batches WHERE id = ?', [req.params.id]);
+            const batchDeptId = batchInfo.department_id;
+
             await conn.query('DELETE FROM batch_plos WHERE batch_id = ?', [req.params.id]);
             if (plo_ids.length > 0) {
+                // Validate that all provided PLOs belong to the batch's department
+                const placeholders = plo_ids.map(() => '?').join(',');
+                const [validPlos] = await conn.query(
+                    `SELECT id FROM plos WHERE id IN (${placeholders}) AND department_id = ?`,
+                    [...plo_ids, batchDeptId]
+                );
+                
+                if (validPlos.length !== plo_ids.length) {
+                    await conn.rollback();
+                    return res.status(400).json({ success: false, message: 'One or more selected PLOs do not belong to this department' });
+                }
+
                 const ploValues = plo_ids.map(ploId => [req.params.id, ploId]);
                 await conn.query('INSERT INTO batch_plos (batch_id, plo_id) VALUES ?', [ploValues]);
             }
@@ -449,6 +477,30 @@ router.post('/:id/semesters/:semNum/courses', isAdmin, async (req, res) => {
         }
 
         await conn.beginTransaction();
+
+        // 1. Fetch the batch to verify its department
+        const [batchRows] = await conn.query('SELECT department_id FROM batches WHERE id = ?', [batchId]);
+        if (batchRows.length === 0) {
+            await conn.rollback();
+            return res.status(404).json({ success: false, message: 'Batch not found' });
+        }
+        const batchDeptId = batchRows[0].department_id;
+
+        // 2. Validate that all requested courses belong to this batch's department
+        const [validCourses] = await conn.query(
+            `SELECT id FROM courses WHERE id IN (?) AND department_id = ?`,
+            [ids, batchDeptId]
+        );
+        const validCourseIds = new Set(validCourses.map(c => c.id));
+        const invalidCourses = ids.filter(id => !validCourseIds.has(id));
+
+        if (invalidCourses.length > 0) {
+            await conn.rollback();
+            return res.status(403).json({ 
+                success: false, 
+                message: `Cross-department course assignment is strictly prohibited. The following courses do not belong to the batch's department: ${invalidCourses.join(', ')}`
+            });
+        }
 
         // Ensure the semester row exists in `semesters` table (FK requires it)
         const [semRows] = await conn.query(

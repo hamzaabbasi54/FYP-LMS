@@ -400,8 +400,8 @@ export const courseApi = {
         return response.data;
     },
     // All courses list (no pagination, for pickers)
-    getAllList: async () => {
-        const response = await api.get('/courses/all-list');
+    getAllList: async (params = {}) => {
+        const response = await api.get('/courses/all-list', { params });
         return response.data;
     },
     // Global CLO management

@@ -249,6 +249,30 @@ router.post('/:id/semesters/:semNum/courses', isAdmin, scopeCurriculum, async (r
             return res.status(400).json({ success: false, message: 'course_id or course_ids array is required' });
         }
 
+        // 1. Fetch the curriculum to verify its department
+        const [currRows] = await conn.query('SELECT department_id FROM curricula WHERE id = ?', [req.params.id]);
+        if (currRows.length === 0) {
+            await conn.rollback();
+            return res.status(404).json({ success: false, message: 'Curriculum not found' });
+        }
+        const currDeptId = currRows[0].department_id;
+
+        // 2. Validate that all requested courses belong to this curriculum's department
+        const [validCourses] = await conn.query(
+            `SELECT id FROM courses WHERE id IN (?) AND department_id = ?`,
+            [ids, currDeptId]
+        );
+        const validCourseIds = new Set(validCourses.map(c => c.id));
+        const invalidCourses = ids.filter(id => !validCourseIds.has(id));
+
+        if (invalidCourses.length > 0) {
+            await conn.rollback();
+            return res.status(403).json({ 
+                success: false, 
+                message: `Cross-department course assignment is strictly prohibited. The following courses do not belong to the curriculum's department: ${invalidCourses.join(', ')}`
+            });
+        }
+
         const added = [];
         const errors = [];
 

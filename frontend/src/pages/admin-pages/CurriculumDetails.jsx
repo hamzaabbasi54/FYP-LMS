@@ -32,9 +32,9 @@ const CurriculumDetails = () => {
     });
 
     const { data: allCourses = [] } = useQuery({
-        queryKey: ['allCoursesList'],
+        queryKey: ['allCoursesList', curriculum?.department_id],
         queryFn: async () => {
-            const response = await courseApi.getAllList();
+            const response = await courseApi.getAllList({ department_id: curriculum?.department_id });
             if (response.success) return response.data || [];
             return [];
         },
