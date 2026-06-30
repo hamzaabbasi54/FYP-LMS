@@ -1144,6 +1144,7 @@ router.put('/assign/:id', isAdmin, async (req, res) => {
 
         await conn.commit();
         await cacheDelPattern('facultyDashboardCourses:*');
+        await cacheDelPattern('batchCourseDetails:*');
 
         // Emit real-time WebSocket event to faculty's department
         try {
@@ -1202,6 +1203,7 @@ router.delete('/assign/:id', isAdmin, async (req, res) => {
         }
 
         await cacheDelPattern('facultyDashboardCourses:*');
+        await cacheDelPattern('batchCourseDetails:*');
         res.json({ success: true, message: 'Course assignment removed' });
     } catch (error) {
         console.error('Delete assignment error:', error);
