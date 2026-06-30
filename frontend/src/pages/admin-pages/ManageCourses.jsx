@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
     PiBookOpenText,
     PiBooks,
@@ -19,6 +19,7 @@ import useUndoStore from '../../stores/useUndoStore';
 
 const ManageCourses = () => {
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [page, setPage] = useState(1);
@@ -199,22 +200,35 @@ const ManageCourses = () => {
                             {filteredCourses.map((course) => (
                                 <div
                                     key={course.id}
-                                    className="group relative flex min-h-[218px] flex-col rounded-3xl border border-sky-100 bg-white/92 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg"
+                                    role="link"
+                                    tabIndex={0}
+                                    onClick={() => navigate(`/admin-managecourses/${course.id}`)}
+                                    onKeyDown={(event) => {
+                                        if (event.target !== event.currentTarget) return;
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                            event.preventDefault();
+                                            navigate(`/admin-managecourses/${course.id}`);
+                                        }
+                                    }}
+                                    className="campus-course-card group relative flex min-h-[218px] flex-col rounded-3xl border border-sky-100 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-sky-100"
                                 >
                                     <div className="flex items-start justify-between gap-4">
-                                        <span className="inline-flex rounded-xl border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.1em] text-sky-700">
-                                            {course.code}
-                                        </span>
+                                        <div className="flex items-center gap-3">
+                                            <div className="campus-icon-tile flex h-11 w-11 items-center justify-center">
+                                                <PiBookOpenText className="h-6 w-6" />
+                                            </div>
+                                            <span className="inline-flex rounded-xl border border-sky-100 bg-white/80 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.1em] text-sky-700">
+                                                {course.code}
+                                            </span>
+                                        </div>
                                         <span className="rounded-full border border-slate-100 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-500">
                                             {course.credit_hours} Credits
                                         </span>
                                     </div>
 
-                                    <Link to={`/admin-managecourses/${course.id}`} className="mt-5 block">
-                                        <h3 className="line-clamp-2 text-lg font-bold text-slate-950 transition-colors group-hover:text-sky-700">
-                                            {course.title}
-                                        </h3>
-                                    </Link>
+                                    <h3 className="mt-5 line-clamp-2 text-lg font-bold text-slate-950 transition-colors group-hover:text-sky-700">
+                                        {course.title}
+                                    </h3>
                                     <p className="mt-2 text-sm text-slate-500">
                                         {course.department_name || 'No Department'}
                                     </p>
@@ -226,13 +240,17 @@ const ManageCourses = () => {
                                         <div className="flex items-center gap-2">
                                             <Link
                                                 to={`/admin-managecourses/${course.id}`}
+                                                onClick={(event) => event.stopPropagation()}
                                                 className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
                                                 title="View Details"
                                             >
                                                 <PiInfo className="h-4 w-4" />
                                             </Link>
                                             <button
-                                                onClick={() => handleDelete(course)}
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    handleDelete(course);
+                                                }}
                                                 disabled={isPending(`course-${course.id}`)}
                                                 className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:border-red-100 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                                                 title="Delete"

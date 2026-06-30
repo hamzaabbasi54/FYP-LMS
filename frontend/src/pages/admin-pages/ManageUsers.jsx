@@ -2,13 +2,18 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
     PiCheckCircle,
+    PiEnvelopeSimple,
     PiFunnelSimple,
+    PiFloppyDisk,
     PiMagnifyingGlass,
     PiPencilSimple,
+    PiPhone,
     PiPlus,
     PiTrash,
+    PiUser,
     PiUserCircle,
     PiUsersThree,
+    PiX,
     PiXCircle
 } from 'react-icons/pi';
 import { authApi } from '../../services/api';
@@ -19,6 +24,8 @@ const ManageUsers = () => {
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterRole, setFilterRole] = useState('all');
+    const [editingUser, setEditingUser] = useState(null);
+    const [editForm, setEditForm] = useState({ full_name: '', email: '', phone_number: '' });
 
     const { data: users = [], isLoading: loading } = useQuery({
         queryKey: ['users', filterRole, searchTerm],
@@ -58,6 +65,40 @@ const ManageUsers = () => {
 
     const handleToggleActive = (userId) => {
         toggleMutation.mutate(userId);
+    };
+
+    const updateMutation = useMutation({
+        mutationFn: ({ userId, data }) => authApi.updateUser(userId, data),
+        onSuccess: () => {
+            toast.success('User updated successfully');
+            setEditingUser(null);
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+        },
+        onError: (error) => toast.error(error.response?.data?.message || 'Failed to update user')
+    });
+
+    const openEditModal = (user) => {
+        setEditingUser(user);
+        setEditForm({
+            full_name: user.full_name || user.fullName || '',
+            email: user.email || '',
+            phone_number: user.phone_number || ''
+        });
+    };
+
+    const handleEditChange = (event) => {
+        const { name, value } = event.target;
+        setEditForm((current) => ({ ...current, [name]: value }));
+    };
+
+    const handleEditSubmit = (event) => {
+        event.preventDefault();
+        if (!editForm.full_name.trim() || !editForm.email.trim()) {
+            toast.error('Full name and email are required');
+            return;
+        }
+
+        updateMutation.mutate({ userId: editingUser.id, data: editForm });
     };
 
 
@@ -218,6 +259,7 @@ const ManageUsers = () => {
                                             <td className="px-5 py-4">
                                                 <div className="flex items-center gap-2">
                                                     <button
+                                                        onClick={() => openEditModal(user)}
                                                         className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
                                                         title="Edit user"
                                                     >
@@ -241,6 +283,113 @@ const ManageUsers = () => {
                     </div>
                 </section>
             </div>
+
+            {editingUser && (
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-sm"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="edit-user-title"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget && !updateMutation.isPending) setEditingUser(null);
+                    }}
+                >
+                    <form
+                        onSubmit={handleEditSubmit}
+                        className="w-full max-w-xl overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-[0_28px_90px_rgba(14,116,144,0.24)]"
+                    >
+                        <div className="flex items-start justify-between border-b border-sky-100 bg-gradient-to-r from-white to-sky-50 px-6 py-5">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-100 bg-sky-50 text-sky-700">
+                                    <PiPencilSimple className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h2 id="edit-user-title" className="text-xl font-bold text-slate-950">Edit user</h2>
+                                    <p className="mt-0.5 text-sm text-slate-500">Update account contact information.</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setEditingUser(null)}
+                                disabled={updateMutation.isPending}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-sky-100 bg-white text-slate-500 transition hover:bg-sky-50 hover:text-sky-700 disabled:opacity-50"
+                                aria-label="Close edit user dialog"
+                            >
+                                <PiX className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-5 px-6 py-6">
+                            <label className="block">
+                                <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                    <PiUser className="h-4 w-4 text-sky-600" /> Full Name
+                                </span>
+                                <input
+                                    name="full_name"
+                                    value={editForm.full_name}
+                                    onChange={handleEditChange}
+                                    className="h-12 w-full rounded-xl border border-sky-100 bg-sky-50/35 px-4 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                                    required
+                                />
+                            </label>
+                            <label className="block">
+                                <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                    <PiEnvelopeSimple className="h-4 w-4 text-sky-600" /> Email Address
+                                </span>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={editForm.email}
+                                    onChange={handleEditChange}
+                                    className="h-12 w-full rounded-xl border border-sky-100 bg-sky-50/35 px-4 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                                    required
+                                />
+                            </label>
+                            <label className="block">
+                                <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                    <PiPhone className="h-4 w-4 text-sky-600" /> Phone Number
+                                </span>
+                                <input
+                                    name="phone_number"
+                                    value={editForm.phone_number}
+                                    onChange={handleEditChange}
+                                    className="h-12 w-full rounded-xl border border-sky-100 bg-sky-50/35 px-4 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                                />
+                            </label>
+
+                            <div className="grid gap-3 rounded-2xl border border-sky-100 bg-sky-50/60 p-4 sm:grid-cols-2">
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">Role</p>
+                                    <p className="mt-1 text-sm font-semibold text-slate-800">{roleLabels[editingUser.role] || editingUser.role}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">Department</p>
+                                    <p className="mt-1 text-sm font-semibold text-slate-800">{editingUser.department_name || 'N/A'}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col-reverse gap-3 border-t border-sky-100 bg-sky-50/40 px-6 py-4 sm:flex-row sm:justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setEditingUser(null)}
+                                disabled={updateMutation.isPending}
+                                className="inline-flex h-11 items-center justify-center rounded-full border border-sky-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-sky-50 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={updateMutation.isPending}
+                                className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-sky-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                <PiFloppyDisk className="h-5 w-5" />
+                                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
         </div>
     );
 };

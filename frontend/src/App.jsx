@@ -72,7 +72,7 @@ import DocumentViewer from './pages/shared/DocumentViewer.jsx';
 // Faculty Pages
 import FacultyDashboard from "./pages/faculty-pages/Dashboard.jsx";
 import MyCourses from "./pages/faculty-pages/MyCourses.jsx";
-import EditSyllabus from "./pages/faculty-pages/EditSyllabus.jsx";
+
 import BatchCourses from "./pages/faculty-pages/BatchCourses.jsx";
 import Attendance from "./pages/faculty-pages/Attendance.jsx";
 import MonthlyReport from "./pages/faculty-pages/MonthlyReport.jsx";
@@ -165,7 +165,7 @@ function App() {
                         <Route path="/faculty-batch/:batchId" element={<BatchCourses />} />
                         <Route path="/faculty-mycourses" element={<MyCourses />} />
                         <Route path="/faculty-mycourses/:assignmentId" element={<MyCourses />} />
-                        <Route path="/faculty-mycourses/:assignmentId/edit-syllabus" element={<EditSyllabus />} />
+
                         <Route path="/faculty-mycourses/:assignmentId/attendance" element={<Attendance />} />
                         <Route path="/faculty-mycourses/:assignmentId/attendance/monthly-report" element={<MonthlyReport />} />
                         <Route path="/faculty-attendance" element={<Attendance />} />

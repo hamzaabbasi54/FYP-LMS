@@ -30,6 +30,20 @@
 }
 .page-container {
     min-height: 100%;
-    min-width: 100%;
+    min-width: 0;
+    width: 100%;
 
+}
+
+@media (max-width: 900px) {
+    .main-layout {
+        display: block;
+        min-height: 100dvh;
+    }
+
+    .main-layout .main {
+        min-height: calc(100dvh - 4.5rem);
+        height: auto;
+        overflow: visible;
+    }
 }

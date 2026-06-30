@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, Link } from 'react-router-dom';
-import { MdArrowBack, MdPeople, MdAccessTime, MdArrowForward, MdMenuBook, MdAdd, MdDelete, MdClose, MdSearch, MdCheckCircle, MdSchool, MdLibraryBooks, MdInfo, MdSchedule, MdChevronRight } from 'react-icons/md';
+import { MdArrowBack, MdArrowForward, MdMenuBook, MdAdd, MdDelete, MdClose, MdSearch, MdCheckCircle, MdLibraryBooks, MdInfo, MdSchedule, MdChevronRight } from 'react-icons/md';
+import { PiBookOpenText, PiBooks, PiCalendarBlank, PiPulse, PiTarget, PiUsersThree } from 'react-icons/pi';
 import { batchApi, curriculumApi, courseApi, obeApi, departmentApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -32,13 +33,6 @@ const BatchDetails = () => {
     // Curriculum Modal
     const [showCurriculumModal, setShowCurriculumModal] = useState(false);
     const [selectedCurriculumId, setSelectedCurriculumId] = useState('');
-
-    const semColors = [
-        'from-indigo-500 to-blue-600', 'from-violet-500 to-purple-600',
-        'from-emerald-500 to-teal-600', 'from-amber-500 to-orange-600',
-        'from-pink-500 to-rose-600', 'from-cyan-500 to-sky-600',
-        'from-red-500 to-orange-600', 'from-teal-500 to-green-600',
-    ];
 
     const { data: batchData, isLoading: loading, error: batchError } = useQuery({
         queryKey: ['batch', id],
@@ -89,7 +83,7 @@ const BatchDetails = () => {
 
     const handleOpenAddCourse = async () => {
         try {
-            const res = await courseApi.getAllList();
+            const res = await courseApi.getAllList({ department_id: batchData?.department_id });
             if (res.success) setAllCourses(res.data || []);
         } catch (e) { console.error(e); }
         setSelectedCourses([]); setCourseSearch(''); setCourseType('core');
@@ -207,8 +201,8 @@ const BatchDetails = () => {
     const electiveCourses = activeSemData?.courses?.filter(c => c.type === 'elective') || [];
 
     return (
-        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200">
-            <div className="p-8 max-w-7xl mx-auto">
+        <div className="campus-detail-page min-h-full bg-gradient-to-br from-slate-100 to-slate-200">
+            <div className="campus-page-inner p-8 max-w-7xl mx-auto">
                 {/* Breadcrumb */}
                 <div className="mb-6">
                     <Link to="/admin-managebatches" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors text-sm font-medium">
@@ -228,19 +222,19 @@ const BatchDetails = () => {
                 </div>
 
                 {/* Stats & Assignment Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                <div className="campus-stat-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
                     {[
-                        { label: 'Students', value: batchData.student_count || 0, icon: MdPeople, color: 'from-blue-500 to-indigo-600', link: `/admin-managebatches/${id}/students` },
-                        { label: 'Status', value: batchData.status || 'active', icon: MdAccessTime, color: 'from-violet-500 to-purple-600' },
-                        { label: 'Duration', value: batchData.start_date ? `${new Date(batchData.start_date).getFullYear()} - ${batchData.end_date ? new Date(batchData.end_date).getFullYear() : '...'}` : 'N/A', icon: MdSchool, color: 'from-emerald-500 to-teal-600' },
-                        { label: 'Curriculum', value: curricula.find(c => c.id === batchData.curriculum_id)?.name || 'Not Set', icon: MdMenuBook, color: 'from-cyan-500 to-blue-600', onClick: () => { setSelectedCurriculumId(batchData.curriculum_id || ''); setShowCurriculumModal(true); } },
-                        { label: 'PLOs', value: batchData.plos?.length || 0, icon: MdLibraryBooks, color: 'from-fuchsia-500 to-pink-600', onClick: handleOpenPloModal },
+                        { label: 'Students', value: batchData.student_count || 0, icon: PiUsersThree, color: 'from-blue-500 to-indigo-600', link: `/admin-managebatches/${id}/students` },
+                        { label: 'Status', value: batchData.status || 'active', icon: PiPulse, color: 'from-violet-500 to-purple-600' },
+                        { label: 'Duration', value: batchData.start_date ? `${new Date(batchData.start_date).getFullYear()} - ${batchData.end_date ? new Date(batchData.end_date).getFullYear() : '...'}` : 'N/A', icon: PiCalendarBlank, color: 'from-emerald-500 to-teal-600' },
+                        { label: 'Curriculum', value: curricula.find(c => c.id === batchData.curriculum_id)?.name || 'Not Set', icon: PiBookOpenText, color: 'from-cyan-500 to-blue-600', onClick: () => { setSelectedCurriculumId(batchData.curriculum_id || ''); setShowCurriculumModal(true); } },
+                        { label: 'PLOs', value: batchData.plos?.length || 0, icon: PiTarget, color: 'from-fuchsia-500 to-pink-600', onClick: handleOpenPloModal },
                     ].map((s, i) => {
                         const card = (
                             <div onClick={s.onClick} className={`group bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-all h-full relative ${s.link || s.onClick ? 'cursor-pointer hover:border-blue-300' : ''}`}>
                                 <div className="flex items-start justify-between h-full flex-col pr-6">
                                     <div className="w-full">
-                                        <div className={`inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br ${s.color} mb-3 shadow-sm group-hover:shadow-lg transition-all`}>
+                                        <div className={`campus-icon-tile inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br ${s.color} mb-3 shadow-sm group-hover:shadow-lg transition-all`}>
                                             <s.icon className="w-5 h-5 text-white" />
                                         </div>
                                         <p className="text-slate-500 text-xs mb-1">{s.label}</p>
@@ -260,9 +254,9 @@ const BatchDetails = () => {
 
                 {/* Info banner: explain that edits here don't affect the curriculum */}
                 {batchData.curriculum_id && (
-                    <div className="mb-6 flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl p-4">
-                        <MdInfo className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-blue-700">
+                    <div className="campus-info-banner mb-6 flex items-center gap-3 rounded-xl p-4">
+                        <div className="campus-info-icon"><MdInfo className="w-5 h-5" /></div>
+                        <p className="text-sm leading-6 text-sky-800">
                             Courses below are a copy from <strong>{batchCourseData?.curriculum_name || 'the curriculum'}</strong>. 
                             Adding or removing courses here only affects this batch — the original curriculum is not changed.
                         </p>
@@ -276,20 +270,19 @@ const BatchDetails = () => {
                         <p className="text-slate-500 font-medium text-sm">Loading semester details...</p>
                     </div>
                 ) : batchCourseData && (
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="campus-section-card bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                         {/* Semester Tabs */}
-                        <div className="flex overflow-x-auto border-b border-slate-200">
+                        <div className="campus-tabs flex overflow-x-auto border-b border-slate-200">
                             {batchCourseData.semesters?.map((sem) => {
                                 const isActive = sem.semester_number === activeSemester;
                                 const count = sem.courses?.length || 0;
                                 return (
                                     <button key={sem.semester_number} onClick={() => setActiveSemester(sem.semester_number)}
-                                        className={`flex-shrink-0 px-5 py-3 text-sm font-medium transition-all relative ${isActive ? 'text-blue-600 bg-blue-50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}>
+                                        className={`relative m-1 flex-shrink-0 rounded-xl border px-4 py-2 text-sm font-medium transition-all ${isActive ? 'border-sky-200 bg-white text-sky-700 shadow-sm' : 'border-transparent text-slate-500 hover:border-sky-100 hover:bg-sky-50/60 hover:text-sky-700'}`}>
                                         <span className="flex items-center gap-2">
                                             Sem {sem.semester_number}
-                                            {count > 0 && <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${isActive ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'}`}>{count}</span>}
+                                            {count > 0 && <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold ${isActive ? 'border-sky-200 bg-sky-50 text-sky-700' : 'border-transparent bg-slate-100 text-slate-600'}`}>{count}</span>}
                                         </span>
-                                        {isActive && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>}
                                     </button>
                                 );
                             })}
@@ -302,16 +295,16 @@ const BatchDetails = () => {
                                     Semester {activeSemester}
                                     <span className="text-sm font-normal text-slate-500 ml-2">({(coreCourses.length + electiveCourses.length)} courses)</span>
                                 </h3>
-                                <button onClick={handleOpenAddCourse} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm shadow-sm transition-colors">
+                                <button onClick={handleOpenAddCourse} className="campus-primary-button flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm shadow-sm transition-colors">
                                     <MdAdd className="w-4 h-4" /> Add Courses
                                 </button>
                             </div>
 
                             {coreCourses.length === 0 && electiveCourses.length === 0 ? (
-                                <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                                    <MdLibraryBooks className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                                    <p className="text-slate-400 mb-4 text-sm">No courses in this semester</p>
-                                    <button onClick={handleOpenAddCourse} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm shadow-sm">
+                                <div className="campus-empty-state text-center py-10 rounded-xl">
+                                    <div className="campus-empty-icon"><PiBookOpenText className="w-7 h-7" /></div>
+                                    <p className="text-slate-500 mb-4 text-sm font-medium">No courses in this semester</p>
+                                    <button onClick={handleOpenAddCourse} className="campus-primary-button inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-medium text-sm shadow-sm">
                                         <MdAdd className="w-4 h-4" /> Add Courses
                                     </button>
                                 </div>
@@ -321,30 +314,30 @@ const BatchDetails = () => {
                                     {coreCourses.length > 0 && (
                                         <div>
                                             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                                <div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div> Core Courses ({coreCourses.length})
+                                                <div className="h-2.5 w-2.5 rounded-full bg-sky-500"></div> Core Courses ({coreCourses.length})
                                             </h4>
                                             <div className="space-y-2">
                                                 {coreCourses.map(c => (
-                                                    <div key={c.course_id} className="flex items-center justify-between p-3.5 bg-white border border-slate-200 rounded-lg hover:border-blue-300 transition-colors group shadow-sm">
-                                                        <Link to={`/admin-managebatches/${id}/course/${c.course_id}`} className="flex items-center gap-3 flex-1 cursor-pointer">
-                                                            <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${semColors[(activeSemester-1) % semColors.length]} flex items-center justify-center shadow-sm`}>
-                                                                <MdMenuBook className="w-5 h-5 text-white" />
+                                                    <div key={c.course_id} className="group flex items-center justify-between gap-3 rounded-xl border border-sky-100 bg-gradient-to-r from-white to-sky-50/55 p-3.5 shadow-sm transition-all hover:border-sky-200 hover:shadow-md">
+                                                        <Link to={`/admin-managebatches/${id}/course/${c.course_id}`} className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+                                                            <div className="campus-icon-tile flex h-10 w-10 flex-shrink-0 items-center justify-center">
+                                                                <PiBookOpenText className="h-5 w-5" />
                                                             </div>
-                                                            <div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded uppercase">{c.code}</span>
-                                                                    <h4 className="font-semibold text-slate-800 text-sm">{c.title}</h4>
+                                                            <div className="min-w-0">
+                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                    <span className="rounded-lg border border-sky-100 bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-sky-700">{c.code}</span>
+                                                                    <h4 className="truncate text-sm font-semibold text-slate-800 group-hover:text-sky-800">{c.title}</h4>
                                                                 </div>
                                                                 <p className="text-xs text-slate-500 mt-0.5">{c.credit_hours} Credits</p>
                                                             </div>
                                                         </Link>
-                                                        <div className="flex items-center gap-1">
+                                                        <div className="flex flex-shrink-0 items-center gap-1.5">
                                                             <Link to={`/admin-managebatches/${id}/course/${c.course_id}`}
-                                                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors opacity-0 group-hover:opacity-100" title="Set Schedule">
+                                                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-sky-100 bg-white text-slate-400 opacity-100 shadow-sm transition-all hover:bg-sky-50 hover:text-sky-700 sm:opacity-0 sm:group-hover:opacity-100" title="Set Schedule">
                                                                 <MdSchedule className="w-4 h-4" />
                                                             </Link>
                                                             <button onClick={() => setCourseToDelete(c)} disabled={removingCourseId === c.course_id}
-                                                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50">
+                                                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-sky-100 bg-white text-slate-400 opacity-100 shadow-sm transition-all hover:border-red-100 hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 disabled:opacity-50">
                                                                 <MdDelete className="w-4 h-4" />
                                                             </button>
                                                         </div>
@@ -358,31 +351,31 @@ const BatchDetails = () => {
                                     {electiveCourses.length > 0 && (
                                         <div>
                                             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                                <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div> Elective Courses ({electiveCourses.length})
+                                                <div className="h-2.5 w-2.5 rounded-full bg-sky-400"></div> Elective Courses ({electiveCourses.length})
                                             </h4>
                                             <div className="space-y-2">
                                                 {electiveCourses.map(c => (
-                                                    <div key={c.course_id} className="flex items-center justify-between p-3.5 bg-white border border-slate-200 rounded-lg hover:border-amber-300 transition-colors group shadow-sm">
-                                                        <Link to={`/admin-managebatches/${id}/course/${c.course_id}`} className="flex items-center gap-3 flex-1 cursor-pointer">
-                                                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-sm">
-                                                                <MdMenuBook className="w-5 h-5 text-white" />
+                                                    <div key={c.course_id} className="group flex items-center justify-between gap-3 rounded-xl border border-sky-100 bg-gradient-to-r from-white to-sky-50/55 p-3.5 shadow-sm transition-all hover:border-sky-200 hover:shadow-md">
+                                                        <Link to={`/admin-managebatches/${id}/course/${c.course_id}`} className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+                                                            <div className="campus-icon-tile flex h-10 w-10 flex-shrink-0 items-center justify-center">
+                                                                <PiBookOpenText className="h-5 w-5" />
                                                             </div>
-                                                            <div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded uppercase">{c.code}</span>
-                                                                    <h4 className="font-semibold text-slate-800 text-sm">{c.title}</h4>
-                                                                    <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium uppercase tracking-wider border border-amber-200">Elective</span>
+                                                            <div className="min-w-0">
+                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                    <span className="rounded-lg border border-sky-100 bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-sky-700">{c.code}</span>
+                                                                    <h4 className="truncate text-sm font-semibold text-slate-800 group-hover:text-sky-800">{c.title}</h4>
+                                                                    <span className="rounded-full border border-sky-100 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-700">Elective</span>
                                                                 </div>
                                                                 <p className="text-xs text-slate-500 mt-0.5">{c.credit_hours} Credits</p>
                                                             </div>
                                                         </Link>
-                                                        <div className="flex items-center gap-1">
+                                                        <div className="flex flex-shrink-0 items-center gap-1.5">
                                                             <Link to={`/admin-managebatches/${id}/course/${c.course_id}`}
-                                                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors opacity-0 group-hover:opacity-100" title="Set Schedule">
+                                                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-sky-100 bg-white text-slate-400 opacity-100 shadow-sm transition-all hover:bg-sky-50 hover:text-sky-700 sm:opacity-0 sm:group-hover:opacity-100" title="Set Schedule">
                                                                 <MdSchedule className="w-4 h-4" />
                                                             </Link>
                                                             <button onClick={() => setCourseToDelete(c)} disabled={removingCourseId === c.course_id}
-                                                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50">
+                                                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-sky-100 bg-white text-slate-400 opacity-100 shadow-sm transition-all hover:border-red-100 hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 disabled:opacity-50">
                                                                 <MdDelete className="w-4 h-4" />
                                                             </button>
                                                         </div>
@@ -400,7 +393,7 @@ const BatchDetails = () => {
 
             {/* Add Course Modal */}
             {showAddCourse && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                <div className="campus-modal-shell fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
                         <div className="flex items-center justify-between p-5 border-b border-slate-200">
                             <div className="flex items-center gap-2">
@@ -416,7 +409,7 @@ const BatchDetails = () => {
                                 <button onClick={() => setCourseType('core')} className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${courseType === 'core' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                                     Core Course
                                 </button>
-                                <button onClick={() => setCourseType('elective')} className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${courseType === 'elective' ? 'bg-amber-500 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                                <button onClick={() => setCourseType('elective')} className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${courseType === 'elective' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                                     Elective Course
                                 </button>
                             </div>
@@ -469,7 +462,7 @@ const BatchDetails = () => {
             )}
             {/* Manage PLOs Modal */}
             {showPloModal && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                <div className="campus-modal-shell fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
                     <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh]">
                         <div className="flex items-center justify-between p-5 border-b border-slate-200">
                             <div>
@@ -496,13 +489,12 @@ const BatchDetails = () => {
                                                         setSelectedPloIds(prev => [...prev, plo.id]);
                                                     }
                                                 }}
-                                                className={`flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer transition-colors ${
-                                                    isSelected ? 'border-blue-500 bg-blue-50/50' : 'border-slate-200 bg-white hover:border-slate-300'
+                                                data-selected={isSelected}
+                                                className={`campus-choice-card flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer transition-all ${
+                                                    isSelected ? 'border-sky-400 bg-sky-50' : 'border-sky-100 bg-white hover:border-sky-200 hover:bg-sky-50/50'
                                                 }`}
                                             >
-                                                <div className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded flex items-center justify-center border transition-colors ${
-                                                    isSelected ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white text-transparent'
-                                                }`}>
+                                                <div data-selected={isSelected} className="campus-choice-check mt-0.5 flex-shrink-0 w-5 h-5 flex items-center justify-center transition-all">
                                                     <MdCheckCircle className="w-3.5 h-3.5" />
                                                 </div>
                                                 <div>
@@ -530,7 +522,7 @@ const BatchDetails = () => {
 
             {/* Course Delete Confirmation Modal */}
             {courseToDelete && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                <div className="campus-modal-shell fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
                     <div className="bg-white rounded-xl w-full max-w-md shadow-xl flex flex-col overflow-hidden">
                         <div className="p-6 text-center">
                             <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
@@ -564,7 +556,7 @@ const BatchDetails = () => {
 
             {/* Curriculum Selection Modal */}
             {showCurriculumModal && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                <div className="campus-modal-shell fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
                     <div className="bg-white rounded-xl w-full max-w-md shadow-xl flex flex-col overflow-hidden">
                         <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">

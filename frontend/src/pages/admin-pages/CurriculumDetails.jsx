@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, Link } from 'react-router-dom';
-import { MdArrowBack, MdAdd, MdDelete, MdSearch, MdClose, MdMenuBook, MdSchool, MdLibraryBooks, MdGroups, MdCheckCircle, MdChevronRight } from 'react-icons/md';
+import { MdArrowBack, MdAdd, MdDelete, MdSearch, MdClose, MdMenuBook, MdLibraryBooks, MdCheckCircle, MdChevronRight } from 'react-icons/md';
+import { PiBooks, PiCalendarDots, PiClockCountdown, PiUsersThree } from 'react-icons/pi';
 import { curriculumApi, courseApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -19,17 +20,6 @@ const CurriculumDetails = () => {
     const [courseType, setCourseType] = useState('core');
     const [courseToDelete, setCourseToDelete] = useState(null);
 
-    const semesterColors = [
-        'from-indigo-500 to-blue-600',
-        'from-violet-500 to-purple-600',
-        'from-emerald-500 to-teal-600',
-        'from-amber-500 to-orange-600',
-        'from-pink-500 to-rose-600',
-        'from-cyan-500 to-sky-600',
-        'from-red-500 to-orange-600',
-        'from-teal-500 to-green-600',
-    ];
-
     const { data: curriculum, isLoading: loading } = useQuery({
         queryKey: ['curriculum', id],
         queryFn: async () => {
@@ -42,9 +32,9 @@ const CurriculumDetails = () => {
     });
 
     const { data: allCourses = [] } = useQuery({
-        queryKey: ['allCoursesList'],
+        queryKey: ['allCoursesList', curriculum?.department_id],
         queryFn: async () => {
-            const response = await courseApi.getAllList();
+            const response = await courseApi.getAllList({ department_id: curriculum?.department_id });
             if (response.success) return response.data || [];
             return [];
         },
@@ -209,8 +199,8 @@ const CurriculumDetails = () => {
     }, 0) || 0;
 
     return (
-        <div className="min-h-full bg-gradient-to-br from-slate-100 to-slate-200">
-            <div className="p-8 max-w-7xl mx-auto">
+        <div className="campus-detail-page min-h-full bg-gradient-to-br from-slate-100 to-slate-200">
+            <div className="campus-page-inner p-8 max-w-7xl mx-auto">
                 {/* Breadcrumb */}
                 <div className="mb-6">
                     <Link to="/admin-curricula" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm">
@@ -235,15 +225,15 @@ const CurriculumDetails = () => {
                 </div>
 
                 {/* Stats Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div className="campus-stat-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                     {[
-                        { label: 'Semesters', value: curriculum.semesters?.length || 0, icon: MdSchool, color: 'from-indigo-500 to-blue-600' },
-                        { label: 'Total Courses', value: totalCourses, icon: MdLibraryBooks, color: 'from-emerald-500 to-teal-600' },
-                        { label: 'Total Credits', value: totalCredits, icon: MdMenuBook, color: 'from-violet-500 to-purple-600' },
+                        { label: 'Semesters', value: curriculum.semesters?.length || 0, icon: PiCalendarDots, color: 'from-indigo-500 to-blue-600' },
+                        { label: 'Total Courses', value: totalCourses, icon: PiBooks, color: 'from-emerald-500 to-teal-600' },
+                        { label: 'Total Credits', value: totalCredits, icon: PiClockCountdown, color: 'from-violet-500 to-purple-600' },
                     ].map((stat, i) => (
                         <div key={i} className="bg-white rounded-2xl border-2 border-slate-200 p-5 hover:shadow-lg transition-all">
                             <div className="flex items-start gap-4">
-                                <div className={`inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br ${stat.color} shadow-lg`}>
+                                <div className={`campus-icon-tile inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br ${stat.color} shadow-lg`}>
                                     <stat.icon className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
@@ -260,8 +250,8 @@ const CurriculumDetails = () => {
                         className="bg-white rounded-2xl border-2 border-slate-200 p-5 hover:shadow-lg hover:border-amber-300 transition-all text-left text-inherit block w-full group relative"
                     >
                         <div className="flex items-start gap-4">
-                            <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg group-hover:shadow-amber-500/30 transition-all">
-                                <MdGroups className="w-5 h-5 text-white" />
+                            <div className="campus-icon-tile inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg group-hover:shadow-amber-500/30 transition-all">
+                                <PiUsersThree className="w-5 h-5 text-white" />
                             </div>
                             <div>
                                 <p className="text-slate-500 text-xs mb-0.5">Batches Using</p>
@@ -275,9 +265,9 @@ const CurriculumDetails = () => {
                 </div>
 
                 {/* Semester Tabs */}
-                <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden">
+                <div className="campus-section-card bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden">
                     {/* Tab Header */}
-                    <div className="flex overflow-x-auto border-b border-slate-100 scrollbar-hide">
+                    <div className="campus-tabs flex overflow-x-auto border-b border-slate-100 scrollbar-hide">
                         {curriculum.semesters?.map((sem) => {
                             const isActive = sem.semester_number === activeSemester;
                             const courseCount = sem.courses?.length || 0;
@@ -285,24 +275,21 @@ const CurriculumDetails = () => {
                                 <button
                                     key={sem.id}
                                     onClick={() => setActiveSemester(sem.semester_number)}
-                                    className={`flex-shrink-0 px-6 py-4 text-sm font-medium transition-all relative
+                                    className={`relative m-1 flex-shrink-0 rounded-xl border px-4 py-2 text-sm font-medium transition-all
                                         ${isActive
-                                            ? 'text-indigo-600 bg-indigo-50/50'
-                                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                                            ? 'border-sky-200 bg-white text-sky-700 shadow-sm'
+                                            : 'border-transparent text-slate-500 hover:border-sky-100 hover:bg-sky-50/60 hover:text-sky-700'
                                         }`}
                                 >
                                     <span className="flex items-center gap-2">
                                         Sem {sem.semester_number}
                                         {courseCount > 0 && (
-                                            <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold
-                                                ${isActive ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                                            <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold
+                                                ${isActive ? 'border-sky-200 bg-sky-50 text-sky-700' : 'border-transparent bg-slate-100 text-slate-600'}`}>
                                                 {courseCount}
                                             </span>
                                         )}
                                     </span>
-                                    {isActive && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500"></div>
-                                    )}
                                 </button>
                             );
                         })}
@@ -319,7 +306,7 @@ const CurriculumDetails = () => {
                             </h3>
                             <button
                                 onClick={handleOpenAddCourse}
-                                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-indigo-500/25 transition-all text-sm"
+                                className="campus-primary-button flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-indigo-500/25 transition-all text-sm"
                             >
                                 <MdAdd className="w-5 h-5" />
                                 Add Courses
@@ -327,8 +314,8 @@ const CurriculumDetails = () => {
                         </div>
 
                         {activeCourses.length === 0 ? (
-                            <div className="text-center py-16 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                                <MdLibraryBooks className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                            <div className="campus-empty-state text-center py-16 rounded-2xl">
+                                <div className="campus-empty-icon"><PiBooks className="w-7 h-7" /></div>
                                 <p className="text-slate-400 mb-4">No courses in this semester yet</p>
                                 <button
                                     onClick={handleOpenAddCourse}
@@ -342,26 +329,26 @@ const CurriculumDetails = () => {
                                 {coreCourses.length > 0 && (
                                     <div>
                                         <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-full bg-indigo-500"></div> Core Courses ({coreCourses.length})
+                                            <div className="h-2.5 w-2.5 rounded-full bg-sky-500"></div> Core Courses ({coreCourses.length})
                                         </h4>
                                         <div className="space-y-2">
                                             {coreCourses.map((course) => (
-                                                <div key={course.course_id} className="flex items-center justify-between p-4 bg-white border-2 border-slate-300 rounded-xl shadow-sm border-2 border-slate-200 hover:bg-white hover:shadow-md transition-all group">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${semesterColors[(activeSemester - 1) % semesterColors.length]} flex items-center justify-center shadow-sm`}>
-                                                            <MdMenuBook className="w-5 h-5 text-white" />
+                                                <div key={course.course_id} className="group flex items-center justify-between gap-3 rounded-xl border border-sky-100 bg-gradient-to-r from-white to-sky-50/55 p-3.5 shadow-sm transition-all hover:border-sky-200 hover:shadow-md">
+                                                    <div className="flex min-w-0 items-center gap-3">
+                                                        <div className="campus-icon-tile flex h-10 w-10 flex-shrink-0 items-center justify-center">
+                                                            <PiBooks className="h-5 w-5" />
                                                         </div>
-                                                        <div>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-md">{course.code}</span>
-                                                                <h4 className="font-semibold text-slate-800">{course.title}</h4>
+                                                        <div className="min-w-0">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <span className="rounded-lg border border-sky-100 bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-sky-700">{course.code}</span>
+                                                                <h4 className="truncate text-sm font-semibold text-slate-800 group-hover:text-sky-800">{course.title}</h4>
                                                             </div>
-                                                            <p className="text-xs text-slate-400 mt-0.5">{course.credit_hours} Credits • {course.department_name}</p>
+                                                            <p className="mt-0.5 text-xs text-slate-500">{course.credit_hours} Credits • {course.department_name}</p>
                                                         </div>
                                                     </div>
                                                     <button onClick={() => setCourseToDelete(course)} disabled={removeCourseMutation.isPending && removeCourseMutation.variables === course.course_id}
-                                                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50">
-                                                        <MdDelete className="w-5 h-5" />
+                                                        className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-sky-100 bg-white text-slate-400 opacity-100 shadow-sm transition-all hover:border-red-100 hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 disabled:opacity-50">
+                                                        <MdDelete className="h-4 w-4" />
                                                     </button>
                                                 </div>
                                             ))}
@@ -371,27 +358,27 @@ const CurriculumDetails = () => {
                                 {electiveCourses.length > 0 && (
                                     <div>
                                         <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-full bg-amber-500"></div> Elective Courses ({electiveCourses.length})
+                                            <div className="h-2.5 w-2.5 rounded-full bg-sky-400"></div> Elective Courses ({electiveCourses.length})
                                         </h4>
                                         <div className="space-y-2">
                                             {electiveCourses.map((course) => (
-                                                <div key={course.course_id} className="flex items-center justify-between p-4 bg-amber-50/50 rounded-xl border border-amber-100 hover:bg-white hover:shadow-md transition-all group">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-sm">
-                                                            <MdMenuBook className="w-5 h-5 text-white" />
+                                                <div key={course.course_id} className="group flex items-center justify-between gap-3 rounded-xl border border-sky-100 bg-gradient-to-r from-white to-sky-50/55 p-3.5 shadow-sm transition-all hover:border-sky-200 hover:shadow-md">
+                                                    <div className="flex min-w-0 items-center gap-3">
+                                                        <div className="campus-icon-tile flex h-10 w-10 flex-shrink-0 items-center justify-center">
+                                                            <PiBooks className="h-5 w-5" />
                                                         </div>
-                                                        <div>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-md">{course.code}</span>
-                                                                <h4 className="font-semibold text-slate-800">{course.title}</h4>
-                                                                <span className="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-md font-medium">Elective</span>
+                                                        <div className="min-w-0">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <span className="rounded-lg border border-sky-100 bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-sky-700">{course.code}</span>
+                                                                <h4 className="truncate text-sm font-semibold text-slate-800 group-hover:text-sky-800">{course.title}</h4>
+                                                                <span className="rounded-full border border-sky-100 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-700">Elective</span>
                                                             </div>
-                                                            <p className="text-xs text-slate-400 mt-0.5">{course.credit_hours} Credits • {course.department_name}</p>
+                                                            <p className="mt-0.5 text-xs text-slate-500">{course.credit_hours} Credits • {course.department_name}</p>
                                                         </div>
                                                     </div>
                                                     <button onClick={() => setCourseToDelete(course)} disabled={removeCourseMutation.isPending && removeCourseMutation.variables === course.course_id}
-                                                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50">
-                                                        <MdDelete className="w-5 h-5" />
+                                                        className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-sky-100 bg-white text-slate-400 opacity-100 shadow-sm transition-all hover:border-red-100 hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 disabled:opacity-50">
+                                                        <MdDelete className="h-4 w-4" />
                                                     </button>
                                                 </div>
                                             ))}
@@ -408,12 +395,12 @@ const CurriculumDetails = () => {
 
             {/* Add Course Modal */}
             {showAddCourse && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                <div className="campus-modal-shell fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
                         {/* Modal Header */}
                         <div className="flex items-center justify-between p-6 border-b border-slate-200">
                             <div className="flex items-center gap-3">
-                                <div className="w-2 h-6 bg-gradient-to-b from-indigo-500 to-blue-600 rounded-full"></div>
+                                <div className="w-2 h-6 bg-sky-500 rounded-full"></div>
                                 <h2 className="text-xl font-bold text-slate-800">
                                     Add Courses to Semester {activeSemester}
                                 </h2>
@@ -426,10 +413,10 @@ const CurriculumDetails = () => {
                         {/* Type Toggle + Search */}
                         <div className="p-4 border-b border-slate-100 space-y-3">
                             <div className="flex gap-2">
-                                <button onClick={() => setCourseType('core')} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${courseType === 'core' ? 'bg-indigo-500 text-white shadow-lg' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                                <button onClick={() => setCourseType('core')} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${courseType === 'core' ? 'bg-sky-600 text-white shadow-sm' : 'bg-white border border-sky-100 text-slate-600 hover:bg-sky-50'}`}>
                                     Core Course
                                 </button>
-                                <button onClick={() => setCourseType('elective')} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${courseType === 'elective' ? 'bg-amber-500 text-white shadow-lg' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                                <button onClick={() => setCourseType('elective')} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${courseType === 'elective' ? 'bg-sky-600 text-white shadow-sm' : 'bg-white border border-sky-100 text-slate-600 hover:bg-sky-50'}`}>
                                     Elective Course
                                 </button>
                             </div>
@@ -458,13 +445,13 @@ const CurriculumDetails = () => {
                                             onClick={() => handleToggleCourse(course.id)}
                                             className={`w-full text-left flex items-center justify-between p-4 rounded-xl border transition-all
                                                 ${isSelected
-                                                    ? 'border-indigo-300 bg-indigo-50 shadow-sm'
+                                                    ? 'border-sky-300 bg-sky-50 shadow-sm'
                                                     : 'border-slate-100 bg-white hover:bg-slate-50 hover:border-slate-200'
                                                 }`}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all
-                                                    ${isSelected ? 'bg-indigo-500' : 'bg-slate-100'}`}>
+                                                    ${isSelected ? 'bg-sky-600' : 'bg-sky-50'}`}>
                                                     {isSelected ? (
                                                         <MdCheckCircle className="w-5 h-5 text-white" />
                                                     ) : (
@@ -504,7 +491,7 @@ const CurriculumDetails = () => {
             )}
             {/* Course Delete Confirmation Modal */}
             {courseToDelete && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                <div className="campus-modal-shell fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
                     <div className="bg-white rounded-xl w-full max-w-md shadow-xl flex flex-col overflow-hidden">
                         <div className="p-6 text-center">
                             <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
@@ -537,11 +524,11 @@ const CurriculumDetails = () => {
 
             {/* Batches Using Modal */}
             {showBatchesModal && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                <div className="campus-modal-shell fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
                         <div className="flex items-center justify-between p-5 border-b border-slate-200">
                             <div className="flex items-center gap-3">
-                                <div className="w-2 h-6 bg-gradient-to-b from-amber-500 to-orange-600 rounded-full"></div>
+                                <div className="w-2 h-6 bg-sky-500 rounded-full"></div>
                                 <h2 className="text-xl font-bold text-slate-800">
                                     Batches Using Curriculum
                                 </h2>
@@ -560,10 +547,10 @@ const CurriculumDetails = () => {
                                             key={batch.id}
                                             to={`/admin-managebatches/${batch.id}`}
                                             onClick={() => setShowBatchesModal(false)}
-                                            className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl hover:bg-amber-50 hover:border-amber-200 hover:text-amber-700 transition-all text-slate-700 font-medium"
+                                            className="flex items-center gap-3 p-3 bg-sky-50/60 border border-sky-100 rounded-xl hover:bg-sky-50 hover:border-sky-200 hover:text-sky-700 transition-all text-slate-700 font-medium"
                                         >
-                                            <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-                                                <MdGroups className="w-4 h-4 text-amber-600" />
+                                            <div className="campus-icon-tile w-9 h-9 flex items-center justify-center">
+                                                <PiUsersThree className="w-5 h-5" />
                                             </div>
                                             {batch.name}
                                         </Link>

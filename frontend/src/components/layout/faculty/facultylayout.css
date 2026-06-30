@@ -13,13 +13,6 @@
     min-height: 100vh;
 }
 
-/* Responsive adjustments */
-@media (max-width: 640px) {
-    .faculty-main-layout {
-        grid-template-columns: 200px 1fr;
-    }
-}
-
 @media (min-width: 1024px) {
     .faculty-main-layout {
         grid-template-columns: 260px 1fr;
@@ -66,7 +59,8 @@
 
 .page-container {
     flex: 1;
-    min-width: 100%;
+    min-width: 0;
+    width: 100%;
 }
 
 .footer {
@@ -88,5 +82,23 @@
     
     .footer p {
         font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 900px) {
+    .faculty-main-layout {
+        display: block;
+        min-height: 100dvh;
+    }
+
+    .faculty-main-layout .main {
+        min-height: calc(100dvh - 4.5rem);
+        height: auto;
+        overflow: visible;
+    }
+
+    .faculty-main-layout .page-container {
+        min-width: 0;
+        max-width: 100%;
     }
 }

@@ -65,10 +65,20 @@ router.get('/', async (req, res) => {
 // GET all courses as a simple list (for picker/popup, no pagination)
 router.get('/all-list', async (req, res) => {
     try {
-        const [courses] = await pool.query(
-            `SELECT c.id, c.title, c.code, c.credit_hours, d.name as department_name
-             FROM courses c JOIN departments d ON c.department_id = d.id ORDER BY c.code`
-        );
+        const department_id = (req.user.role === 'deptadmin') ? req.user.department_id : req.query.department_id;
+        
+        let query = `SELECT c.id, c.title, c.code, c.credit_hours, d.name as department_name
+                     FROM courses c JOIN departments d ON c.department_id = d.id`;
+        const params = [];
+
+        if (department_id) {
+            query += ` WHERE c.department_id = ?`;
+            params.push(department_id);
+        }
+
+        query += ` ORDER BY c.code`;
+
+        const [courses] = await pool.query(query, params);
         res.json({ success: true, data: courses });
     } catch (error) {
         console.error('Get all-list error:', error);

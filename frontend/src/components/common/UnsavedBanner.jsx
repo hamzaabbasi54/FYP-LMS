@@ -5,46 +5,22 @@
 // ============================================
 
 import React from 'react';
-import { MdWarning, MdSave, MdClose } from 'react-icons/md';
+import { MdInfoOutline, MdSave, MdClose } from 'react-icons/md';
 
 const UnsavedBanner = ({ onSave, onDiscard, saving = false }) => {
     return (
-        <div
-            style={{
-                background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
-                border: '1px solid #f59e0b',
-                borderRadius: '10px',
-                padding: '10px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginBottom: '16px',
-                animation: 'unsavedPulse 2s ease-in-out infinite'
-            }}
-        >
-            <MdWarning style={{ fontSize: '20px', color: '#d97706', flexShrink: 0 }} />
-            <span style={{ fontSize: '13px', fontWeight: 500, color: '#92400e', flex: 1 }}>
+        <div className="mb-4 flex flex-col gap-3 rounded-[8px] border border-sky-200 bg-gradient-to-r from-sky-50 to-white p-3 shadow-sm sm:flex-row sm:items-center sm:px-4">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-sky-200 bg-white text-sky-700">
+                <MdInfoOutline className="h-5 w-5" />
+            </span>
+            <span className="flex-1 text-sm font-semibold text-sky-900">
                 You have unsaved changes
             </span>
-            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+            <div className="flex shrink-0 gap-2">
                 <button
                     onClick={onSave}
                     disabled={saving}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '5px 14px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        background: '#d97706',
-                        color: '#fff',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: saving ? 'not-allowed' : 'pointer',
-                        opacity: saving ? 0.6 : 1,
-                        transition: 'background 0.15s'
-                    }}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[#0798e7] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#0078c5] disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
                 >
                     <MdSave style={{ fontSize: '14px' }} />
                     {saving ? 'Saving...' : 'Save'}
@@ -52,31 +28,12 @@ const UnsavedBanner = ({ onSave, onDiscard, saving = false }) => {
                 <button
                     onClick={onDiscard}
                     disabled={saving}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '5px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #d97706',
-                        background: 'transparent',
-                        color: '#92400e',
-                        fontSize: '12px',
-                        fontWeight: 500,
-                        cursor: 'pointer',
-                        transition: 'background 0.15s'
-                    }}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
                 >
                     <MdClose style={{ fontSize: '14px' }} />
                     Discard
                 </button>
             </div>
-            <style>{`
-                @keyframes unsavedPulse {
-                    0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.2); }
-                    50% { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1); }
-                }
-            `}</style>
         </div>
     );
 };
