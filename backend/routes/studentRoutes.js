@@ -18,6 +18,10 @@ import { scopeFaculty } from '../middleware/facultyScope.js';
 const scopeStudent = scopeToDepartment('students', 'id', {
     joinQuery: `SELECT b.department_id FROM students s JOIN batches b ON s.batch_id = b.id WHERE s.id = ?`
 });
+// Variant that reads from :studentId param (for routes like /:studentId/parent)
+const scopeStudentById = scopeToDepartment('students', 'studentId', {
+    joinQuery: `SELECT b.department_id FROM students s JOIN batches b ON s.batch_id = b.id WHERE s.id = ?`
+});
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
 import { parseExcel, generateExcel, getUploadDir, createExcelUpload, parseAcademicBackground } from '../utils/excel.js';
 import { cacheGet, cacheSet, cacheDelPattern } from '../config/redis.js';
@@ -531,7 +535,7 @@ router.post('/import', isAdmin, upload.single('file'), validateMagicBytes, async
 });
 
 // POST bulk import students and enroll them into a course assignment (Faculty)
-router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file'), validateMagicBytes, async (req, res) => {
+router.post('/import/course/:assignmentId', isAuthenticated, scopeFaculty('course_assignment', 'params', 'assignmentId'), upload.single('file'), validateMagicBytes, async (req, res) => {
     const filePath = req.file?.path ?? null;
     const assignmentId = parseInt(req.params.assignmentId, 10);
 
@@ -746,6 +750,8 @@ router.post('/import/course/:assignmentId', isAuthenticated, upload.single('file
         await cacheDelPattern('students:*');
         await cacheDelPattern('parents:*');
         await cacheDelPattern('dashboard:*');
+        await cacheDelPattern(`enrolledStudents:${assignmentId}:*`);
+        await cacheDelPattern('facultyDashboardCourses:*');
 
         const imported = validRows.length;
         const skipped = preflightErrors.length;
@@ -849,7 +855,7 @@ router.get('/by-batch/:batchId/ids', isAdmin, async (req, res) => {
 });
 
 // POST single student registration and enrollment into a course assignment (Faculty)
-router.post('/course/:assignmentId/register', isAuthenticated, async (req, res) => {
+router.post('/course/:assignmentId/register', isAuthenticated, scopeFaculty('course_assignment', 'params', 'assignmentId'), async (req, res) => {
     const { assignmentId } = req.params;
     const conn = await pool.getConnection();
 
@@ -922,6 +928,8 @@ router.post('/course/:assignmentId/register', isAuthenticated, async (req, res) 
         await cacheDelPattern('students:*');
         await cacheDelPattern('parents:*');
         await cacheDelPattern('dashboard:*');
+        await cacheDelPattern(`enrolledStudents:${assignmentId}:*`);
+        await cacheDelPattern('facultyDashboardCourses:*');
         res.status(201).json({
             success: true,
             message: 'Student registered and enrolled successfully',
@@ -940,22 +948,44 @@ router.post('/course/:assignmentId/register', isAuthenticated, async (req, res) 
 });
 
 // DELETE unenroll student from a course (Faculty-scoped)
-// Only removes the enrollment record — student data remains in the system
 router.delete('/course/:assignmentId/unenroll/:studentId', isAuthenticated, scopeFaculty('course_assignment', 'params', 'assignmentId'), async (req, res) => {
+    const conn = await pool.getConnection();
     try {
+        await conn.beginTransaction();
         const { assignmentId, studentId } = req.params;
-        const [result] = await pool.query(
+
+        // 1. Delete grades and question_grades
+        const [assessments] = await conn.query('SELECT id FROM assessments WHERE course_assignment_id = ?', [assignmentId]);
+        if (assessments.length > 0) {
+            const assessmentIds = assessments.map(a => a.id);
+            await conn.query('DELETE FROM question_grades WHERE student_id = ? AND assessment_id IN (?)', [studentId, assessmentIds]);
+            await conn.query('DELETE FROM grades WHERE student_id = ? AND assessment_id IN (?)', [studentId, assessmentIds]);
+        }
+
+        // 2. Delete attendance
+        await conn.query('DELETE FROM attendance WHERE student_id = ? AND course_assignment_id = ?', [studentId, assignmentId]);
+
+        // 3. Delete enrollment
+        const [result] = await conn.query(
             'DELETE FROM enrollments WHERE student_id = ? AND course_assignment_id = ?',
             [studentId, assignmentId]
         );
         if (result.affectedRows === 0) {
+            await conn.rollback();
             return res.status(404).json({ success: false, message: 'Enrollment not found' });
         }
+
+        await conn.commit();
         await cacheDelPattern(`enrolledStudents:${assignmentId}:*`);
-        res.json({ success: true, message: 'Student unenrolled successfully' });
+        await cacheDelPattern('facultyDashboardCourses:*');
+        await cacheDelPattern('obe:*');
+        res.json({ success: true, message: 'Student unenrolled and related records cleared successfully' });
     } catch (error) {
+        if (conn) await conn.rollback();
         console.error('Unenroll student (faculty) error:', error);
         res.status(500).json({ success: false, message: 'Error unenrolling student' });
+    } finally {
+        if (conn) conn.release();
     }
 });
 
@@ -996,7 +1026,7 @@ router.get('/export/excel', isAdmin, async (req, res) => {
 
 // ===================== PARENTS =====================
 
-router.get('/:studentId/parent', async (req, res) => {
+router.get('/:studentId/parent', isAuthenticated, scopeStudentById, async (req, res) => {
     try {
         const [parents] = await pool.query('SELECT * FROM parents WHERE student_id = ?', [req.params.studentId]);
         res.json({ success: true, data: parents.length > 0 ? parents[0] : null });
@@ -1039,6 +1069,7 @@ router.post('/enroll', isAdmin, async (req, res) => {
             [student_id, course_assignment_id]
         );
         await cacheDelPattern(`enrolledStudents:${course_assignment_id}:*`);
+        await cacheDelPattern('facultyDashboardCourses:*');
         res.status(201).json({ success: true, message: 'Student enrolled', data: { id: result.insertId } });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') {
@@ -1050,17 +1081,41 @@ router.post('/enroll', isAdmin, async (req, res) => {
 });
 
 router.delete('/enroll/:id', isAdmin, async (req, res) => {
+    const conn = await pool.getConnection();
     try {
-        const [[enrollment]] = await pool.query('SELECT course_assignment_id FROM enrollments WHERE id = ?', [req.params.id]);
+        await conn.beginTransaction();
+        const [[enrollment]] = await conn.query('SELECT student_id, course_assignment_id FROM enrollments WHERE id = ?', [req.params.id]);
         if (!enrollment) {
+            await conn.rollback();
             return res.status(404).json({ success: false, message: 'Enrollment not found' });
         }
-        await pool.query('DELETE FROM enrollments WHERE id = ?', [req.params.id]);
-        await cacheDelPattern(`enrolledStudents:${enrollment.course_assignment_id}:*`);
-        res.json({ success: true, message: 'Student unenrolled' });
+
+        const { student_id, course_assignment_id } = enrollment;
+
+        // 1. Delete grades and question_grades
+        const [assessments] = await conn.query('SELECT id FROM assessments WHERE course_assignment_id = ?', [course_assignment_id]);
+        if (assessments.length > 0) {
+            const assessmentIds = assessments.map(a => a.id);
+            await conn.query('DELETE FROM question_grades WHERE student_id = ? AND assessment_id IN (?)', [student_id, assessmentIds]);
+            await conn.query('DELETE FROM grades WHERE student_id = ? AND assessment_id IN (?)', [student_id, assessmentIds]);
+        }
+
+        // 2. Delete attendance
+        await conn.query('DELETE FROM attendance WHERE student_id = ? AND course_assignment_id = ?', [student_id, course_assignment_id]);
+
+        await conn.query('DELETE FROM enrollments WHERE id = ?', [req.params.id]);
+
+        await conn.commit();
+        await cacheDelPattern(`enrolledStudents:${course_assignment_id}:*`);
+        await cacheDelPattern('facultyDashboardCourses:*');
+        await cacheDelPattern('obe:*');
+        res.json({ success: true, message: 'Student unenrolled and related records cleared' });
     } catch (error) {
+        if (conn) await conn.rollback();
         console.error('Unenroll student error:', error);
         res.status(500).json({ success: false, message: 'Error unenrolling student' });
+    } finally {
+        if (conn) conn.release();
     }
 });
 
@@ -1095,6 +1150,58 @@ router.get('/enrolled/:courseAssignmentId', async (req, res) => {
     } catch (error) {
         console.error('Get enrolled students error:', error);
         res.status(500).json({ success: false, message: 'Error fetching enrolled students' });
+    }
+});
+
+// ===================== STUDENT PORTAL (ME) =====================
+
+// GET student grades
+router.get('/student/me/grades', async (req, res) => {
+    try {
+        if (req.user.role !== 'student') {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
+        const [grades] = await pool.query(
+            `SELECT g.score, g.remarks, g.graded_at,
+                    a.title as assessment_title, a.type as assessment_type, a.max_score, a.weight, a.release_grades_on,
+                    c.title as course_title, c.code as course_code
+             FROM grades g
+             JOIN assessments a ON g.assessment_id = a.id
+             JOIN course_assignments ca ON a.course_assignment_id = ca.id
+             JOIN courses c ON ca.course_id = c.id
+             WHERE g.student_id = ? AND (a.release_grades_on IS NULL OR a.release_grades_on <= NOW())
+             ORDER BY a.release_grades_on DESC, a.conducted_date DESC`,
+            [req.user.id]
+        );
+        res.json({ success: true, data: grades });
+    } catch (error) {
+        console.error('Get student grades error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching grades' });
+    }
+});
+
+// GET student attendance
+router.get('/student/me/attendance', async (req, res) => {
+    try {
+        if (req.user.role !== 'student') {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
+        const [attendance] = await pool.query(
+            `SELECT a.date, a.status, a.duration_hours,
+                    c.title as course_title, c.code as course_code
+             FROM attendance a
+             JOIN course_assignments ca ON a.course_assignment_id = ca.id
+             JOIN courses c ON ca.course_id = c.id
+             WHERE a.student_id = ?
+             ORDER BY a.date DESC`,
+            [req.user.id]
+        );
+        res.json({ success: true, data: attendance });
+    } catch (error) {
+        console.error('Get student attendance error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching attendance' });
     }
 });
 
