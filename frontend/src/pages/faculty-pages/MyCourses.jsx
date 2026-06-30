@@ -10,7 +10,6 @@ import {
     PiClipboardText as MdAssignment,
     PiDownloadSimple as MdFileDownload,
     PiMoon as MdNightsStay,
-    PiNotePencil as MdEdit,
     PiArrowSquareOut as MdOpenInNew,
     PiSun as MdWbSunny,
     PiUsersThree as MdPeople
@@ -156,13 +155,6 @@ const MyCourses = () => {
                             >
                                 <MdPeople className="w-4 h-4 mr-2" />
                                 Add Student
-                            </Link>
-                            <Link
-                                to={`/faculty-mycourses/${course.assignment_id}/edit-syllabus`}
-                                className="flex items-center justify-center bg-white border border-sky-100 text-slate-700 px-4 py-2 rounded-3xl hover:bg-sky-50/45 shadow-sm transition-colors font-medium text-sm whitespace-nowrap"
-                            >
-                                <MdEdit className="w-4 h-4 mr-2" />
-                                Edit Syllabus
                             </Link>
                         </div>
 

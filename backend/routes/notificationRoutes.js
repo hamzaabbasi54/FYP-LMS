@@ -52,7 +52,6 @@ router.get('/', async (req, res) => {
                 WHERE ca.faculty_id = ?
                   AND a.due_date < NOW()
                   AND a.status IN ('published', 'needs_grading')
-                  AND a.is_deleted = FALSE
             `, [req.user.id]);
 
             for (const u of ungraded) {

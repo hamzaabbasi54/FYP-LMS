@@ -123,8 +123,7 @@ const Navbar = () => {
 
     const currentTitle = getPageTitle(location.pathname);
     const isBatchCoursesPage = location.pathname.includes('/faculty-batch/');
-    const isMyCoursesPage = location.pathname.includes('/faculty-mycourses') && !location.pathname.includes('/edit-syllabus') && !location.pathname.includes('/register-student') && !location.pathname.includes('/grading') && !location.pathname.includes('/students') && !location.pathname.includes('/attendance');
-    const isEditSyllabusPage = location.pathname.includes('/edit-syllabus');
+    const isMyCoursesPage = location.pathname.includes('/faculty-mycourses') && !location.pathname.includes('/register-student') && !location.pathname.includes('/grading') && !location.pathname.includes('/students') && !location.pathname.includes('/attendance');
     const isRegisterStudentPage = location.pathname.includes('/register-student');
     const isManageStudentsPage = location.pathname.includes('/students');
     const isGradingPage = location.pathname.includes('/grading') && !location.pathname.match(/\/grading\/\d+/) && !location.pathname.includes('/grading/new');
@@ -246,19 +245,6 @@ const Navbar = () => {
                             <span className="text-slate-400">{courseCode}</span>
                             <MdChevronRight className="w-4 h-4 mx-2 text-slate-400" />
                             <span className="text-slate-700 font-medium">Grading</span>
-                        </div>
-                    ) : isEditSyllabusPage ? (
-                        // Breadcrumbs for Edit Syllabus page
-                        <div className="flex flex-wrap items-center text-sm text-slate-500 gap-2">
-                            <Link to="/faculty-mycourses" className="hover:text-sky-700 transition-colors">
-                                Courses
-                            </Link>
-                            <MdChevronRight className="w-4 h-4 text-slate-400" />
-                            <span className="bg-sky-50 text-sky-700 px-3 py-1 rounded-xl font-medium">
-                                {courseTitle}
-                            </span>
-                            <MdChevronRight className="w-4 h-4 text-slate-400" />
-                            <span className="text-slate-700 font-medium">Edit Syllabus</span>
                         </div>
                     ) : (
                         // Regular title for other pages
