@@ -7,3 +7,12 @@ build/
 
 *.xlsx
 *.csv
+
+# Flutter student app
+fyp_student_app/build/
+fyp_student_app/.dart_tool/
+fyp_student_app/android/.gradle/
+fyp_student_app/android/key.properties
+fyp_student_app/**/*.jks
+fyp_student_app/release/*.apk
+fyp_student_app/release/*.aab
