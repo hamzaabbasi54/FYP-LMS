@@ -536,10 +536,6 @@ router.get('/:id/clos-for-assessment', isAuthenticated, async (req, res) => {
 // GET courses assigned to logged in faculty
 router.get('/assigned', async (req, res) => {
     try {
-        const cacheKey = `facultyDashboardCourses:${req.user.id}`;
-        const cached = await cacheGet(cacheKey);
-        if (cached) return res.json({ success: true, data: cached });
-
         const [assignments] = await pool.query(
             `SELECT ca.id as assignment_id, c.id as course_id, c.title, c.code, c.credit_hours,
                     s.id as semester_id, s.name as semester_name,
@@ -554,7 +550,7 @@ router.get('/assigned', async (req, res) => {
             [req.user.id]
         );
 
-        await cacheSet(cacheKey, assignments, 1800); // 30 minutes
+        console.log(`🔍 [GET /assigned] DB FETCH for user ${req.user.id}: ${assignments.length} courses`);
 
         res.json({
             success: true,
@@ -1143,8 +1139,10 @@ router.put('/assign/:id', isAdmin, async (req, res) => {
         }
 
         await conn.commit();
+        console.log(`🔄 [PUT ASSIGN] faculty_id=${faculty_id || 'null'} for assignment ${req.params.id} — clearing cache now...`);
         await cacheDelPattern('facultyDashboardCourses:*');
         await cacheDelPattern('batchCourseDetails:*');
+        console.log(`✅ [PUT ASSIGN] Cache cleared`);
 
         // Emit real-time WebSocket event to faculty's department
         try {

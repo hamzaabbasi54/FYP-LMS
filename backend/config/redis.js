@@ -101,16 +101,22 @@ export const cacheDel = async (key) => {
  * Use sparingly — SCAN is safe for production but still iterative.
  */
 export const cacheDelPattern = async (pattern) => {
-    if (!isConnected || !redisClient) return;
+    if (!isConnected || !redisClient) {
+        console.warn(`⚠️ cacheDelPattern skipped [${pattern}]: Redis not connected (isConnected=${isConnected}, client=${!!redisClient})`);
+        return;
+    }
     try {
         let cursor = '0';
+        let totalDeleted = 0;
         do {
             const result = await redisClient.scan(cursor, { MATCH: pattern, COUNT: 100 });
             cursor = String(result.cursor);
             if (result.keys.length > 0) {
                 await redisClient.del(result.keys);
+                totalDeleted += result.keys.length;
             }
         } while (cursor !== '0');
+        console.log(`🗑️ cacheDelPattern [${pattern}]: deleted ${totalDeleted} keys`);
     } catch (err) {
         console.error(`Redis DEL pattern error [${pattern}]:`, err.message);
     }

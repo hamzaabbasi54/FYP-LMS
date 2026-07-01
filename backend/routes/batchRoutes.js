@@ -862,6 +862,12 @@ router.post('/:batchId/semesters/:semesterNumber/courses/:courseId/assign', isAd
             }
         }
 
+        // Invalidate cache BEFORE emitting socket event to prevent race condition
+        console.log(`🔄 [ASSIGN] faculty_id=${faculty_id || 'null'} for course ${courseId} in batch ${batchId} — clearing cache now...`);
+        await cacheDelPattern(`batchCourseDetails:${batchId}:*`);
+        await cacheDelPattern('facultyDashboardCourses:*');
+        console.log(`✅ [ASSIGN] Cache cleared for batch ${batchId} and faculty dashboard`);
+
         // Emit real-time event
         const [[batch]] = await pool.query('SELECT department_id FROM batches WHERE id = ?', [batchId]);
         if (batch) {
@@ -871,7 +877,6 @@ router.post('/:batchId/semesters/:semesterNumber/courses/:courseId/assign', isAd
                 updatedBy: req.user.email
             });
         }
-        await cacheDelPattern(`batchCourseDetails:${batchId}:*`);
         res.json({ success: true, message: 'Faculty assigned successfully' });
     } catch (error) {
         await conn.rollback();
