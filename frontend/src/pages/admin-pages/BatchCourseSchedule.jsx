@@ -76,8 +76,7 @@ const BatchCourseSchedule = () => {
         queryFn: async () => {
             const res = await approvalApi.getUsersByRole('faculty');
             return res.success ? (res.data || []) : [];
-        },
-        staleTime: Infinity
+        }
     });
 
     const { data: batchPlos = [] } = useQuery({
