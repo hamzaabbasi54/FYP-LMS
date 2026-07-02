@@ -25,6 +25,7 @@ const scopeStudentById = scopeToDepartment('students', 'studentId', {
 import { parsePagination, paginatedResponse } from '../utils/pagination.js';
 import { parseExcel, generateExcel, getUploadDir, createExcelUpload, parseAcademicBackground } from '../utils/excel.js';
 import { cacheGet, cacheSet, cacheDelPattern } from '../config/redis.js';
+import { ensureStudentAccount } from '../utils/studentAccount.js';
 
 const router = express.Router();
 router.use(verifyToken);
@@ -203,6 +204,12 @@ router.post('/', isAdmin, async (req, res) => {
             [student_id_number.trim(), first_name, last_name, email.toLowerCase(), phone || '', batch_id, matric_marks || null, fsc_marks || null, background || null]
         );
         const studentId = result.insertId;
+
+        try {
+            await ensureStudentAccount(conn, studentId, email, student_id_number.trim());
+        } catch (accountErr) {
+            if (accountErr.code !== 'ER_NO_SUCH_TABLE') throw accountErr;
+        }
 
         if (parent && parent.name) {
             await conn.query(
@@ -468,6 +475,16 @@ router.post('/import', isAdmin, upload.single('file'), validateMagicBytes, async
             studentRows.map(s => [s.student_id_number, s.id])
         );
 
+        for (const row of validRows) {
+            const sid = rollNumberToStudentId.get(row.student_id_number);
+            if (!sid) continue;
+            try {
+                await ensureStudentAccount(conn, sid, row.email, row.student_id_number);
+            } catch (accountErr) {
+                if (accountErr.code !== 'ER_NO_SUCH_TABLE') throw accountErr;
+            }
+        }
+
         const parentValues = validRows
             .filter(row => row.parent_name && String(row.parent_name).trim())
             .map(row => {
@@ -701,6 +718,16 @@ router.post('/import/course/:assignmentId', isAuthenticated, scopeFaculty('cours
             studentRows.map(s => [s.student_id_number, s.id])
         );
 
+        for (const row of validRows) {
+            const sid = rollNumberToStudentId.get(row.student_id_number);
+            if (!sid) continue;
+            try {
+                await ensureStudentAccount(conn, sid, row.email, row.student_id_number);
+            } catch (accountErr) {
+                if (accountErr.code !== 'ER_NO_SUCH_TABLE') throw accountErr;
+            }
+        }
+
         const parentValues = validRows
             .filter(row => row.parent_name && String(row.parent_name).trim())
             .map(row => {
@@ -905,6 +932,12 @@ router.post('/course/:assignmentId/register', isAuthenticated, scopeFaculty('cou
         );
 
         const studentId = result.insertId;
+
+        try {
+            await ensureStudentAccount(conn, studentId, email, rollNumber);
+        } catch (accountErr) {
+            if (accountErr.code !== 'ER_NO_SUCH_TABLE') throw accountErr;
+        }
 
         // Insert parent if provided
         if (parent_name && studentId) {

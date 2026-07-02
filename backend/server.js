@@ -29,6 +29,8 @@ import obeRoutes from './routes/obeRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import curriculumRoutes from './routes/curriculumRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
+import studentAuthRoutes from './routes/studentAuthRoutes.js';
+import studentPortalRoutes from './routes/studentPortalRoutes.js';
 
 const app = express();
 
@@ -52,20 +54,37 @@ app.use(express.json({ limit: '1mb' }));
 import path from 'path';
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-// Rate limiters
+const isDev = process.env.NODE_ENV !== 'production';
+
+const isLoopback = (req) => {
+    const ip = req.ip || '';
+    return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+};
+
+const isStudentMobileApi = (req) => {
+    const url = req.originalUrl || req.url || '';
+    return url.includes('/student-auth') || url.includes('/student-portal');
+};
+
+// Dev: no rate limits (WiFi phone + local testing). Prod: normal limits.
+const skipRateLimit = (req) =>
+    isDev && (isLoopback(req) || isStudentMobileApi(req));
+
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 1000,                 // 1000 requests per window per IP
     message: { success: false, message: 'Too many requests. Please try again later.' },
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    skip: skipRateLimit,
 });
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 15,                   // 15 attempts per window
     message: { success: false, message: 'Too many attempts. Please try again later.' },
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    skip: (req) => isDev || isLoopback(req),
 });
 const messageLimiter = rateLimit({
     windowMs: 60 * 1000,       // 1 minute
@@ -92,6 +111,11 @@ app.use('/api/auth/forgot-password', authLimiter);
 app.use('/api/auth/reset-password', authLimiter);
 app.use('/api/auth/set-password', authLimiter);
 app.use('/api/auth', authRoutes);
+
+// Student mobile app routes
+app.use('/api/student-auth/login', authLimiter);
+app.use('/api/student-auth', studentAuthRoutes);
+app.use('/api/student-portal', studentPortalRoutes);
 
 // Approval routes (protected)
 app.use('/api/approvals', approvalRoutes);
